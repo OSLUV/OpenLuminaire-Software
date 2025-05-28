@@ -45,12 +45,12 @@ Next, you need to download the source code for the Pico SDK and the OpenLuminair
     * It is crucial to use the `--recursive` flag to fetch all necessary submodules.
     * Choose a location for these files (e.g., your home directory).
     ```bash
-    git clone --recursive [https://github.com/raspberrypi/pico-sdk.git](https://github.com/raspberrypi/pico-sdk.git)
+    git clone --recursive https://github.com/raspberrypi/pico-sdk.git
     ```
 
 2.  **Clone the OpenLuminaire Software:**
     ```bash
-    git clone [https://github.com/OSLUV/OpenLuminaire-Software.git](https://github.com/OSLUV/OpenLuminaire-Software.git)
+    git clone https://github.com/OSLUV/OpenLuminaire-Software.git
     ```
 
 ## Build the Firmware
