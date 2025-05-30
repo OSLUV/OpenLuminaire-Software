@@ -5,7 +5,7 @@ Software for OSLUV Open Source 222nm Luminaire
 
 These instructions will guide you through building the OpenLuminaire software for the RP2040-based hardware.
 
-## Prerequisites
+## 1. Prerequisites
 
 Before you begin, ensure you have the necessary environment set up based on your operating system:
 
@@ -102,3 +102,22 @@ Follow these steps to upload the `app.uf2` file to your OpenLuminaire lamp:
 7.  **Auto-Restart:** The lamp will automatically copy the file, eject itself, and restart with the new firmware.
 
 **Done!** Your OpenLuminaire lamp is now updated.
+
+# Dev Instructions
+
+## Changing the firmware splash image
+
+The easiest way to change the splash image that appears when the lamp first turns on is by using GIMP.
+
+1. Download and install GIMP at https://www.gimp.org/downloads/
+2. Open the desired image in GIMP. Resize it to 240x240 pixels. 
+3. Go to `File > Export as...` and rename the image to `image.c`
+4. In the export menu, use these settings.
+    - [ ] Save comment to file
+	- [ ] Use GLib types (guint8*)
+	- [ ] Use macros instead of struct
+	- [ ] Use 1 bit Run-Length-Encoding
+	- [x] **Save alpha channel (RGBA/RGB)**
+	- [x] **Save as RGB565 (16-bit)**
+5. Drop the `image.c` file in `OpenLuminaire-Software/v4/rp2040`
+6. Rebuild with `make` from inside the build directory and reflash. 
