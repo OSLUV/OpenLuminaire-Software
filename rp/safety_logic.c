@@ -66,7 +66,7 @@ char safety_action_desc[128] = {0};
 enum pwr_level debounce_new_level = PWR_OFF;
 uint64_t debounce_new_time = 0;
 
-bool radar_safety_enabled = true; // Turned on because haha ! 
+bool radar_safety_enabled = false; // Default off 
 
 void update_safety_logic()
 {
