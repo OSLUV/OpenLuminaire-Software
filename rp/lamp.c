@@ -266,6 +266,8 @@ void update_lamp()
 				GOTO_STATE(STATE_RUNNING);
 			}
 		}
+
+		// Don't go to off once starting to avoid short cycling
 	}
 	else if (lamp_state == STATE_RUNNING)
 	{
@@ -282,6 +284,11 @@ void update_lamp()
 			// Can tell immediately if a non-dimmable lamp has gone out
 			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
 		}
+
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(STATE_OFF);
+		}
 	}
 	else if (lamp_state == STATE_FULLPOWER_TEST)
 	{
@@ -297,12 +304,18 @@ void update_lamp()
 			printf("Timed out for 100%% test\n");
 			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
 		}
+
+		// Don't go to off while fullpower test -- open question?
 	}
 
 	#define RESTRIKE_CASE_N(n, goto) \
 	else if (lamp_state == STATE_RESTRIKE_COOLDOWN_##n)\
 	{\
 		commanded_power_level = PWR_OFF;\
+		if (requested_power_level == PWR_OFF)\
+		{\
+			GOTO_STATE(STATE_OFF);\
+		}\
 		if (elapsed_ms_in_state > RESTRIKE_COOLDOWN_TIME)\
 		{\
 			printf("Going to restrike attempt #" #n "\n");\
@@ -324,6 +337,8 @@ void update_lamp()
 		}\
 	}
 
+	// Don't go OFF in the middle of restrike attempt to avoid short cycling
+
 	RESTRIKE_CASE_N(1, STATE_RESTRIKE_COOLDOWN_2)
 	RESTRIKE_CASE_N(2, STATE_RESTRIKE_COOLDOWN_3)
 	RESTRIKE_CASE_N(3, STATE_FAILED_OFF)
@@ -331,17 +346,27 @@ void update_lamp()
 	else if (lamp_state == STATE_FAILED_OFF)
 	{
 		commanded_power_level = PWR_OFF;
-	}
 
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(STATE_OFF);
+		}
+	}
+	else if (lamp_state == STATE_OFF)
+	{
+		commanded_power_level = PWR_OFF;
+	}
 
 	pwm_set_gpio_level(PIN_PWM_LAMP, pwr_settings[commanded_power_level].pwm);
 	gpio_put(PIN_ENABLE_LAMP, commanded_power_level != PWR_OFF);
 
 	if (sense_12v < 10.5 || sense_12v > 13.5)
 	{
-		request_lamp_power(PWR_OFF);
+		gpio_put(PIN_ENABLE_LAMP, true);
+		sleep_ms(10);
 		set_switched_24v(false);
 		set_switched_12v(false);
+		GOTO_STATE(STATE_OFF);
 	}
 }
 

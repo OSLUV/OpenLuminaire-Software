@@ -128,8 +128,11 @@ void main()
 	usbpd_negotiate(true);
 	set_fan(100);
 
-
 	sleep_ms(250);
+	update_sense();
+
+	set_switched_12v(true);
+
 	sleep_ms(1000);
 
 	update_sense();
@@ -141,6 +144,8 @@ void main()
 	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
 
 	lamp_perform_type_test();
+
+	request_lamp_power(PWR_100PCT);
 
 	printf("Enter mainloop...\n");
 
