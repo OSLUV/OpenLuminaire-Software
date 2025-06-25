@@ -130,7 +130,13 @@ void display_init()
 	lv_tick_set_cb(my_tick);
 
 	printf("Create ST7796...\n");
-	lv_display_t * disp = lv_st7796_create(LCD_W, LCD_H, LV_LCD_FLAG_BGR, st7796_send_cmd, st7796_send_color);
+	lv_display_t * disp = lv_st7796_create(
+					LCD_W,  LCD_H, 0,
+					//LV_LCD_FLAG_BGR, 
+					st7796_send_cmd, st7796_send_color);
+	
+	static const uint8_t invon = 0x21;
+	st7796_send_cmd(disp, &invon, 1, NULL, 0);
 	lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
 	lv_display_set_buffers(disp, draw_buffer, NULL, sizeof(draw_buffer), LV_DISPLAY_RENDER_MODE_PARTIAL);
 	
