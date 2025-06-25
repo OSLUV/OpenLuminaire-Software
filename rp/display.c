@@ -169,7 +169,7 @@ void display_init()
 	//gpio_put(PIN_LCD_BACKLIGHT, 1);
 	*/
 
-	// --- Back-light PWM  Setting
+	// --- Back-light Init PWM & Default Setting
 	backlight_pwm_init(50); // 50%
 
 	printf("Config LVGL...\n");
