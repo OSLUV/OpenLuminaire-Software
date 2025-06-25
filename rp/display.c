@@ -2,6 +2,7 @@
 #include <pico/stdlib.h>
 #include <hardware/irq.h>
 #include <hardware/spi.h>
+#include <hardware/pwm.h>
 #include <drivers/display/st7796/lv_st7796.h>
 #include <lvgl.h>
 
@@ -10,6 +11,46 @@
 #define LCD_W 240
 #define LCD_H 240
 #define LCD_SPI spi0
+#define BACKLIGHT_WRAP           1000      // counter counts 0…1000  (≈1 kHz)
+#define BACKLIGHT_MAX_BRIGHTNESS 100       // user-facing range 0-100
+
+static void backlight_pwm_init(uint8_t brightness_percent)
+{
+    if (brightness_percent > BACKLIGHT_MAX_BRIGHTNESS)
+        brightness_percent = BACKLIGHT_MAX_BRIGHTNESS;
+
+    gpio_set_function(PIN_LCD_BACKLIGHT, GPIO_FUNC_PWM);
+
+    uint slice   = pwm_gpio_to_slice_num(PIN_LCD_BACKLIGHT);
+    uint channel = pwm_gpio_to_channel(PIN_LCD_BACKLIGHT);
+
+    pwm_config cfg = pwm_get_default_config();
+
+    /* 125 MHz / 125 = 1 MHz → 1 MHz / (BACKLIGHT_WRAP+1) ≈ 999 Hz */
+    pwm_config_set_clkdiv(&cfg, 125.0f);
+
+    pwm_init(slice, &cfg, false);
+    pwm_set_wrap(slice, BACKLIGHT_WRAP);
+
+    uint16_t level = brightness_percent * BACKLIGHT_WRAP / BACKLIGHT_MAX_BRIGHTNESS;
+    pwm_set_chan_level(slice, channel, level);
+
+    pwm_set_enabled(slice, true);
+}
+
+
+static void backlight_set_brightness(uint8_t brightness_percent)
+{
+    if (brightness_percent > BACKLIGHT_MAX_BRIGHTNESS)
+        brightness_percent = BACKLIGHT_MAX_BRIGHTNESS;
+
+    uint slice   = pwm_gpio_to_slice_num(PIN_LCD_BACKLIGHT);
+    uint channel = pwm_gpio_to_channel(PIN_LCD_BACKLIGHT);
+
+    uint16_t level = brightness_percent * BACKLIGHT_WRAP / BACKLIGHT_MAX_BRIGHTNESS;
+    pwm_set_chan_level(slice, channel, level);
+}
+
 
 void st7796_config_spi(int data_bits)
 {
@@ -118,13 +159,18 @@ void display_init()
 	gpio_put(PIN_LCD_RST, 1);
 	sleep_ms(15);
 	
+	/* Old Code
 	// init_output(PIN_LCD_BACKLIGHT);
 	// write_output(PIN_LCD_BACKLIGHT, 0); // Leave off until LVGL is ready
 	// write_output(PIN_LCD_BACKLIGHT, 3<<9);
 
-	gpio_init(PIN_LCD_BACKLIGHT);
-	gpio_set_dir(PIN_LCD_BACKLIGHT, GPIO_OUT);
-	gpio_put(PIN_LCD_BACKLIGHT, 1);
+	//gpio_init(PIN_LCD_BACKLIGHT);
+	//gpio_set_dir(PIN_LCD_BACKLIGHT, GPIO_OUT);
+	//gpio_put(PIN_LCD_BACKLIGHT, 1);
+	*/
+
+	// --- Back-light PWM  Setting
+	backlight_pwm_init(50); // 50%
 
 	printf("Config LVGL...\n");
 	lv_tick_set_cb(my_tick);
