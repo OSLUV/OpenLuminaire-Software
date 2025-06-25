@@ -1,7 +1,7 @@
 #include <lvgl.h>
 #include <stdio.h>
 #include "display.h"
-#define COLOR_ACCENT  lv_color_hex(0x1edaa8)
+#define COLOR_ACCENT  lv_color_hex(0x009a71)
 
 static lv_obj_t *screen;
 static lv_obj_t *sw_power;
@@ -105,14 +105,17 @@ static void styles_init(void)
     /* switch ON */
     lv_style_init(&style_switch_on);
     lv_style_set_bg_color(&style_switch_on, COLOR_ACCENT);
-    lv_style_set_border_opa(&style_switch_on, LV_OPA_TRANSP);
+	lv_style_set_border_width(&style_switch_on, 2);
+	lv_style_set_border_color(&style_switch_on, COLOR_ACCENT);
+    lv_style_set_border_opa(&style_switch_on, LV_OPA_100);
 
     /* switch OFF (outline white) */
     lv_style_init(&style_switch_off);
-    lv_style_set_bg_color(&style_switch_off, lv_color_black());
 
-    lv_style_set_border_opa(&style_switch_off, LV_OPA_TRANSP);
-    //lv_style_set_border_color(&style_switch_off, lv_color_white());
+    lv_style_set_bg_color(&style_switch_off, lv_color_black());
+	lv_style_set_border_width(&style_switch_off, 2);
+    lv_style_set_border_opa(&style_switch_off, LV_OPA_100);
+    lv_style_set_border_color(&style_switch_off, lv_color_white());
     //lv_style_set_border_width(&style_switch_off, 2);
 
     /* Row container: fully transparent, no border, no padding */
@@ -134,21 +137,11 @@ static void styles_init(void)
 void ui_main_init()
 {
 
-    if(!the_group) {
-        the_group = lv_group_create();                 // make the group
-        lv_indev_t *kbd = lv_indev_get_next(NULL);   //  first input device
-        lv_indev_set_group(kbd, the_group);            // route its keys to group
-    }
-
     styles_init();
 
     screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
     lv_obj_set_style_pad_all(screen, 1, 0);
-	/* NEW: add 3-pixel extra margin just at the top */
-	lv_obj_set_style_pad_top(screen,
-			lv_obj_get_style_pad_top(screen, 0) + 3,
-			0);
     lv_obj_set_flex_flow(screen, LV_FLEX_FLOW_COLUMN);
     lv_obj_set_flex_align(screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,  LV_FLEX_ALIGN_CENTER);
     lv_obj_remove_style(screen, NULL, LV_PART_SCROLLBAR);    /* kill scrollbar */
@@ -172,10 +165,12 @@ void ui_main_init()
 
         sw_power = lv_switch_create(row);
         lv_obj_set_size(sw_power, 50,25);
+        lv_obj_set_pos(row, 5,20);
 
         lv_obj_add_state(sw_power, LV_STATE_CHECKED);
-        lv_obj_add_style(sw_power, &style_switch_off, LV_PART_INDICATOR);
-        lv_obj_add_style(sw_power, &style_switch_on, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_set_style_bg_color(sw_power, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
+        lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw_power, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
         //lv_obj_add_event_cb(sw, cb_power, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, sw_power);
@@ -202,8 +197,9 @@ void ui_main_init()
 
         lv_obj_t *sw = lv_switch_create(row);
         lv_obj_set_size(sw, 50, 25);
-        lv_obj_add_style(sw, &style_switch_off, LV_PART_INDICATOR);
-        lv_obj_add_style(sw, &style_switch_on, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_set_style_bg_color(sw, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_add_style(sw, &style_switch_off, LV_PART_MAIN);
+        lv_obj_add_style(sw, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
      //   lv_obj_add_event_cb(sw, cb_radar, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, sw);
@@ -217,7 +213,7 @@ void ui_main_init()
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 28);
+        lv_obj_set_size(row, 230, 24);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
