@@ -25,7 +25,7 @@ add_executable(app
 	safety_logic.c
 	persistance.c
 	display.c
-
+	splash_img.c
 	ui_main.c
 	ui_loading.c
 )

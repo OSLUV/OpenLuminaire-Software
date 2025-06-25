@@ -11,7 +11,7 @@
 #include "buttons.h"
 #include "sense.h"
 #include "radar.h"
-// #include "menu.h"
+#include "menu.h"
 #include "fan.h"
 #include "radio.h"
 #include "safety_logic.h"
@@ -87,9 +87,13 @@ void dbgf(const char *fmt, ...) {
 
 #include "image.c"
 
+#define LCD_WIDTH 240
+#define LCD_HEIGHT 240
+uint16_t screen_buffer[LCD_WIDTH][LCD_HEIGHT];
 
 void main()
 {
+	backlight_set_brightness(0);
 	stdio_init_all();
 
 	gpio_init(4);
@@ -102,13 +106,17 @@ void main()
 	// st7789_init(&lcd_config, LCD_WIDTH, LCD_HEIGHT);
 	// st7789_set_backlight(50);
 	// display_splash_screen();
-
+	
+	
 	lv_init();
+	//backlight_set_brightness(0);
 	display_init();
-
-	ui_loading_init();
-	ui_loading_update();
-	ui_loading_open();
+	//backlight_set_brightness(0);
+	
+	
+	display_splash_image();
+	
+	
 
 	lv_timer_handler();
 
@@ -138,9 +146,14 @@ void main()
 	init_persistance_region();
 	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
 
-	// lamp_perform_type_test();
-
-	// request_lamp_power(PWR_100PCT);
+	lamp_perform_type_test();
+	display_splash_image();
+	request_lamp_power(PWR_100PCT);
+	
+	//sleep_ms(1000);
+	ui_loading_init();
+	//ui_loading_update();
+	//ui_loading_open();
 
 	printf("Enter mainloop... xx\n");
 
@@ -148,47 +161,45 @@ void main()
 
 	// sleep_ms(1000);
 
+	
 	ui_main_init();
-	ui_main_open();
 
 	bool splash_screen = true;
 	uint64_t last_buttons = 0;
 
 	while (1) {
-		// update_sense();
+		update_sense();
 		update_buttons();
-		// update_imu();
-		// update_mag();
-		// update_radar();
-		// update_usbpd();
-		// update_radio();
-		// update_lamp();
+		update_imu();
+		update_mag();
+		update_radar();
+		update_usbpd();
+		update_radio();
+		update_lamp();
 
 		curr_x = 0;
 		curr_y = 0;
 
-		// if (splash_screen && buttons_pressed)
-		// {
-		// 	splash_screen = false;
-		// }
-		// else if (!splash_screen)
-		// {
-		// 	memset(screen_buffer, 0x01, sizeof(screen_buffer));
-		// 	do_menu();
-		// 	st7789_blit_screen(LCD_WIDTH*LCD_HEIGHT, (uint16_t*)screen_buffer);
-		// }
+		if (splash_screen && buttons_pressed)
+		{
+			splash_screen = false;
+		}
+		else if (!splash_screen)
+		{
+			ui_main_update();
+		}
 
-		// if (((time_us_64() - last_buttons) > (1000*1000*30)) && !buttons_pressed && !splash_screen)
-		// {
-		// 	last_buttons = time_us_64();
-		// 	display_splash_screen();
-		// 	splash_screen = true;
-		// }
+		if (((time_us_64() - last_buttons) > (1000*1000*30)) && !buttons_pressed && !splash_screen)
+		{
+			last_buttons = time_us_64();
+			display_splash_image();
+			splash_screen = true;
+		}
 
-		// if (buttons_pressed)
-		// {
-		// 	last_buttons = time_us_64();
-		// }
+		if (buttons_pressed)
+		{
+			last_buttons = time_us_64();
+		}
 
 		ui_main_update();
 		ui_loading_update();
@@ -197,6 +208,6 @@ void main()
 		static int cycle= 0;
 		printf("Mainloop... %d\n", cycle++);
 
-		// update_safety_logic();
+		update_safety_logic();
 	}
 }

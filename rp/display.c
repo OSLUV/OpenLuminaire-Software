@@ -39,7 +39,7 @@ static void backlight_pwm_init(uint8_t brightness_percent)
 }
 
 
-static void backlight_set_brightness(uint8_t brightness_percent)
+void backlight_set_brightness(uint8_t brightness_percent)
 {
     if (brightness_percent > BACKLIGHT_MAX_BRIGHTNESS)
         brightness_percent = BACKLIGHT_MAX_BRIGHTNESS;
@@ -170,7 +170,7 @@ void display_init()
 	*/
 
 	// --- Back-light Init PWM & Default Setting
-	backlight_pwm_init(33); // 50%
+	backlight_pwm_init(0); // 50%
 
 	printf("Config LVGL...\n");
 	lv_tick_set_cb(my_tick);
@@ -180,7 +180,6 @@ void display_init()
 					LCD_W,  LCD_H, 0,
 					//LV_LCD_FLAG_BGR, 
 					st7796_send_cmd, st7796_send_color);
-	
 	static const uint8_t invon = 0x21;
 	st7796_send_cmd(disp, &invon, 1, NULL, 0);
 	lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
