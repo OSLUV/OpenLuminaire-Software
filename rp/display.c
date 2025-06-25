@@ -168,12 +168,19 @@ static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 
 		data->state = LV_INDEV_STATE_PRESSED;
 
-		const int key_map[] = {
+		/*const int key_map[] = {
 			[BUTTON_LEFT] = LV_KEY_LEFT,
 			[BUTTON_RIGHT] = LV_KEY_RIGHT,
 			[BUTTON_UP] = LV_KEY_PREV,
 			[BUTTON_DOWN] = LV_KEY_NEXT,
 			[BUTTON_CENTER] = LV_KEY_ENTER
+		};*/
+		static const uint8_t key_map[5] = {
+			LV_KEY_PREV,      /* bit 2  (BUTTON_UP)     */
+			LV_KEY_NEXT,      /* bit 3  (BUTTON_DOWN)   */
+			LV_KEY_LEFT,      /* bit 0  (BUTTON_LEFT)   */
+			LV_KEY_RIGHT,     /* bit 1  (BUTTON_RIGHT)  */
+			LV_KEY_ENTER      /* bit 4  (BUTTON_CENTER) */
 		};
 
 		last_key = key_map[bit];
@@ -187,4 +194,5 @@ static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 	}
 
 	data->key = last_key;
+	
 }
