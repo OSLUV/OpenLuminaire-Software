@@ -201,7 +201,7 @@ void main()
 			last_buttons = time_us_64();
 		}
 
-		ui_main_update();
+//		ui_main_update();
 		ui_loading_update();
 		lv_timer_handler();
 
