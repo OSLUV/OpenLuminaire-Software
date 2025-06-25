@@ -170,7 +170,7 @@ void display_init()
 	*/
 
 	// --- Back-light Init PWM & Default Setting
-	backlight_pwm_init(50); // 50%
+	backlight_pwm_init(33); // 50%
 
 	printf("Config LVGL...\n");
 	lv_tick_set_cb(my_tick);
