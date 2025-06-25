@@ -1,7 +1,7 @@
 #include <lvgl.h>
 #include <stdio.h>
 #include "display.h"
-#define COLOR_ACCENT  lv_color_hex(0x009a71)
+#define COLOR_ACCENT  lv_color_hex(0x5600FF)
 
 static lv_obj_t *screen;
 static lv_obj_t *sw_power;
@@ -213,7 +213,7 @@ void ui_main_init()
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 24);
+        lv_obj_set_size(row, 230, 28);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -327,34 +327,14 @@ void ui_main_init()
    //     lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_debug_open);         /* stub for now */
         lv_group_add_obj(the_group, btn);
     }
-
-	/*
-	{
-		lv_obj_t* button = lv_button_create(screen);
-		lv_obj_set_size(button, 80, 80);
-	    lv_obj_set_pos(button, 10, 10);
-	    // lv_obj_add_event_cb(button, avg_event, LV_EVENT_CLICKED, NULL);
-
-	    lv_obj_t* label = lv_label_create(button);
-	    lv_label_set_text(label, "ABC");
-	    lv_group_add_obj(the_group, button);
-	}
-
-	{
-		lv_obj_t* button = lv_button_create(screen);
-		lv_obj_set_size(button, 80, 80);
-	    lv_obj_set_pos(button, 10, 100);
-	    // lv_obj_add_event_cb(button, avg_event, LV_EVENT_CLICKED, NULL);
-
-	    lv_obj_t* label = lv_label_create(button);
-	    lv_label_set_text(label, "DEF");
-	    lv_group_add_obj(the_group, button);
-	}*/
+	// initialize focus on POWER switch
+    lv_group_focus_obj(sw_power);                 /* puts cursor on it      */
+    lv_obj_send_event(sw_power, LV_EVENT_FOCUSED, NULL);
 }
 
 void ui_main_update()
 {
-	
+	lv_scr_load(screen);	
 }
 
 void ui_main_open()
@@ -363,7 +343,5 @@ void ui_main_open()
 
     lv_scr_load(screen);        // show
 
-	// initialize focus on POWER switch
-    lv_group_focus_obj(sw_power);                 /* puts cursor on it      */
-    lv_obj_send_event(sw_power, LV_EVENT_FOCUSED, NULL);
+	
 }
