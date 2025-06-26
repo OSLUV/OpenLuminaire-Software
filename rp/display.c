@@ -180,6 +180,7 @@ void display_init()
 					LCD_W,  LCD_H, 0,
 					//LV_LCD_FLAG_BGR, 
 					st7796_send_cmd, st7796_send_color);
+	
 	static const uint8_t invon = 0x21;
 	st7796_send_cmd(disp, &invon, 1, NULL, 0);
 	lv_display_set_rotation(disp, LV_DISPLAY_ROTATION_0);
@@ -243,7 +244,13 @@ static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 }
 
 
-void display_reset_keypad(void)          /* public wrapper  */
+void display_screen_off(void)         /* NEW: called by main loop       */
 {
-    lv_indev_reset(indev_keypad, NULL);
+    backlight_set_brightness(0);         /* back-light PWM to 0            */
+}
+
+void display_screen_on(void)          /* NEW: called by main loop       */
+{
+    backlight_set_brightness(33);          /* restore full brightness        */
+    lv_timer_handler();               /* one flush so image shows       */
 }

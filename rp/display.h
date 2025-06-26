@@ -3,4 +3,5 @@
 void display_init();
 void backlight_set_brightness(uint8_t brightness_percent);
 extern lv_group_t* the_group;
-void display_reset_keypad();
+void display_screen_off();
+void display_screen_on();

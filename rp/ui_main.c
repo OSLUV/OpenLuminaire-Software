@@ -341,6 +341,7 @@ void ui_main_open()
 {
 	if(!screen) ui_main_init(); // build 
 
+
     lv_scr_load(screen);        // show
 
 	

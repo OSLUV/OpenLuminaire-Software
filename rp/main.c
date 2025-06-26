@@ -89,12 +89,11 @@ void buttons_clear_state(void)
 {
     buttons_pressed = 0;
     buttons_down    = 0;
-	display_reset_keypad();
 }
 
 void main()
 {
-	backlight_set_brightness(0);
+	display_screen_off();
 	stdio_init_all();
 
 	gpio_init(4);
@@ -149,20 +148,20 @@ void main()
 	request_lamp_power(PWR_100PCT);
 	
 	//sleep_ms(1000);
-	ui_loading_init();
+	//ui_loading_init();
 	//ui_loading_update();
 	//ui_loading_open();
 
 	printf("Enter mainloop... xx\n");
-
-	// sleep_ms(1000);
 	
-	ui_main_init();
+	/* 2. MAIN UI ----------------------------------------------------- */
+    ui_main_init();
+    ui_main_open();                   /* screen is now the UI           */
 
-	bool on_splash = true;
-	bool waiting_release  = false;
-	uint64_t last_buttons = 0;
-	uint64_t timeout = 30; // in seconds
+    /* 3. HOUSE-KEEPING FLAGS ---------------------------------------- */
+    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   /* 5 min     */
+    uint64_t last_activity_us = time_us_64();
+    bool screen_dark = false;
 
 	while (1) {
 		update_sense();
@@ -173,45 +172,33 @@ void main()
 		update_usbpd();
 		update_radio();
 		update_lamp();
-		
-		if (on_splash) {
+	
+		/* ----------- INPUT SCAN ------------------------------------ */
+        update_buttons();             /* updates buttons_pressed/downs  */
 
-            if (!waiting_release) {
-                /* look for the **edge** of the first press */
-                if (buttons_pressed) {
-                    waiting_release = true;        /* start swallow   */
-                    buttons_clear_state();         /* zero both masks */
-                }
+        if (buttons_pressed) {        /* any NEW edge event            */
+            last_activity_us = time_us_64();
 
-                ui_loading_update();               /* optional anim   */
-            }
-            else { /* waiting_release == true  */
-
-                if (buttons_down == 0) {           /* all keys up?    */
-                    ui_main_open();                /* switch screens  */
-                    on_splash = false;             /* enter UI state  */
-                }
-                else {
-                    /* still held – keep swallowing */
-                    buttons_clear_state();
-                }
+            if (screen_dark) {        /* wake-up path                  */
+                display_screen_on();  /* back-light on + one flush     */
+                screen_dark = false;
             }
         }
-		else {
-            ui_main_update();                      /* normal widgets  */
-        }
-		
-		// return to splash screen
-		if (((time_us_64() - last_buttons) > (1000*1000*timeout)) && !buttons_pressed && !on_splash)
-		{
-			last_buttons = time_us_64();
-			display_splash_image();
-			on_splash = true;
-		}
 
-//		ui_main_update();
-		ui_loading_update();
-		lv_timer_handler();
+        /* ----------- UI & DISPLAY ---------------------------------- */
+        if (!screen_dark) {
+            ui_main_update();         /* normal widgets                */
+        }
+
+        /* ----------- TIMEOUT CHECK --------------------------------- */
+        if (!screen_dark &&
+            (time_us_64() - last_activity_us) > TIMEOUT_US) {
+            display_screen_off();     /* back-light to 0               */
+            screen_dark = true;
+        }
+
+        /* ----------- LVGL TICK ------------------------------------- */
+        lv_timer_handler();           /* still pump LVGL even in dark  */
 
 		static int cycle= 0;
 		printf("Mainloop... %d\n", cycle++);
