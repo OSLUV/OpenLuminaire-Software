@@ -15,9 +15,6 @@ static lv_obj_t *sw_power;
 static lv_obj_t *sw_radar;
 static lv_obj_t *slider_intensity;
 static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
-void ui_main_open();
-
-extern uint16_t screen_buffer[240][240];  /* already defined elsewhere */
 
 // Callbacks
 static void debug_btn_cb(lv_event_t * e)
@@ -25,11 +22,37 @@ static void debug_btn_cb(lv_event_t * e)
     ui_debug_open();
 }
 
-static void cb_power(lv_event_t * e)
+uint16_t ROW_HEIGHT;
+uint16_t SWITCH_HEIGHT;
+uint16_t SWITCH_LENGTH;
+bool SHOW_DIM;
+extern const lv_font_t * FONT_MAIN = NULL; //&lv_font_montserrat_24;
+extern const lv_font_t * FONT_BIG = NULL; //&lv_font_montserrat_42;
+
+void ui_theme_init(void)
 {
-    lamp_toggle();          // ask back-end to change state
+    if (get_lamp_type() != LAMP_TYPE_DIMMABLE) {                    
+        FONT_MAIN = &lv_font_montserrat_36;  
+		FONT_BIG = &lv_font_montserrat_48;
+        ROW_HEIGHT     = 50;
+		SWITCH_HEIGHT = 33;
+		SWITCH_LENGTH = 66;
+		SHOW_DIM = false;
+    } else {
+		ROW_HEIGHT     = 28;
+		SWITCH_HEIGHT = 25;
+		SWITCH_LENGTH = 50;
+		SHOW_DIM = true;
+		FONT_MAIN = &lv_font_montserrat_24;  
+		FONT_BIG = &lv_font_montserrat_42;
+	}
 }
 
+
+static void cb_power(lv_event_t * e)
+{
+    lamp_toggle();         
+}
 
 /* -------- TILT read-out handle (big number) -------- */
 static lv_obj_t *lbl_tilt_val;
@@ -161,10 +184,12 @@ static void styles_init(void)
 
 }
 
+
 void ui_main_init()
 {
 
     styles_init();
+	ui_theme_init();
 
     screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
@@ -178,8 +203,7 @@ void ui_main_init()
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 28);
-        lv_obj_set_pos(row, 5,20);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -190,7 +214,7 @@ void ui_main_init()
         lv_obj_add_style(lbl, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
 
         sw_power = lv_switch_create(row);
-        lv_obj_set_size(sw_power, 50,25);
+        lv_obj_set_size(sw_power, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_pos(row, 5,20);
 
         lv_obj_add_state(sw_power, LV_STATE_CHECKED);
@@ -209,7 +233,7 @@ void ui_main_init()
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 28);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -222,7 +246,7 @@ void ui_main_init()
         lv_obj_add_style(lbl, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
 
         sw_radar = lv_switch_create(row);
-        lv_obj_set_size(sw_radar, 50, 25);
+        lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_radar, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
@@ -236,10 +260,10 @@ void ui_main_init()
 	}
 
     /* DIM slider (discrete 20/40/70/100 – default 100) */
-    {
+     if (SHOW_DIM) {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 28);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -272,7 +296,7 @@ void ui_main_init()
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
     }
-    {
+    if (SHOW_DIM){
             /* ── tick-labels under the INTENSITY slider ───────────────────── */
         /* 1. parent container — transparent, full width, no padding      */
         lv_obj_t *tick_row = lv_obj_create(screen);
