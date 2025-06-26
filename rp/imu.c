@@ -13,6 +13,8 @@
 #define IMU_REG_CTRL_REG_4 0x23
 #define IMU_REG_TEMP_CFG_REG 0x1f
 
+static float fx = 0.0f, fy = 0.0f, fz = 1.0f;   // filtered g-vector 
+
 static inline int imu_read(uint8_t addr_l, int len, uint8_t* out)
 {
     if (i2c_write_timeout_us(IMU_I2C, IMU_ADDR, &addr_l, 1, true, 1000) <0)
@@ -108,6 +110,12 @@ void update_imu()
     lis3dh_read_data(0x28, &imu_x, true);
     lis3dh_read_data(0x2A, &imu_y, true);
     lis3dh_read_data(0x2C, &imu_z, true);
+	
+	// one-pole low-pass:  y[n] = y[n-1] + α( x[n] – y[n-1] )          
+    const float alpha = 0.05f;         // 0 = freeze, 1 = raw data     
+    fx += alpha * (imu_x - fx);
+    fy += alpha * (imu_y - fy);
+    fz += alpha * (imu_z - fz);
 
     // int16_t adc1, adc2, adc3;
     // lis3dh_read_raw_data(0x08, &adc1);
@@ -128,9 +136,9 @@ void update_imu()
 int get_angle_pointing_down()
 {
     // dot product
-    float x = imu_x;
-    float y = imu_y;
-    float z = imu_z;
+    float x = fx;
+    float y = fy;
+    float z = fz;
 
     float mag = sqrtf(x*x + y*y + z*z);
 
