@@ -28,6 +28,7 @@ add_executable(app
 	splash_img.c
 	ui_main.c
 	ui_loading.c
+	ui_debug.c
 )
 
 pico_enable_stdio_usb(app 1)

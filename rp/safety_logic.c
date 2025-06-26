@@ -19,6 +19,8 @@ struct break_row {
 	[PWR_70PCT] = {86,  108, 30,  51}
 };
 
+enum pwr_level cap = PWR_100PCT;
+
 int get_tilt_break()
 {
 	return 35; // degrees
@@ -81,7 +83,7 @@ void update_safety_logic()
 	if (distance == -1 || distance == 0)
 	{
 		sprintf(safety_action_desc, "Radar failed -- 100%%");
-		request_lamp_power(PWR_100PCT);
+		request_lamp_power(cap);
 		return;
 	}
 
@@ -102,7 +104,7 @@ void update_safety_logic()
 	if ((time_us_64() - debounce_new_time) > (1000*3000))
 	{
 		sprintf(safety_action_desc, "Req %s", pwr_level_str(pwr));
-		request_lamp_power(pwr);
+		request_lamp_power(cap < pwr ? cap : pwr);
 	}
 	else
 	{
@@ -128,4 +130,9 @@ bool get_safety_logic_enabled()
 void toggle_radar()
 {
 	set_safety_logic_enabled(!get_safety_logic_enabled());
+}
+
+void set_safety_logic_cap(enum pwr_level l)
+{
+	cap = l;
 }

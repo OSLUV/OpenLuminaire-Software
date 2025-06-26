@@ -2,61 +2,27 @@
 #include <stdio.h>
 #include "display.h"
 #include "lamp.h"
-//#include "debug_bridge.h"
 #include "imu.h"
 #include "menu.h"
 #include "buttons.h"
+#include "ui_debug.h"
+#include "safety_logic.h"
 #include <string.h>
 #define COLOR_ACCENT  lv_color_hex(0x5600FF)
 
 static lv_obj_t *screen;
 static lv_obj_t *sw_power;
 static lv_obj_t *sw_radar;
+static lv_obj_t *slider_intensity;
 static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
 void ui_main_open();
 
 extern uint16_t screen_buffer[240][240];  /* already defined elsewhere */
- /*
-void run_old_menu
-{
-	display_reset_keypad();
-   
-	// suspend LVGL refresh so we can draw raw pixels 
-    lv_display_t * d = lv_display_get_default();
-	lv_display_suspend(d);
-
-    // main loop for the old menu 
-    for (;;)
-    {
-        update_buttons();                      //your normal input task 
-
-        // draw one frame of the text UI 
-        memset(screen_buffer, 0x01, sizeof(screen_buffer));
-        do_menu();                             // old code :contentReference[oaicite:5]{index=5} 
-        st7796_blit_screen(240*240, (uint16_t*)screen_buffer);
-
-        // exit when the user presses <centre> **while holding** <left>   
-        if ((buttons_pulsed & BUTTON_CENTER) && (buttons_down & BUTTON_LEFT))
-            break;
-    }
-
-    // clean up - swallow the key that closed the menu so LVGL doesn’t see it 
-    buttons_clear_state();                     // helper in main.c :contentReference[oaicite:6]{index=6} 
-    display_reset_keypad();                    // clears LVGL indev   :contentReference[oaicite:7]{index=7} 
-
-    lv_display_resume(d);                         // give the panel back to LVGL 
-	
-}*/
 
 // Callbacks
 static void debug_btn_cb(lv_event_t * e)
 {
-    // throw away the button-press that triggered the event 
-    //buttons_clear_state();
-    // run the legacy menu (blocks until user exits) 
-    //run_old_menu();
-    // when we return, reload the main screen so focus is sane 
-    ui_main_open();
+    ui_debug_open();
 }
 
 static void cb_power(lv_event_t * e)
@@ -96,8 +62,11 @@ static lv_style_t style_title, style_tick, style_big,
                   style_switch_on, style_switch_off, style_row,
 				  style_focus, style_btn_focus_inv, style_label_inv;
 
+static lv_group_t* the_group;
+
 static void styles_init(void)
 {
+    the_group = lv_group_create();
 
     /* white titles like “RADAR”, “INTENSITY” */
     lv_style_init(&style_title);
@@ -292,16 +261,16 @@ void ui_main_init()
         lv_obj_set_scrollbar_mode(row2, LV_SCROLLBAR_MODE_OFF);
         lv_obj_add_flag(row2, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
-        lv_obj_t *slider = lv_slider_create(row2);
-        lv_obj_set_size(slider, 180, 8);
-        lv_obj_add_style(slider, &style_slider_main, LV_PART_INDICATOR);
-        lv_obj_add_style(slider, &style_slider_knob, LV_PART_KNOB);
-        lv_slider_set_range(slider, 0, 3);          /* 4 ticks          */
-        lv_slider_set_value(slider, 3, LV_ANIM_OFF);/* default 100 %    */
+        slider_intensity = lv_slider_create(row2);
+        lv_obj_set_size(slider_intensity, 180, 8);
+        lv_obj_add_style(slider_intensity, &style_slider_main, LV_PART_INDICATOR);
+        lv_obj_add_style(slider_intensity, &style_slider_knob, LV_PART_KNOB);
+        lv_slider_set_range(slider_intensity, 0, 3);          /* 4 ticks          */
+        lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
      //   lv_obj_add_event_cb(slider, cb_dim, LV_EVENT_VALUE_CHANGED, NULL);
-        lv_group_add_obj(the_group, slider);
-		lv_obj_add_event_cb(slider, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
-		lv_obj_add_event_cb(slider, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
+        lv_group_add_obj(the_group, slider_intensity);
+		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
+		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
     }
     {
             /* ── tick-labels under the INTENSITY slider ───────────────────── */
@@ -382,25 +351,50 @@ void ui_main_init()
         lv_obj_set_pos(btn, 165,0);
         lv_label_set_text(lv_label_create(btn), "DEBUG >");
 		lv_obj_add_event_cb(btn, debug_btn_cb, LV_EVENT_CLICKED, NULL);
-   //     lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_debug_open);         /* stub for now */
         lv_group_add_obj(the_group, btn);
     }
 	// initialize focus on POWER switch
-    lv_group_focus_obj(sw_power);                 /* puts cursor on it      */
-    lv_obj_send_event(sw_power, LV_EVENT_FOCUSED, NULL);
+    
 }
 
 void ui_main_update()
-{
-	lv_scr_load(screen);
-		
+{		
 	// update tilt
 	int16_t a = get_angle_pointing_down(); 
 	ui_set_tilt(a);
+
+    bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
+    bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
+    int intensity_setting_int = lv_slider_get_value(slider_intensity);
+    enum pwr_level intensity_setting = PWR_20PCT + intensity_setting_int;
+
+    if (!power_on)
+    {
+        set_safety_logic_enabled(false);
+        request_lamp_power(PWR_OFF);
+    }
+    else
+    {
+        if (radar_on)
+        {
+            set_safety_logic_enabled(true);
+            set_safety_logic_cap(intensity_setting);
+        }
+        else
+        {
+            set_safety_logic_enabled(false);
+            request_lamp_power(intensity_setting);
+        }
+    }
+
+    lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
+    lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 }
 
 void ui_main_open()
 {
-	if(!screen) ui_main_init(); // build 
-    lv_scr_load(screen); // show	
+    lv_scr_load(screen);
+    display_set_indev_group(the_group);
+    lv_group_focus_obj(sw_power);
+    lv_obj_send_event(sw_power, LV_EVENT_FOCUSED, NULL);
 }

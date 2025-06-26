@@ -19,6 +19,7 @@
 #include "display.h"
 #include "ui_main.h"
 #include "ui_loading.h"
+#include "ui_debug.h"
 #include <lvgl.h>
 
 #include "font.c"
@@ -156,6 +157,7 @@ void main()
 	
 	/* 2. MAIN UI ----------------------------------------------------- */
     ui_main_init();
+    ui_debug_init();
     ui_main_open();                   /* screen is now the UI           */
 
     /* 3. HOUSE-KEEPING FLAGS ---------------------------------------- */
@@ -188,6 +190,7 @@ void main()
         /* ----------- UI & DISPLAY ---------------------------------- */
         if (!screen_dark) {
             ui_main_update();         /* normal widgets                */
+            ui_debug_update();
         }
 
         /* ----------- TIMEOUT CHECK --------------------------------- */
@@ -200,8 +203,8 @@ void main()
         /* ----------- LVGL TICK ------------------------------------- */
         lv_timer_handler();           /* still pump LVGL even in dark  */
 
-		static int cycle= 0;
-		printf("Mainloop... %d\n", cycle++);
+		// static int cycle= 0;
+		// printf("Mainloop... %d\n", cycle++);
 
 		update_safety_logic();
 	}

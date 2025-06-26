@@ -9,29 +9,6 @@
 #include "lamp.h"
 #include "radar.h"
 
-struct __packed radar_message
-{
-	uint8_t preamble[4];
-	uint16_t length;
-	struct __packed radar_report 
-	{
-		uint8_t type;
-		uint8_t _head;
-		struct __packed
-		{
-			uint8_t target_state;
-			uint16_t moving_target_distance_cm;
-			uint8_t moving_target_energy;
-			uint16_t stationary_target_distance_cm;
-			uint8_t stationary_target_energy;
-			uint16_t detection_distance_cm;
-		} report;
-		uint8_t _end;
-		uint8_t _check;
-	} inner;
-	uint8_t postamble[4];
-};
-
 static_assert(sizeof(struct radar_message) == (0x0D + 2 + 4 + 4));
 
 volatile uint8_t uart_rx_buffer[256];
@@ -242,4 +219,14 @@ void radar_debug()
 int get_radar_distance_cm()
 {
 	return radar_distance_cm;
+}
+
+struct radar_report* debug_get_radar_report()
+{
+	return &last_report;
+}
+
+int debug_get_radar_report_time()
+{
+	return last_report_time;
 }

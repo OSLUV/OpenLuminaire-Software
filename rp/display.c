@@ -189,9 +189,11 @@ void display_init()
 	indev_keypad = lv_indev_create();
     lv_indev_set_type(indev_keypad, LV_INDEV_TYPE_KEYPAD);
     lv_indev_set_read_cb(indev_keypad, keypad_read);
+}
 
-    the_group = lv_group_create();
-    lv_indev_set_group(indev_keypad, the_group);
+void display_set_indev_group(lv_group_t* group)
+{
+	lv_indev_set_group(indev_keypad, group);
 }
 
 #include "buttons.h"
