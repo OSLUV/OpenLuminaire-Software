@@ -339,9 +339,9 @@ void ui_main_init()
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_set_pos(btn,10,0);
-        lv_label_set_text(lv_label_create(btn), "< BACK");
+        lv_label_set_text(lv_label_create(btn), "< RESET");
 
-     //   lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_loading_open);
+     //   lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_reset_open);
         lv_group_add_obj(the_group, btn);
 
         btn = lv_btn_create(row);
