@@ -85,11 +85,12 @@ void dbgf(const char *fmt, ...) {
 	draw_text(work_buf, n);
 }
 
-#include "image.c"
-
-#define LCD_WIDTH 240
-#define LCD_HEIGHT 240
-uint16_t screen_buffer[LCD_WIDTH][LCD_HEIGHT];
+void buttons_clear_state(void)
+{
+    buttons_pressed = 0;
+    buttons_down    = 0;
+	display_reset_keypad();
+}
 
 void main()
 {
@@ -109,10 +110,7 @@ void main()
 	
 	
 	lv_init();
-	//backlight_set_brightness(0);
 	display_init();
-	//backlight_set_brightness(0);
-	
 	
 	display_splash_image();
 	
@@ -157,15 +155,14 @@ void main()
 
 	printf("Enter mainloop... xx\n");
 
-	
-
 	// sleep_ms(1000);
-
 	
 	ui_main_init();
 
-	bool splash_screen = true;
+	bool on_splash = true;
+	bool waiting_release  = false;
 	uint64_t last_buttons = 0;
+	uint64_t timeout = 30; // in seconds
 
 	while (1) {
 		update_sense();
@@ -176,29 +173,40 @@ void main()
 		update_usbpd();
 		update_radio();
 		update_lamp();
+		
+		if (on_splash) {
 
-		curr_x = 0;
-		curr_y = 0;
+            if (!waiting_release) {
+                /* look for the **edge** of the first press */
+                if (buttons_pressed) {
+                    waiting_release = true;        /* start swallow   */
+                    buttons_clear_state();         /* zero both masks */
+                }
 
-		if (splash_screen && buttons_pressed)
-		{
-			splash_screen = false;
-		}
-		else if (!splash_screen)
-		{
-			ui_main_update();
-		}
+                ui_loading_update();               /* optional anim   */
+            }
+            else { /* waiting_release == true  */
 
-		if (((time_us_64() - last_buttons) > (1000*1000*30)) && !buttons_pressed && !splash_screen)
+                if (buttons_down == 0) {           /* all keys up?    */
+                    ui_main_open();                /* switch screens  */
+                    on_splash = false;             /* enter UI state  */
+                }
+                else {
+                    /* still held – keep swallowing */
+                    buttons_clear_state();
+                }
+            }
+        }
+		else {
+            ui_main_update();                      /* normal widgets  */
+        }
+		
+		// return to splash screen
+		if (((time_us_64() - last_buttons) > (1000*1000*timeout)) && !buttons_pressed && !on_splash)
 		{
 			last_buttons = time_us_64();
 			display_splash_image();
-			splash_screen = true;
-		}
-
-		if (buttons_pressed)
-		{
-			last_buttons = time_us_64();
+			on_splash = true;
 		}
 
 //		ui_main_update();

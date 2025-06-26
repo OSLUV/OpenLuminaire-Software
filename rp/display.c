@@ -241,3 +241,9 @@ static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 	data->key = last_key;
 	
 }
+
+
+void display_reset_keypad(void)          /* public wrapper  */
+{
+    lv_indev_reset(indev_keypad, NULL);
+}
