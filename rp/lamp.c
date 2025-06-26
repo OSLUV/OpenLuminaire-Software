@@ -508,3 +508,18 @@ int get_lamp_state_elapsed_ms()
 {
 	return (time_us_64() - lamp_state_transition_time) / 1000;
 }
+
+
+void lamp_toggle()
+{
+    enum pwr_level cur = get_lamp_requested_power();
+
+    if (cur == PWR_OFF) {
+		
+        // TODO: get dimlevel here and turn on to that
+        if (get_lamp_type() == LAMP_TYPE_DIMMABLE)      request_lamp_power(PWR_100PCT);
+        else /* non-dimmable or unknown */              request_lamp_power(PWR_100PCT);
+    } else {
+        request_lamp_power(PWR_OFF);                    // turn OFF
+    }
+}

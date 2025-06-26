@@ -1,6 +1,7 @@
 #include <lvgl.h>
 #include <stdio.h>
 #include "display.h"
+#include "lamp.h"
 //#include "debug_bridge.h"
 #include "imu.h"
 #include "menu.h"
@@ -57,6 +58,10 @@ static void debug_btn_cb(lv_event_t * e)
     ui_main_open();
 }
 
+static void cb_power(lv_event_t * e)
+{
+    lamp_toggle();          // ask back-end to change state
+}
 
 
 /* -------- TILT read-out handle (big number) -------- */
@@ -224,7 +229,7 @@ void ui_main_init()
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw_power, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-        //lv_obj_add_event_cb(sw, cb_power, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_add_event_cb(sw_power, cb_power, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, sw_power);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
