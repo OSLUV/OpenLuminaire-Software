@@ -1,11 +1,63 @@
 #include <lvgl.h>
 #include <stdio.h>
 #include "display.h"
+//#include "debug_bridge.h"
+#include "imu.h"
+#include "menu.h"
+#include "buttons.h"
+#include <string.h>
 #define COLOR_ACCENT  lv_color_hex(0x5600FF)
 
 static lv_obj_t *screen;
 static lv_obj_t *sw_power;
 static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
+void ui_main_open();
+
+extern uint16_t screen_buffer[240][240];  /* already defined elsewhere */
+ /*
+void run_old_menu
+{
+	display_reset_keypad();
+   
+	// suspend LVGL refresh so we can draw raw pixels 
+    lv_display_t * d = lv_display_get_default();
+	lv_display_suspend(d);
+
+    // main loop for the old menu 
+    for (;;)
+    {
+        update_buttons();                      //your normal input task 
+
+        // draw one frame of the text UI 
+        memset(screen_buffer, 0x01, sizeof(screen_buffer));
+        do_menu();                             // old code :contentReference[oaicite:5]{index=5} 
+        st7796_blit_screen(240*240, (uint16_t*)screen_buffer);
+
+        // exit when the user presses <centre> **while holding** <left>   
+        if ((buttons_pulsed & BUTTON_CENTER) && (buttons_down & BUTTON_LEFT))
+            break;
+    }
+
+    // clean up - swallow the key that closed the menu so LVGL doesn’t see it 
+    buttons_clear_state();                     // helper in main.c :contentReference[oaicite:6]{index=6} 
+    display_reset_keypad();                    // clears LVGL indev   :contentReference[oaicite:7]{index=7} 
+
+    lv_display_resume(d);                         // give the panel back to LVGL 
+	
+}*/
+
+// Callbacks
+static void debug_btn_cb(lv_event_t * e)
+{
+    // throw away the button-press that triggered the event 
+    //buttons_clear_state();
+    // run the legacy menu (blocks until user exits) 
+    //run_old_menu();
+    // when we return, reload the main screen so focus is sane 
+    ui_main_open();
+}
+
+
 
 /* -------- TILT read-out handle (big number) -------- */
 static lv_obj_t *lbl_tilt_val;
@@ -13,9 +65,9 @@ static lv_obj_t *lbl_tilt_val;
 /* Update helper you can call from sensor task */
 void ui_set_tilt(uint16_t deg)
 {
-    if(deg > 180) deg = 180;
-    /* “%3d” keeps width 3 chars; degree symbol never shifts          */
-    lv_label_set_text_fmt(lbl_tilt_val, "%3d°", deg);
+    static char buf[8];  // enough for "-123°\0"  
+    lv_snprintf(buf, sizeof(buf), "%d°", deg);
+    lv_label_set_text(lbl_tilt_val, buf);
 }
 
 /* ------- Event helper ----------*/
@@ -290,7 +342,7 @@ void ui_main_init()
         /* big value */
         lbl_tilt_val = lv_label_create(row);
         //lv_obj_set_size(lbl_tilt_val, TILT_VAL_W, LV_SIZE_CONTENT);
-        lv_label_set_text(lbl_tilt_val, "150°");       /* default */
+        lv_label_set_text(lbl_tilt_val, "--°");       /* default */
         lv_obj_add_style(lbl_tilt_val, &style_big, 0);
         lv_obj_set_x(lbl_tilt, 150);
         lv_obj_set_style_text_align(lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);
@@ -324,6 +376,7 @@ void ui_main_init()
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_set_pos(btn, 165,0);
         lv_label_set_text(lv_label_create(btn), "DEBUG >");
+		lv_obj_add_event_cb(btn, debug_btn_cb, LV_EVENT_CLICKED, NULL);
    //     lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_debug_open);         /* stub for now */
         lv_group_add_obj(the_group, btn);
     }
@@ -334,7 +387,9 @@ void ui_main_init()
 
 void ui_main_update()
 {
-	lv_scr_load(screen);	
+	lv_scr_load(screen);
+	int16_t a = get_angle_pointing_down();   /* your existing function */
+	ui_set_tilt(a);	
 }
 
 void ui_main_open()
