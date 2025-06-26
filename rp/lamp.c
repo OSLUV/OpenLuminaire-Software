@@ -523,3 +523,14 @@ void lamp_toggle()
         request_lamp_power(PWR_OFF);                    // turn OFF
     }
 }
+
+bool lamp_is_switchable()
+{
+	enum lamp_state s = get_lamp_state();
+    return (s == STATE_OFF) || (s == STATE_RUNNING);
+}
+
+bool lamp_is_on(void)        // true if PWM will / does drive the lamp
+{
+    return get_lamp_commanded_power() != PWR_OFF;
+}

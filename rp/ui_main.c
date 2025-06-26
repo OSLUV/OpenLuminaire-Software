@@ -11,6 +11,7 @@
 
 static lv_obj_t *screen;
 static lv_obj_t *sw_power;
+static lv_obj_t *sw_radar;
 static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
 void ui_main_open();
 
@@ -214,7 +215,6 @@ void ui_main_init()
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 
-
         lv_obj_t *lbl = lv_label_create(row);
         lv_label_set_text(lbl, "POWER");
         lv_obj_add_style(lbl, &style_title, 0);
@@ -229,7 +229,7 @@ void ui_main_init()
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw_power, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-        lv_obj_add_event_cb(sw_power, cb_power, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_obj_add_event_cb(sw_power, cb_power, LV_EVENT_PRESSED, NULL);
         lv_group_add_obj(the_group, sw_power);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
@@ -252,18 +252,18 @@ void ui_main_init()
         lv_obj_add_style(lbl, &style_title, 0);
         lv_obj_add_style(lbl, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
 
-        lv_obj_t *sw = lv_switch_create(row);
-        lv_obj_set_size(sw, 50, 25);
-        lv_obj_set_style_bg_color(sw, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_add_style(sw, &style_switch_off, LV_PART_MAIN);
-        lv_obj_add_style(sw, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
-		lv_obj_add_style(sw, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-     //   lv_obj_add_event_cb(sw, cb_radar, LV_EVENT_VALUE_CHANGED, NULL);
-        lv_group_add_obj(the_group, sw);
+        sw_radar = lv_switch_create(row);
+        lv_obj_set_size(sw_radar, 50, 25);
+        lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
+        lv_obj_add_style(sw_radar, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
+		lv_obj_add_style(sw_radar, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
+     //   lv_obj_add_event_cb(sw_radar, cb_radar, LV_EVENT_VALUE_CHANGED, NULL);
+        lv_group_add_obj(the_group, sw_radar);
 
 		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
-		lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
-		lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
+		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
+		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
 	}
 
     /* DIM slider (discrete 20/40/70/100 – default 100) */
@@ -393,16 +393,14 @@ void ui_main_init()
 void ui_main_update()
 {
 	lv_scr_load(screen);
-	int16_t a = get_angle_pointing_down();   /* your existing function */
-	ui_set_tilt(a);	
+		
+	// update tilt
+	int16_t a = get_angle_pointing_down(); 
+	ui_set_tilt(a);
 }
 
 void ui_main_open()
 {
 	if(!screen) ui_main_init(); // build 
-
-
-    lv_scr_load(screen);        // show
-
-	
+    lv_scr_load(screen); // show	
 }

@@ -51,3 +51,5 @@ enum lamp_state get_lamp_state();
 const char* lamp_state_str(enum lamp_state s);
 int get_lamp_state_elapsed_ms();
 void lamp_toggle();
+bool lamp_is_switchable();
+bool lamp_is_on();

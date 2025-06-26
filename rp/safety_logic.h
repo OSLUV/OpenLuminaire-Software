@@ -5,3 +5,4 @@ void update_safety_logic();
 char* get_safety_logic_state_desc();
 bool get_safety_logic_enabled();
 void set_safety_logic_enabled(bool);
+void toggle_radar();
