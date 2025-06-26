@@ -31,7 +31,7 @@ extern const lv_font_t * FONT_BIG = NULL; //&lv_font_montserrat_42;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() != LAMP_TYPE_DIMMABLE) {                    
+    if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE) {                    
         FONT_MAIN = &lv_font_montserrat_36;  
 		FONT_BIG = &lv_font_montserrat_48;
         ROW_HEIGHT     = 50;
@@ -94,7 +94,7 @@ static void styles_init(void)
     /* white titles like “RADAR”, “INTENSITY” */
     lv_style_init(&style_title);
     lv_style_set_text_color(&style_title, lv_color_white());
-    lv_style_set_text_font(&style_title, &lv_font_montserrat_24);
+    lv_style_set_text_font(&style_title, FONT_MAIN);
 
     /* small tick labels */
     lv_style_init(&style_tick);
@@ -104,7 +104,7 @@ static void styles_init(void)
     /* big 180° */
     lv_style_init(&style_big);
     lv_style_set_text_color(&style_big, lv_color_white());
-    lv_style_set_text_font(&style_big, &lv_font_montserrat_42);
+    lv_style_set_text_font(&style_big, FONT_BIG);
 
     /* bottom nav buttons as plain text */
     lv_style_init(&style_btn);
@@ -198,6 +198,15 @@ void ui_main_init()
     lv_obj_set_flex_align(screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,  LV_FLEX_ALIGN_CENTER);
     lv_obj_remove_style(screen, NULL, LV_PART_SCROLLBAR);    /* kill scrollbar */
     lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
+
+	if (!SHOW_DIM){ // buffer row
+		lv_obj_t *row = lv_obj_create(screen);
+		lv_obj_add_style(row, &style_row, 0);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+        lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+	}
 
 	// — POWER ——————————————————————————
     {
