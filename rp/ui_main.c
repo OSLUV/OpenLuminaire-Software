@@ -25,26 +25,33 @@ static void debug_btn_cb(lv_event_t * e)
 uint16_t ROW_HEIGHT;
 uint16_t SWITCH_HEIGHT;
 uint16_t SWITCH_LENGTH;
+uint16_t DEBUG_POS;
 bool SHOW_DIM;
 extern const lv_font_t * FONT_MAIN = NULL; //&lv_font_montserrat_24;
 extern const lv_font_t * FONT_BIG = NULL; //&lv_font_montserrat_42;
+extern const lv_font_t * FONT_SMALL = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE) {                    
-        FONT_MAIN = &lv_font_montserrat_36;  
-		FONT_BIG = &lv_font_montserrat_48;
-        ROW_HEIGHT     = 50;
-		SWITCH_HEIGHT = 33;
-		SWITCH_LENGTH = 66;
-		SHOW_DIM = false;
-    } else {
+    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
 		ROW_HEIGHT     = 28;
 		SWITCH_HEIGHT = 25;
 		SWITCH_LENGTH = 50;
+		DEBUG_POS = 165;
 		SHOW_DIM = true;
 		FONT_MAIN = &lv_font_montserrat_24;  
 		FONT_BIG = &lv_font_montserrat_42;
+		FONT_SMALL = &lv_font_montserrat_14;
+        
+    } else {
+        ROW_HEIGHT     = 45;
+		SWITCH_HEIGHT = 33;
+		SWITCH_LENGTH = 66;
+		DEBUG_POS = 125;
+		SHOW_DIM = false;
+		FONT_MAIN = &lv_font_montserrat_32;  
+		FONT_BIG = &lv_font_montserrat_48;
+		FONT_SMALL = &lv_font_montserrat_22;
 	}
 }
 
@@ -111,7 +118,7 @@ static void styles_init(void)
     lv_style_set_bg_opa(&style_btn, LV_OPA_TRANSP);
     lv_style_set_border_opa(&style_btn, LV_OPA_TRANSP);
     lv_style_set_text_color(&style_btn, lv_color_white());
-    lv_style_set_text_font(&style_btn, &lv_font_montserrat_14);
+    lv_style_set_text_font(&style_btn, FONT_SMALL);
 
 	// label highlighting
 	lv_style_init(&style_label_inv);
@@ -187,9 +194,9 @@ static void styles_init(void)
 
 void ui_main_init()
 {
-
-    styles_init();
 	ui_theme_init();
+    styles_init();
+	
 
     screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
@@ -202,7 +209,7 @@ void ui_main_init()
 	if (!SHOW_DIM){ // buffer row
 		lv_obj_t *row = lv_obj_create(screen);
 		lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, ROW_HEIGHT);
+        lv_obj_set_size(row, 230, 20);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -372,7 +379,7 @@ void ui_main_init()
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
         lv_obj_set_pos(btn,10,0);
-        lv_label_set_text(lv_label_create(btn), "< RESET");
+        lv_label_set_text(lv_label_create(btn), "< BACK");
 
      //   lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_reset_open);
         lv_group_add_obj(the_group, btn);
@@ -381,7 +388,7 @@ void ui_main_init()
         lv_obj_remove_style_all(btn);
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
-        lv_obj_set_pos(btn, 165,0);
+        lv_obj_set_pos(btn, DEBUG_POS,0);
         lv_label_set_text(lv_label_create(btn), "DEBUG >");
 		lv_obj_add_event_cb(btn, debug_btn_cb, LV_EVENT_CLICKED, NULL);
         lv_group_add_obj(the_group, btn);
@@ -398,8 +405,13 @@ void ui_main_update()
 
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
-    int intensity_setting_int = lv_slider_get_value(slider_intensity);
+
+	int intensity_setting_int = 100;
+	if (SHOW_DIM) {
+		int intensity_setting_int = lv_slider_get_value(slider_intensity);
+	}
     enum pwr_level intensity_setting = PWR_20PCT + intensity_setting_int;
+	
 
     if (!power_on)
     {
@@ -419,9 +431,10 @@ void ui_main_update()
             request_lamp_power(intensity_setting);
         }
     }
-
-    lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
-    lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
+	if (SHOW_DIM){
+		lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
+    }
+	lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 }
 
 void ui_main_open()
