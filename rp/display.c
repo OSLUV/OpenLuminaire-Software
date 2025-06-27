@@ -233,12 +233,12 @@ static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 
 		last_key = key_map[bit];
 
-		printf("Produce PRESSED %d\n", last_key);
+		// printf("Produce PRESSED %d\n", last_key);
 	}
 	else
 	{
 		data->state = LV_INDEV_STATE_RELEASED;
-		printf("Produce RELEASED %d\n", last_key);
+		// printf("Produce RELEASED %d\n", last_key);
 	}
 
 	data->key = last_key;

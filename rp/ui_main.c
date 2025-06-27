@@ -56,11 +56,6 @@ void ui_theme_init(void)
 }
 
 
-static void cb_power(lv_event_t * e)
-{
-    lamp_toggle();         
-}
-
 /* -------- TILT read-out handle (big number) -------- */
 static lv_obj_t *lbl_tilt_val;
 
@@ -238,7 +233,6 @@ void ui_main_init()
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw_power, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-        lv_obj_add_event_cb(sw_power, cb_power, LV_EVENT_PRESSED, NULL);
         lv_group_add_obj(the_group, sw_power);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
@@ -430,7 +424,7 @@ void ui_main_update()
             request_lamp_power(intensity_setting);
         }
     }
-    
+
 	if (SHOW_DIM){
 		lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
     }

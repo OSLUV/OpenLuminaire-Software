@@ -249,27 +249,25 @@ void update_lamp()
 
 	uint64_t elapsed_ms_in_state = (time_us_64() - lamp_state_transition_time) / 1000;
 
-	#define GOTO_STATE(x) {printf("State transition to %s\n", lamp_state_str(x)); lamp_state = x; lamp_state_transition_time = time_us_64();}
+	#define GOTO_STATE(x) {if (x != lamp_state) printf("State transition to %s\n", lamp_state_str(x)); lamp_state = x; lamp_state_transition_time = time_us_64();}
 
 	if (lamp_state == STATE_STARTING)
 	{
 		commanded_power_level = PWR_100PCT;
 
+		if (reported_power_level == PWR_100PCT)
+		{
+			GOTO_STATE(STATE_RUNNING);
+		}
+
 		if (elapsed_ms_in_state > START_TIME)
 		{
-			if (reported_power_level != PWR_100PCT)
-			{
-				GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
-			}
-			else
-			{
-				GOTO_STATE(STATE_RUNNING);
-			}
+			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
+		}
 
-			if (requested_power_level == PWR_OFF)
-			{
-				GOTO_STATE(PWR_OFF);
-			}
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(PWR_OFF);
 		}
 
 		// Don't go to off once starting to avoid short cycling
@@ -389,58 +387,75 @@ int get_lamp_raw_freq()
 	return latched_lamp_hz;
 }
 
+bool consider_state_test_failure(enum lamp_state state)
+{
+	if (state == STATE_FAILED_OFF)
+		return true;
+
+	if (state == STATE_RESTRIKE_COOLDOWN_1)
+		return true; // TODO: If we want to be really conservative, allow three restrikes while determining
+
+	return false;
+}
+
 void lamp_perform_type_test_inner()
 {
 	current_lamp_type = LAMP_TYPE_UNKNOWN;
+	request_lamp_power(PWR_OFF);
+	update_lamp();
+	update_lamp();
+	sleep_ms(100);
 	
 	set_switched_24v(false);
 	sleep_ms(100);
 	set_switched_12v(false);
 	sleep_ms(100);
 	set_switched_12v(true);
-	sleep_ms(100);
+	sleep_ms(1000);
 	request_lamp_power(PWR_100PCT);
 
-	uint64_t start = time_us_64();
-	while ((time_us_64() - start) < (1000*1000*3))
+	while (true)
 	{
 		update_lamp();
 		sleep_ms(10);
-	}
 
-	enum pwr_level lvl;
-	bool ok = get_lamp_reported_power(&lvl);
-
-	printf("12V test: GPIO=%d/%dhz\n", gpio_get(PIN_STATUS_LAMP), latched_lamp_hz);
-	if (!gpio_get(PIN_STATUS_LAMP))
-	{
-		printf("Determined dimmable\n");
-		current_lamp_type = LAMP_TYPE_DIMMABLE;
-		return;
+		if (consider_state_test_failure(get_lamp_state()))
+		{
+			break;
+		}
+		else if (get_lamp_state() == STATE_RUNNING)
+		{
+			printf("Determined dimmable\n");
+			current_lamp_type = LAMP_TYPE_DIMMABLE;
+			return;
+		}
 	}
 
 	request_lamp_power(PWR_OFF);
+	update_lamp();
+	update_lamp();
 	sleep_ms(100);
 
 	set_switched_24v(true);
-	sleep_ms(100);
+	sleep_ms(1000);
 
 	request_lamp_power(PWR_100PCT);
 
-	start = time_us_64();
-	while ((time_us_64() - start) < (1000*1000*3))
+	while (true)
 	{
 		update_lamp();
 		sleep_ms(10);
-	}
 
-	printf("24V test: GPIO=%d/%dhz\n", gpio_get(PIN_STATUS_LAMP), latched_lamp_hz);
-
-	if (!gpio_get(PIN_STATUS_LAMP))
-	{
-		printf("Determined non-dimmable\n");
-		current_lamp_type = LAMP_TYPE_NONDIMMABLE;
-		return;
+		if (consider_state_test_failure(get_lamp_state()))
+		{
+			break;
+		}
+		else if (get_lamp_state() == STATE_RUNNING)
+		{
+			printf("Determined non-dimmable\n");
+			current_lamp_type = LAMP_TYPE_NONDIMMABLE;
+			return;
+		}
 	}
 
 	printf("Determined unknown\n");
@@ -521,30 +536,4 @@ const char* lamp_state_str(enum lamp_state s)
 int get_lamp_state_elapsed_ms()
 {
 	return (time_us_64() - lamp_state_transition_time) / 1000;
-}
-
-
-void lamp_toggle()
-{
-    enum pwr_level cur = get_lamp_requested_power();
-
-    if (cur == PWR_OFF) {
-		
-        // TODO: get dimlevel here and turn on to that
-        if (get_lamp_type() == LAMP_TYPE_DIMMABLE)      request_lamp_power(PWR_100PCT);
-        else /* non-dimmable or unknown */              request_lamp_power(PWR_100PCT);
-    } else {
-        request_lamp_power(PWR_OFF);                    // turn OFF
-    }
-}
-
-bool lamp_is_switchable()
-{
-	enum lamp_state s = get_lamp_state();
-    return (s == STATE_OFF) || (s == STATE_RUNNING);
-}
-
-bool lamp_is_on(void)        // true if PWM will / does drive the lamp
-{
-    return get_lamp_commanded_power() != PWR_OFF;
 }

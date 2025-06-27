@@ -146,6 +146,15 @@ void main()
 
 	lamp_perform_type_test();
 	display_splash_image();
+
+
+
+	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
+	{
+		set_switched_24v(true);
+		sleep_ms(100);
+	}
+	
 	request_lamp_power(PWR_100PCT);
 	
 	//sleep_ms(1000);
