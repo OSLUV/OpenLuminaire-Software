@@ -145,7 +145,6 @@ void main()
 	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
 
 	lamp_perform_type_test();
-	display_splash_image();
 
 
 
@@ -154,7 +153,7 @@ void main()
 		set_switched_24v(true);
 		sleep_ms(100);
 	}
-	
+
 	request_lamp_power(PWR_100PCT);
 	
 	//sleep_ms(1000);
