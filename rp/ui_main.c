@@ -406,12 +406,11 @@ void ui_main_update()
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
 
-	int intensity_setting_int = 100;
+    enum pwr_level intensity_setting = PWR_100PCT;
 	if (SHOW_DIM) {
 		int intensity_setting_int = lv_slider_get_value(slider_intensity);
-	}
-    enum pwr_level intensity_setting = PWR_20PCT + intensity_setting_int;
-	
+        intensity_setting = PWR_20PCT + intensity_setting_int;
+	}	
 
     if (!power_on)
     {
@@ -431,9 +430,11 @@ void ui_main_update()
             request_lamp_power(intensity_setting);
         }
     }
+    
 	if (SHOW_DIM){
 		lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
     }
+
 	lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 }
 
