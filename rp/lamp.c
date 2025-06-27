@@ -463,9 +463,15 @@ void lamp_perform_type_test_inner()
 	return;
 }
 
+void load_lamp_type_from_flash()
+{
+	printf("Determined type from flash\n");
+	current_lamp_type = persistance_region.factory_lamp_type;
+}
+
 void lamp_perform_type_test()
 {
-	if (persistance_region.factory_lamp_type == 0)
+	if (get_lamp_type() == LAMP_TYPE_UNKNOWN)
 	{
 		printf("Performing lamp type test\n");
 		lamp_perform_type_test_inner();
@@ -477,11 +483,6 @@ void lamp_perform_type_test()
 			persistance_region.factory_lamp_type = get_lamp_type();
 			write_persistance_region();
 		}
-	}
-	else
-	{
-		printf("Determined type from flash\n");
-		current_lamp_type = persistance_region.factory_lamp_type;
 	}
 }
 

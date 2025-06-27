@@ -5,7 +5,7 @@
 #include "persistance.h"
 
 #define MAGIC_VAL 0xb8870200
-#define FLASH_TARGET_OFFSET (512 * 1024)
+#define FLASH_TARGET_OFFSET (PICO_FLASH_SIZE_BYTES - 4096)
 
 struct persistance_region persistance_region = {0};
 

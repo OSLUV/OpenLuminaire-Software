@@ -107,11 +107,16 @@ void main()
 	// st7789_init(&lcd_config, LCD_WIDTH, LCD_HEIGHT);
 	// st7789_set_backlight(50);
 	// display_splash_screen();
+
+	init_persistance_region();
+	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
 	
 	
 	lv_init();
 	display_init();
-	
+
+
+	load_lamp_type_from_flash();
 	display_splash_image();
 	
 	
@@ -139,13 +144,8 @@ void main()
 	update_sense();
 
 	printf("Scripted start...\n");
-	printf("Setup persistance region...\n");
-
-	init_persistance_region();
-	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
 
 	lamp_perform_type_test();
-
 
 
 	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
