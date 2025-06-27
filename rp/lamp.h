@@ -7,6 +7,7 @@ bool get_switched_12v();
 bool get_switched_24v();
 void update_lamp();
 
+// Used in persistance region; bump magic if changed
 enum lamp_type {
 	LAMP_TYPE_UNKNOWN = 0,
 	LAMP_TYPE_DIMMABLE,
