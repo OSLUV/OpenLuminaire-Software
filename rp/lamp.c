@@ -265,6 +265,11 @@ void update_lamp()
 			{
 				GOTO_STATE(STATE_RUNNING);
 			}
+
+			if (requested_power_level == PWR_OFF)
+			{
+				GOTO_STATE(PWR_OFF);
+			}
 		}
 
 		// Don't go to off once starting to avoid short cycling
@@ -305,6 +310,11 @@ void update_lamp()
 			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
 		}
 
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(PWR_OFF);
+		}
+
 		// Don't go to off while fullpower test -- open question?
 	}
 
@@ -334,6 +344,10 @@ void update_lamp()
 		{\
 			printf("Timed out on restrike attempt #" #n "\n");\
 			GOTO_STATE(goto);\
+		}\
+		if (requested_power_level == PWR_OFF)\
+		{\
+			GOTO_STATE(PWR_OFF);\
 		}\
 	}
 
