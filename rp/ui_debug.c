@@ -26,13 +26,13 @@ void ui_debug_init()
     the_group = lv_group_create();
 
 	label = lv_label_create(screen);
-	lv_label_set_text(label, "Debug screen");
+	//lv_label_set_text(label, "DEBUG - PRESS ANY KEY TO RETURN");
 
     back_btn = lv_btn_create(screen);
     lv_obj_remove_style_all(back_btn);
 
     lv_obj_set_pos(back_btn, 10, 220);
-    lv_label_set_text(lv_label_create(back_btn), "< BACK");
+    //lv_label_set_text(lv_label_create(back_btn), "< BACK");
     lv_obj_add_event_cb(back_btn, back_btn_cb, LV_EVENT_CLICKED, NULL);
     lv_group_add_obj(the_group, back_btn);
 }
@@ -44,8 +44,7 @@ void ui_debug_update()
     char* w = debug_label;
 
     #define ADD_TEXT(...) w += lv_snprintf(w, sizeof(debug_label) - (w - debug_label) - 1, __VA_ARGS__)
-
-    ADD_TEXT("Debug Screen\n");
+	ADD_TEXT("DEBUG - PRESS CENTER \nBUTTON TO RETURN\n");
     ADD_TEXT("Lamp State: %s %dms\n", lamp_state_str(get_lamp_state()), get_lamp_state_elapsed_ms());
 
     enum pwr_level rep;

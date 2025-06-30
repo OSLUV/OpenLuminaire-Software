@@ -62,7 +62,7 @@ void ui_psu_show(void)            // call when the PSU is bad
     lv_label_set_text(txt,
                       "ERROR:\n\nPOWER SUPPLY\n"
                       "INCOMPATIBLE!\n\n"
-                      "Needs  12 V / 2.5 A");
+                      "Needs  12 V | 2.5 A");
     lv_obj_set_style_text_color(txt, lv_color_white(), 0);
     lv_obj_set_style_text_align(txt, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(txt, &lv_font_montserrat_24, 0);

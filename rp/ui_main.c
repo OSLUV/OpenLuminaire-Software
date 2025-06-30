@@ -14,6 +14,8 @@ static lv_obj_t *screen;
 static lv_obj_t *sw_power;
 static lv_obj_t *sw_radar;
 static lv_obj_t *slider_intensity;
+static lv_obj_t *lbl_radar;
+static lv_obj_t *lbl_slider;
 static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
 
 // Callbacks
@@ -40,11 +42,11 @@ void ui_theme_init(void)
 		DEBUG_POS = 165;
 		SHOW_DIM = true;
 		FONT_MAIN = &lv_font_montserrat_24;  
-		FONT_BIG = &lv_font_montserrat_42;
+		FONT_BIG = &lv_font_montserrat_44;
 		FONT_SMALL = &lv_font_montserrat_14;
         
     } else {
-        ROW_HEIGHT     = 45;
+        ROW_HEIGHT     = 35;
 		SWITCH_HEIGHT = 33;
 		SWITCH_LENGTH = 66;
 		DEBUG_POS = 125;
@@ -85,7 +87,7 @@ static void focus_sync_cb(lv_event_t *e)
 static lv_style_t style_title, style_tick, style_big,
                   style_btn, style_slider_main, style_slider_knob,
                   style_switch_on, style_switch_off, style_row,
-				  style_focus, style_btn_focus_inv, style_label_inv;
+				  style_focus, style_btn_focus_inv, style_label_inv, style_inactive;
 
 static lv_group_t* the_group;
 
@@ -142,8 +144,6 @@ static void styles_init(void)
     //  softly rounded corners ; LV_RADIUS_CIRCLE for a pill
     lv_style_set_radius(&style_btn_focus_inv, 4);
 
-
-
     /* slider track */
     lv_style_init(&style_slider_main);
     lv_style_set_bg_color(&style_slider_main, COLOR_ACCENT);
@@ -178,11 +178,21 @@ static void styles_init(void)
     lv_style_set_pad_all(&style_row, 0);
 
     lv_style_init(&style_focus);
-    lv_style_set_outline_width (&style_focus, 3);                /* how thick  */
-    lv_style_set_outline_pad   (&style_focus, 0);                /* snug       */
-    lv_style_set_outline_color (&style_focus, lv_color_white());     /* mint ring  */
-    lv_style_set_outline_opa   (&style_focus, LV_OPA_COVER);     /* solid      */
-    lv_style_set_radius        (&style_focus, LV_RADIUS_CIRCLE); /* rounded on switches */
+    lv_style_set_outline_width (&style_focus, 3);    //thickness
+    lv_style_set_outline_pad   (&style_focus, 0);    //snug
+    lv_style_set_outline_color (&style_focus, lv_color_white());  
+    lv_style_set_outline_opa   (&style_focus, LV_OPA_COVER);    
+    lv_style_set_radius        (&style_focus, LV_RADIUS_CIRCLE); 
+	
+	// inactive/disabled switches/sliders
+	lv_style_init(&style_inactive);
+	lv_style_set_opa            (&style_inactive, LV_OPA_40); // fade everything a bit
+	lv_style_set_bg_color       (&style_inactive, lv_color_hex(0x808080));
+	lv_style_set_outline_color  (&style_inactive, lv_color_hex(0x808080));  
+	lv_style_set_bg_color       (&style_inactive, lv_color_hex(0xa0a0a0));
+	// grey text for labels that live inside the widget (slider value, etc.)
+	lv_style_set_text_color     (&style_inactive, lv_color_hex(0xc0c0c0));
+	
 
 }
 
@@ -190,8 +200,7 @@ static void styles_init(void)
 void ui_main_init()
 {
 	ui_theme_init();
-    styles_init();
-	
+    styles_init();	
 
     screen = lv_obj_create(NULL);
     lv_obj_set_style_bg_color(screen, lv_color_black(), 0);
@@ -224,6 +233,7 @@ void ui_main_init()
         lv_obj_add_style(lbl, &style_title, 0);
         lv_obj_add_style(lbl, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
 
+
         sw_power = lv_switch_create(row);
         lv_obj_set_size(sw_power, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_pos(row, 5,20);
@@ -249,24 +259,27 @@ void ui_main_init()
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
         //lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
 
-
-        lv_obj_t *lbl = lv_label_create(row);
-        lv_label_set_text(lbl, "RADAR");
-        lv_obj_add_style(lbl, &style_title, 0);
-        lv_obj_add_style(lbl, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
-
+        lbl_radar = lv_label_create(row);
+        lv_label_set_text(lbl_radar, "RADAR");
+        lv_obj_add_style(lbl_radar, &style_title, 0);
+        lv_obj_add_style(lbl_radar, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
+		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
+		
         sw_radar = lv_switch_create(row);
         lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_radar, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw_radar, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
+		lv_obj_add_style(sw_radar, &style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
+		lv_obj_add_style(sw_radar, &style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
      //   lv_obj_add_event_cb(sw_radar, cb_radar, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, sw_radar);
 
 		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
-		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
-		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
+		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_radar);
+		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_radar);
 	}
 
     /* DIM slider (discrete 20/40/70/100 – default 100) */
@@ -277,10 +290,11 @@ void ui_main_init()
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-        lv_obj_t *lbl = lv_label_create(row);
-        lv_label_set_text(lbl, "INTENSITY");
-        lv_obj_add_style(lbl, &style_title, 0);
-        lv_obj_add_style(lbl, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+        lbl_slider = lv_label_create(row);
+        lv_label_set_text(lbl_slider, "INTENSITY");
+        lv_obj_add_style(lbl_slider, &style_title, 0);
+        lv_obj_add_style(lbl_slider, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+		lv_obj_add_style(lbl_slider, &style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
 
         lv_obj_t *row2 = lv_obj_create(screen);
         lv_obj_add_style(row2, &style_row, 0);
@@ -299,12 +313,17 @@ void ui_main_init()
         lv_obj_set_size(slider_intensity, 180, 8);
         lv_obj_add_style(slider_intensity, &style_slider_main, LV_PART_INDICATOR);
         lv_obj_add_style(slider_intensity, &style_slider_knob, LV_PART_KNOB);
+		
+		lv_obj_add_style(slider_intensity, &style_inactive, LV_PART_MAIN | LV_STATE_USER_2);  // rail
+		lv_obj_add_style(slider_intensity, &style_inactive, LV_PART_KNOB | LV_STATE_USER_2);  // knob
+		lv_obj_add_style(slider_intensity, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);  // filled part
+		
         lv_slider_set_range(slider_intensity, 0, 3);          /* 4 ticks          */
         lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
-     //   lv_obj_add_event_cb(slider, cb_dim, LV_EVENT_VALUE_CHANGED, NULL);
+		
         lv_group_add_obj(the_group, slider_intensity);
-		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
-		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
+		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_slider);
+		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_slider);
     }
     if (SHOW_DIM){
             /* ── tick-labels under the INTENSITY slider ───────────────────── */
@@ -356,7 +375,7 @@ void ui_main_init()
         lv_obj_set_style_text_align(lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);
 
     }
-
+	
     /* Navigation buttons row */
     {
         lv_obj_t *row = lv_obj_create(screen);
@@ -364,15 +383,17 @@ void ui_main_init()
         lv_obj_set_width(row, LV_PCT(100));               /* full 240 px */
         lv_obj_set_height(row, 27);
         lv_obj_set_pos(row,0,213);
-        //lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        //lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_EVENLY,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-
+		lv_obj_set_flex_grow(row, 0);                //  << important line
+		
+		lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, 0);   // always 27 px from bottom
         lv_obj_t *btn = lv_btn_create(row);
         lv_obj_remove_style_all(btn);
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
-        lv_obj_set_pos(btn,10,0);
+        //lv_obj_set_pos(btn,10,0);
         lv_label_set_text(lv_label_create(btn), "< BACK");
 
      //   lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_reset_open);
@@ -382,7 +403,7 @@ void ui_main_init()
         lv_obj_remove_style_all(btn);
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
-        lv_obj_set_pos(btn, DEBUG_POS,0);
+        //lv_obj_set_pos(btn, DEBUG_POS,0);
         lv_label_set_text(lv_label_create(btn), "DEBUG >");
 		lv_obj_add_event_cb(btn, debug_btn_cb, LV_EVENT_CLICKED, NULL);
         lv_group_add_obj(the_group, btn);
@@ -399,6 +420,7 @@ void ui_main_update()
 
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
+	bool inactive = !power_on || get_lamp_state() == STATE_FULLPOWER_TEST;
 
     enum pwr_level intensity_setting = PWR_100PCT;
 	if (SHOW_DIM) {
@@ -426,10 +448,22 @@ void ui_main_update()
     }
 
 	if (SHOW_DIM){
-		lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
+		if(inactive){
+			lv_obj_add_state(slider_intensity, LV_STATE_USER_2);   // grey it
+			lv_obj_add_state(lbl_slider, LV_STATE_USER_2);  
+		} else {
+			lv_obj_clear_state(slider_intensity, LV_STATE_USER_2); // full color
+			lv_obj_clear_state(lbl_slider, LV_STATE_USER_2);
+		}
+		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
     }
-
-	lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
+	if (inactive) {
+        lv_obj_add_state(sw_radar, LV_STATE_USER_2);
+		lv_obj_add_state(lbl_radar,    LV_STATE_USER_2);
+    } else {
+        lv_obj_clear_state(sw_radar, LV_STATE_USER_2);
+		lv_obj_clear_state(lbl_radar,  LV_STATE_USER_2);
+	}//lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 }
 
 void ui_main_open()
