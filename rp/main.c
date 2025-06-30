@@ -92,18 +92,19 @@ void main()
 	// main UI init
     ui_main_init();
     ui_debug_init();
-    ui_main_open();  
+   // ui_main_open();  
 
     // housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;
-	/*bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
+	
+	bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
 	if (psu_ok) {
 		ui_main_open();
 	} else {
 		ui_psu_show();
-	}*/
+	}
 	
 	
 	while (1) {
