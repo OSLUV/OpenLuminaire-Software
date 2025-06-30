@@ -48,3 +48,25 @@ void display_splash_image(void)
     backlight_set_brightness(33);
     lv_timer_handler();                       /* flush once so it appears*/
 }
+
+static lv_obj_t * scr_psu = NULL;
+void ui_psu_show(void)            // call when the PSU is bad
+{
+    if(scr_psu) { lv_scr_load(scr_psu); return; }
+
+    scr_psu = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(scr_psu, lv_color_black(), 0);
+    lv_obj_clear_flag(scr_psu, LV_OBJ_FLAG_SCROLLABLE);
+
+    lv_obj_t * txt = lv_label_create(scr_psu);
+    lv_label_set_text(txt,
+                      "ERROR:\n\nPOWER SUPPLY\n"
+                      "INCOMPATIBLE!\n\n"
+                      "Needs  12 V / 2.5 A");
+    lv_obj_set_style_text_color(txt, lv_color_white(), 0);
+    lv_obj_set_style_text_align(txt, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_font(txt, &lv_font_montserrat_24, 0);
+    lv_obj_center(txt);
+
+    lv_scr_load(scr_psu);             // make it active immediately
+}

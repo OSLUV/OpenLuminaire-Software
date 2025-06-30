@@ -27,65 +27,6 @@
 int curr_y = 0;
 int curr_x = 0;
 
-void draw_text(char* c, int nc)
-{
-	// for (int ch = 0; ch < nc; ch++)
-	// 	{
-	// 		if (c[ch] == '\n')
-	// 		{
-	// 			curr_x = 0;
-	// 			curr_y += 8;
-	// 			continue;
-	// 		}
-
-	// 		for (int x = 0; x < 8; x++)
-	// 		{
-	// 			for (int y = 0; y < 8; y++)
-	// 			{
-	// 				int xo = curr_x + x;
-	// 				int yo = curr_y + y;
-	// 				if (xo >= LCD_WIDTH) continue;
-	// 				if (yo >= LCD_HEIGHT) continue;
-	// 				bool set = ((font8x8_basic[c[ch]][y] >> x) & 1);
-	// 				screen_buffer[yo][xo] = set?0xffff:0x0000;
-					
-	// 			}
-	// 		}
-
-	// 		curr_x += 8;
-	// 	}
-}
-
-void draw_box(int x, int y, int w, int c)
-{
-	// for (int dx = 0; dx < w; dx++)
-	// {
-	// 	for (int dy = 0; dy < w; dy++)
-	// 	{
-	// 		int xo = x + dx;
-	// 		int yo = y + dy;
-	// 		if (xo >= LCD_WIDTH) continue;
-	// 		if (yo >= LCD_HEIGHT) continue;
-	// 		screen_buffer[yo][xo] = c;
-	// 	}
-	// }
-}
-
-
-
-void dbgf(const char *fmt, ...) {
-	static char work_buf[512];
-
-	va_list args;
-	va_start(args, fmt);
-
-	int n = vsnprintf(work_buf, sizeof(work_buf)-2, fmt, args);
-
-	va_end(args);
-
-	draw_text(work_buf, n);
-}
-
 void buttons_clear_state(void)
 {
     buttons_pressed = 0;
@@ -156,60 +97,63 @@ void main()
 
 	request_lamp_power(PWR_100PCT);
 	
-	//sleep_ms(1000);
-	//ui_loading_init();
-	//ui_loading_update();
-	//ui_loading_open();
-
 	printf("Enter mainloop... xx\n");
 	
-	/* 2. MAIN UI ----------------------------------------------------- */
+	// main UI init
     ui_main_init();
     ui_debug_init();
-    ui_main_open();                   /* screen is now the UI           */
+	             
+		
 
-    /* 3. HOUSE-KEEPING FLAGS ---------------------------------------- */
-    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   /* 5 min     */
+    // housekeeping flags
+    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;
-
+	bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
+	if (psu_ok) {
+		ui_main_open();
+	} else {
+		ui_psu_show();
+	}
+	
+	
 	while (1) {
 		update_sense();
 		update_buttons();
 		update_imu();
 		update_mag();
 		update_radar();
-		update_usbpd();
+		update_usbpd(); //currently empty?
 		update_radio();
 		update_lamp();
 	
-		/* ----------- INPUT SCAN ------------------------------------ */
-        update_buttons();             /* updates buttons_pressed/downs  */
+		// updates buttons_pressed/downs 
+        update_buttons();               
 
-        if (buttons_pressed) {        /* any NEW edge event            */
+        if (buttons_pressed) {        // any NEW edge event            
             last_activity_us = time_us_64();
 
-            if (screen_dark) {        /* wake-up path                  */
-                display_screen_on();  /* back-light on + one flush     */
+            if (screen_dark) {        // wake-up path                  
+                display_screen_on();  // back-light on + one flush     
                 screen_dark = false;
             }
         }
 
-        /* ----------- UI & DISPLAY ---------------------------------- */
-        if (!screen_dark) {
-            ui_main_update();         /* normal widgets                */
+        // ----------- UI & DISPLAY ---------------------------------- 
+        if (!screen_dark && psu_ok) {
+            ui_main_update();         // normal widgets                
             ui_debug_update();
         }
 
-        /* ----------- TIMEOUT CHECK --------------------------------- */
+        // ----------- TIMEOUT CHECK --------------------------------- 
         if (!screen_dark &&
             (time_us_64() - last_activity_us) > TIMEOUT_US) {
-            display_screen_off();     /* back-light to 0               */
+            display_screen_off();     // back-light to 0               
             screen_dark = true;
         }
 
-        /* ----------- LVGL TICK ------------------------------------- */
-        lv_timer_handler();           /* still pump LVGL even in dark  */
+        // ----------- LVGL TICK ------------------------------------- 
+        lv_timer_handler();           // still pump LVGL even in dark  
 
 		// static int cycle= 0;
 		// printf("Mainloop... %d\n", cycle++);
