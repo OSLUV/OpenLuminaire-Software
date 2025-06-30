@@ -9,4 +9,5 @@ typedef enum {
 
 void init_buttons();
 void update_buttons();
+void dump_buttons();
 extern buttons_t buttons_pressed, buttons_released, buttons_down, buttons_pulsed;

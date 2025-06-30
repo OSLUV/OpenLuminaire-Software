@@ -24,14 +24,8 @@
 
 #include "font.c"
 
-int curr_y = 0;
-int curr_x = 0;
 
-void buttons_clear_state(void)
-{
-    buttons_pressed = 0;
-    buttons_down    = 0;
-}
+
 
 void main()
 {
@@ -51,17 +45,13 @@ void main()
 
 	init_persistance_region();
 	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
-	
-	
+		
 	lv_init();
 	display_init();
-
 
 	load_lamp_type_from_flash();
 	display_splash_image();
 	
-	
-
 	lv_timer_handler();
 
 	init_buttons();
@@ -102,19 +92,18 @@ void main()
 	// main UI init
     ui_main_init();
     ui_debug_init();
-	             
-		
+    ui_main_open();  
 
     // housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;
-	bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
+	/*bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
 	if (psu_ok) {
 		ui_main_open();
 	} else {
 		ui_psu_show();
-	}
+	}*/
 	
 	
 	while (1) {
@@ -126,21 +115,20 @@ void main()
 		update_usbpd(); //currently empty?
 		update_radio();
 		update_lamp();
-	
-		// updates buttons_pressed/downs 
-        update_buttons();               
-
-        if (buttons_pressed) {        // any NEW edge event            
+		
+		dump_buttons();
+        if (buttons_released) { // triggered on end of button press       
             last_activity_us = time_us_64();
 
-            if (screen_dark) {        // wake-up path                  
-                display_screen_on();  // back-light on + one flush     
+            if (screen_dark) {        // wake-up path         
+				display_screen_on();  // back-light on + one flush     
                 screen_dark = false;
             }
         }
-
+		
         // ----------- UI & DISPLAY ---------------------------------- 
-        if (!screen_dark && psu_ok) {
+        if (!screen_dark) {
+			lv_timer_handler(); //
             ui_main_update();         // normal widgets                
             ui_debug_update();
         }
@@ -151,9 +139,6 @@ void main()
             display_screen_off();     // back-light to 0               
             screen_dark = true;
         }
-
-        // ----------- LVGL TICK ------------------------------------- 
-        lv_timer_handler();           // still pump LVGL even in dark  
 
 		// static int cycle= 0;
 		// printf("Mainloop... %d\n", cycle++);
