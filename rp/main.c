@@ -90,15 +90,15 @@ void main()
     ui_main_init();
     ui_debug_init();
 	
-    ui_main_open();  
+    //ui_main_open();  
 	
-	// if (power_ok()) {
-		// ui_main_open();
-	// } else {
-		// ui_psu_show();
-	// }	
+	if (power_ok()) {
+		ui_main_open();
+	} else {
+		ui_psu_show();
+	}	
 	
-    // housekeeping flags
+    housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;	
@@ -113,8 +113,8 @@ void main()
 		update_radio();
 		update_lamp();
 		
-		// if (power_ok())
-		// {
+		if (power_ok())
+		{
 			if (buttons_released) { // triggered on end of button press       
 				last_activity_us = time_us_64();
 
@@ -142,8 +142,8 @@ void main()
 			// printf("Mainloop... %d\n", cycle++);
 
 			update_safety_logic();
-		// } else { 
-			// ui_psu_show();
-		// }
+		} else { 
+			ui_psu_show();
+		}
 	}
 }
