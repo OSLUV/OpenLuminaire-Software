@@ -98,7 +98,7 @@ void main()
 		ui_psu_show();
 	}	
 	
-    housekeeping flags
+    //housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;	

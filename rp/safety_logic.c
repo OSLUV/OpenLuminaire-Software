@@ -88,16 +88,10 @@ bool radar_safety_enabled = false;
 
 void update_safety_logic()
 {
-	if (!radar_safety_enabled)
-	{
-		sprintf(safety_action_desc, "Disabled");
-		return;
-	}
-
 	int distance = get_radar_distance_cm();
 
-	// this bit just seems to be entirely wrong since distance can never be 0 and I've never observed it being -1
-	if (distance == -1 )
+	// this should essentially never trigger - the radar is too sensitive
+	if (distance == -1)
 	{
 		sprintf(safety_action_desc, "Radar failed -- 100%%");
 		request_lamp_power(cap);
