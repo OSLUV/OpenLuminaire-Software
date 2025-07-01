@@ -256,6 +256,7 @@ void update_lamp()
 		commanded_power_level = PWR_100PCT;
 
 		if (reported_power_level == PWR_100PCT)
+		//if (latched_lamp_hz > 0) 
 		{
 			GOTO_STATE(STATE_RUNNING);
 		}
@@ -537,4 +538,38 @@ const char* lamp_state_str(enum lamp_state s)
 int get_lamp_state_elapsed_ms()
 {
 	return (time_us_64() - lamp_state_transition_time) / 1000;
+}
+
+// power flags - for more verbose error messages later on
+
+bool power_too_low(){
+	return sense_12v < 10.5;
+}
+
+bool power_too_high(){
+	return sense_12v > 13.5;
+}
+
+bool power_ok()
+{
+	return (!power_too_low() && !power_too_high());
+}
+
+bool usb_too_low()
+{
+	return usbpd_get_is_trying_for_12v() && power_too_low();
+}
+
+bool usb_too_high()
+{
+	return usbpd_get_is_trying_for_12v() && power_too_high();
+}
+
+bool jack_too_high()
+{
+	return power_too_high() && !usbpd_get_is_trying_for_12v();
+}
+bool jack_too_low()
+{
+	return power_too_low() && !usbpd_get_is_trying_for_12v();
 }

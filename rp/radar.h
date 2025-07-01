@@ -4,6 +4,8 @@ void init_radar_comms();
 void update_radar();
 void radar_debug();
 int get_radar_distance_cm(); // or -1 if stale
+int get_moving_target_cm();
+int get_stationary_target_cm();
 
 struct __packed radar_report 
 {

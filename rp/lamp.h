@@ -52,3 +52,4 @@ enum lamp_state get_lamp_state();
 const char* lamp_state_str(enum lamp_state s);
 int get_lamp_state_elapsed_ms();
 void load_lamp_type_from_flash();
+bool power_ok();

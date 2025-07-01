@@ -89,19 +89,19 @@ void main()
 	// main UI init
     ui_main_init();
     ui_debug_init();
+	
     ui_main_open();  
-
+	
+	// if (power_ok()) {
+		// ui_main_open();
+	// } else {
+		// ui_psu_show();
+	// }	
+	
     // housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
-    bool screen_dark = false;
-	bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
-	/*if (psu_ok) {
-		ui_main_open();
-	} else {
-		ui_psu_show();
-	}*/
-	
+    bool screen_dark = false;	
 	
 	while (1) {
 		update_sense();
@@ -113,33 +113,37 @@ void main()
 		update_radio();
 		update_lamp();
 		
-		dump_buttons();
-        if (buttons_released) { // triggered on end of button press       
-            last_activity_us = time_us_64();
+		// if (power_ok())
+		// {
+			if (buttons_released) { // triggered on end of button press       
+				last_activity_us = time_us_64();
 
-            if (screen_dark) {        // wake-up path         
-				display_screen_on();  // back-light on + one flush     
-                screen_dark = false;
-            }
-        }
-		
-        // ----------- UI & DISPLAY ---------------------------------- 
-        if (!screen_dark) {
-			lv_timer_handler(); //
-            ui_main_update();         // normal widgets                
-            ui_debug_update();
-        }
+				if (screen_dark) {        // wake-up path         
+					display_screen_on();  // back-light on + one flush     
+					screen_dark = false;
+				}
+			}
+			
+			// ----------- UI & DISPLAY ---------------------------------- 
+			if (!screen_dark) {
+				lv_timer_handler(); //
+				ui_main_update();         // normal widgets                
+				ui_debug_update();
+			}
 
-        // ----------- TIMEOUT CHECK --------------------------------- 
-        if (!screen_dark &&
-            (time_us_64() - last_activity_us) > TIMEOUT_US) {
-            display_screen_off();     // back-light to 0               
-            screen_dark = true;
-        }
+			// ----------- TIMEOUT CHECK --------------------------------- 
+			if (!screen_dark &&
+				(time_us_64() - last_activity_us) > TIMEOUT_US) {
+				display_screen_off();     // back-light to 0               
+				screen_dark = true;
+			}
 
-		// static int cycle= 0;
-		// printf("Mainloop... %d\n", cycle++);
+			// static int cycle= 0;
+			// printf("Mainloop... %d\n", cycle++);
 
-		update_safety_logic();
+			update_safety_logic();
+		// } else { 
+			// ui_psu_show();
+		// }
 	}
 }

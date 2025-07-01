@@ -13,10 +13,18 @@ struct break_row {
 	int diffused_low_tilt;
 	int diffused_high_tilt;
 } breaks[PWR_100PCT] = {
-	[PWR_OFF] =   {36,  66,  12,  21},
-	[PWR_20PCT] = {52,  96,  18,  31},
-	[PWR_40PCT] = {71,  106, 25,  42},
-	[PWR_70PCT] = {86,  108, 30,  51}
+	// [PWR_OFF] =   {36,  66,  12,  21},
+	// [PWR_20PCT] = {52,  96,  18,  31},
+	// [PWR_40PCT] = {71,  106, 25,  42},
+	// [PWR_70PCT] = {86,  108, 30,  51}
+	[PWR_OFF] =   {30,  30,  12,  21},
+	[PWR_20PCT] = {70,  70,  18,  31},
+	[PWR_40PCT] = {100,  100, 25,  42},
+	[PWR_70PCT] = {150,  150, 30,  51}
+	// [PWR_OFF] =   {29,  29,  29,  29},
+	// [PWR_20PCT] = {52,  52,  52,  52},
+	// [PWR_40PCT] = {71,  71,  71,  71},
+	// [PWR_70PCT] = {86,  86,  86,  86}
 };
 
 enum pwr_level cap = PWR_100PCT;
@@ -101,7 +109,7 @@ void update_safety_logic()
 		debounce_new_time = time_us_64();
 	}
 
-	if ((time_us_64() - debounce_new_time) > (1000*3000))
+	if ((time_us_64() - debounce_new_time) > (1000*1000))
 	{
 		sprintf(safety_action_desc, "Req %s", pwr_level_str(pwr));
 		request_lamp_power(cap < pwr ? cap : pwr);

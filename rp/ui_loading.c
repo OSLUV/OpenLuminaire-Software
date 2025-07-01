@@ -101,4 +101,5 @@ void ui_psu_show(void)            // call when the PSU is bad
     lv_obj_center(txt);
 
     lv_scr_load(scr_psu);             // make it active immediately
+	lv_timer_handler(); //
 }

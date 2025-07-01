@@ -2,12 +2,20 @@
 #include <string.h>
 #include <inttypes.h>
 #include <math.h>
+#include <limits.h>
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 #include "pins.h"
 #include "lamp.h"
 #include "radar.h"
+
+#define RADAR_INVALID_CM        30      /* sensor returns this when idle   */
+#define RADAR_STALE_US      (1000*1000) /* how long a value stays “fresh”  */
+
+static int       last_good_distance_cm = -1;
+static uint64_t  last_good_time_us     = 0;
+
 
 static_assert(sizeof(struct radar_message) == (0x0D + 2 + 4 + 4));
 
@@ -144,6 +152,20 @@ int errors = 0;
 
 int radar_distance_cm = -1;
 
+static inline int
+pick_distance(uint16_t det, uint16_t mov, uint16_t stat)
+{
+    /* prefer the detection field when it’s valid, otherwise take
+       the nearer of the two raw fields, but only if it is > 30 cm */
+    //if (det > RADAR_INVALID_CM) return det;
+
+    int m = (mov  > RADAR_INVALID_CM) ? mov  : INT_MAX;
+    int s = (stat > RADAR_INVALID_CM) ? stat : INT_MAX;
+
+    int best = (m < s) ? m : s;
+    return (best == INT_MAX) ? -1 : best;
+}
+
 void update_radar()
 {
 	if ((time_us_64() - uart_last_rx_time) > (50*1000))
@@ -190,6 +212,18 @@ void update_radar()
 			// }
 		}
 
+		int candidate = pick_distance(
+            last_report.report.detection_distance_cm,
+            last_report.report.moving_target_distance_cm,
+            last_report.report.stationary_target_distance_cm);
+
+        /* Only accept it if it isn’t the 30 cm sentinel      */
+        /* (candidate == -1 means nothing valid in this msg)  */
+        if (candidate != -1) {
+            last_good_distance_cm = candidate;
+            last_good_time_us     = time_us_64();
+        }
+
 		message_ok = false;
 	}
 	else
@@ -203,7 +237,7 @@ void update_radar()
 	}
 	else
 	{
-		radar_distance_cm = MIN(last_report.report.moving_target_distance_cm, last_report.report.stationary_target_distance_cm);
+		radar_distance_cm = last_good_distance_cm;//MIN(last_report.report.moving_target_distance_cm, last_report.report.stationary_target_distance_cm);
 	}
 }
 
@@ -220,6 +254,17 @@ int get_radar_distance_cm()
 {
 	return radar_distance_cm;
 }
+
+int get_moving_target_cm()
+{
+	return last_report.report.moving_target_distance_cm;
+}
+
+int get_stationary_target_cm()
+{
+	return last_report.report.stationary_target_distance_cm;
+}
+
 
 struct radar_report* debug_get_radar_report()
 {
