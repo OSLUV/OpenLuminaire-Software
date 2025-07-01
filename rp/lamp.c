@@ -255,20 +255,23 @@ void update_lamp()
 	{
 		commanded_power_level = PWR_100PCT;
 
-		if (reported_power_level == PWR_100PCT)
-		//if (latched_lamp_hz > 0) 
-		{
-			GOTO_STATE(STATE_RUNNING);
-		}
-
-		if (elapsed_ms_in_state > START_TIME)
-		{
-			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
-		}
-
 		if (requested_power_level == PWR_OFF)
 		{
 			GOTO_STATE(PWR_OFF);
+		}
+
+
+
+		if (elapsed_ms_in_state > START_TIME)
+		{
+			if (reported_power_level != PWR_100PCT)
+			{
+				GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
+			}
+			else
+			{
+				GOTO_STATE(STATE_RUNNING);
+			}
 		}
 
 		// Don't go to off once starting to avoid short cycling

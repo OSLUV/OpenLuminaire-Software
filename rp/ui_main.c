@@ -476,7 +476,7 @@ void ui_main_update()
     }
 
 	if (SHOW_DIM){
-		if(inactive || get_lamp_commanded_power()!=intensity_setting){
+		if(inactive){
 			lv_obj_add_state(slider_intensity, LV_STATE_USER_2);   // grey it
 			lv_obj_add_state(lbl_slider, LV_STATE_USER_2);  
 		} else {
@@ -487,7 +487,7 @@ void ui_main_update()
     }
 	if (inactive && !radar_on) {
         lv_obj_add_state(sw_radar, LV_STATE_USER_2);
-		lv_obj_add_state(lbl_radar,    LV_STATE_USER_2);
+		lv_obj_add_state(lbl_radar, LV_STATE_USER_2);
     } else {
         lv_obj_clear_state(sw_radar, LV_STATE_USER_2);
 		lv_obj_clear_state(lbl_radar,  LV_STATE_USER_2);
@@ -526,6 +526,7 @@ void ui_main_update()
 				  (req == PWR_100PCT)? 100 : 0;
 	if(radar_on && pct_cmd < pct_req && power_on)
 		txt = "Proximity";
+
 	static char buf[48];
 	lv_snprintf(buf, sizeof(buf), "Status: %s %d%%", txt, pct_cmd);
 	lv_label_set_text(lbl_status, buf);
