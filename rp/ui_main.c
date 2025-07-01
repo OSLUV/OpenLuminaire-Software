@@ -46,6 +46,7 @@ bool SHOW_DIM;
 extern const lv_font_t * FONT_MAIN = NULL; 
 extern const lv_font_t * FONT_BIG = NULL;
 extern const lv_font_t * FONT_SMALL = NULL;
+extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
@@ -56,18 +57,20 @@ void ui_theme_init(void)
 		//DEBUG_POS = 165;
 		SHOW_DIM = true;
 		FONT_MAIN = &lv_font_montserrat_20;  
-		FONT_BIG = &lv_font_montserrat_44;
+		FONT_MED = &lv_font_montserrat_16;
 		FONT_SMALL = &lv_font_montserrat_14;
+		FONT_BIG = &lv_font_montserrat_44;
         
     } else {
-        ROW_HEIGHT     = 35;
-		SWITCH_HEIGHT = ROW_HEIGHT-3;
+        ROW_HEIGHT     = 32;
+		SWITCH_HEIGHT = ROW_HEIGHT-2;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 125;
 		SHOW_DIM = false;
 		FONT_MAIN = &lv_font_montserrat_32;  
+		FONT_MED = &lv_font_montserrat_22;
+		FONT_SMALL = &lv_font_montserrat_16;
 		FONT_BIG = &lv_font_montserrat_48;
-		FONT_SMALL = &lv_font_montserrat_22;
 	}
 }
 
@@ -98,7 +101,7 @@ static void focus_sync_cb(lv_event_t *e)
     }
 }
 /* ————————————————————————————————— STYLE HELPERS —— */
-static lv_style_t style_title, style_tick, style_big,
+static lv_style_t style_title, style_status, style_tick, style_big,
                   style_btn, style_slider_main, style_slider_knob,
                   style_switch_on, style_switch_off, style_row,
 				  style_focus, style_btn_focus_inv, style_label_inv, style_inactive;
@@ -113,6 +116,11 @@ static void styles_init(void)
     lv_style_init(&style_title);
     lv_style_set_text_color(&style_title, lv_color_white());
     lv_style_set_text_font(&style_title, FONT_MAIN);
+
+	//status
+	lv_style_init(&style_status);
+    lv_style_set_text_color(&style_status, lv_color_white());
+    lv_style_set_text_font(&style_status, FONT_MED);
 
     /* small tick labels */
     lv_style_init(&style_tick);
@@ -220,14 +228,14 @@ void ui_main_init()
     lv_obj_remove_style(screen, NULL, LV_PART_SCROLLBAR);    /* kill scrollbar */
     lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
 
-	if (!SHOW_DIM){ // buffer row
-		lv_obj_t *row = lv_obj_create(screen);
-		lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 20);
-        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-        lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-	}
+	// if (!SHOW_DIM){ // buffer row
+		// lv_obj_t *row = lv_obj_create(screen);
+		// lv_obj_add_style(row, &style_row, 0);
+        // lv_obj_set_size(row, 230, 20);
+        // lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        // lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+        // lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+	// }
 
 	// — POWER ——————————————————————————
     {
@@ -393,13 +401,13 @@ void ui_main_init()
         lv_obj_set_height(row, LV_SIZE_CONTENT);
         lv_obj_set_pos(row, 0, 240);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_START,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 		
 		lbl_status = lv_label_create(row);
-        lv_label_set_text(lbl_status, "STATUS: UNKNOWN");
+        lv_label_set_text(lbl_status, "Status: Unknown");
 		lv_obj_remove_style_all(lbl_status);
-        lv_obj_add_style(lbl_status, &style_title, 0);
+        lv_obj_add_style(lbl_status, &style_status, 0);
 	}	
 	
     /* Navigation buttons row */
@@ -407,7 +415,7 @@ void ui_main_init()
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
         lv_obj_set_width(row, LV_PCT(100));
-        lv_obj_set_height(row, 20);
+        lv_obj_set_height(row, LV_SIZE_CONTENT);
         lv_obj_set_pos(row,0, 240);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_END,  LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
@@ -528,7 +536,11 @@ void ui_main_update()
 		txt = "Proximity";
 
 	static char buf[48];
-	lv_snprintf(buf, sizeof(buf), "Status: %s %d%%", txt, pct_cmd);
+	if (SHOW_DIM) { 
+		lv_snprintf(buf, sizeof(buf), "Status: %s - %d%%", txt, pct_cmd);
+	} else {
+		lv_snprintf(buf, sizeof(buf), "Status:\n%s - %d%%", txt, pct_cmd);
+	}
 	lv_label_set_text(lbl_status, buf);
 	
 }

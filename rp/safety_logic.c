@@ -4,6 +4,11 @@
 #include "radar.h"
 #include "imu.h"
 
+#define RESTRIKE_DELAY_MS   2000         // wait this long before relight
+
+static bool      in_zero_lockout     = false;   // true after we hit 0 %
+static uint64_t  last_close_us       = 0;       // last time a close object was seen
+
 // entries are in centimeters, what is the furthest distance at which this power level restriction is in effect
 // no entry for PWR_100PCT since it's logically infinity
 
@@ -13,25 +18,28 @@ struct break_row {
 	int diffused_low_tilt;
 	int diffused_high_tilt;
 } breaks[PWR_100PCT] = {
+	//with 30% safety margin
+	[PWR_OFF] =   {44,  80,  15,  24},
+	[PWR_20PCT] = {64,  104,  21,  37},
+	[PWR_40PCT] = {86,  108,  29,  49},
+	[PWR_70PCT] = {102,  110, 35,  57}
+	//// original
 	// [PWR_OFF] =   {36,  66,  12,  21},
 	// [PWR_20PCT] = {52,  96,  18,  31},
 	// [PWR_40PCT] = {71,  106, 25,  42},
-	// [PWR_70PCT] = {86,  108, 30,  51}
-	[PWR_OFF] =   {30,  30,  12,  21},
-	[PWR_20PCT] = {70,  70,  18,  31},
-	[PWR_40PCT] = {100,  100, 25,  42},
-	[PWR_70PCT] = {150,  150, 30,  51}
-	// [PWR_OFF] =   {29,  29,  29,  29},
-	// [PWR_20PCT] = {52,  52,  52,  52},
-	// [PWR_40PCT] = {71,  71,  71,  71},
-	// [PWR_70PCT] = {86,  86,  86,  86}
+	// [PWR_70PCT] = {86,  108, 30,  51} 
+	//// testing
+	// [PWR_OFF] =   {30,  30,  12,  21},
+	// [PWR_20PCT] = {70,  70,  18,  31},
+	// [PWR_40PCT] = {100,  100, 25,  42},
+	// [PWR_70PCT] = {150,  150, 30,  51}
 };
 
 enum pwr_level cap = PWR_100PCT;
 
 int get_tilt_break()
 {
-	return 35; // degrees
+	return 32; // degrees
 }
 
 bool get_is_high_tilt()
@@ -88,7 +96,8 @@ void update_safety_logic()
 
 	int distance = get_radar_distance_cm();
 
-	if (distance == -1 || distance == 0)
+	// this bit just seems to be entirely wrong since distance can never be 0 and I've never observed it being -1
+	if (distance == -1 )
 	{
 		sprintf(safety_action_desc, "Radar failed -- 100%%");
 		request_lamp_power(cap);
