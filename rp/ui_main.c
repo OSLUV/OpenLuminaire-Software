@@ -51,7 +51,7 @@ extern const lv_font_t * FONT_MED = NULL;
 void ui_theme_init(void)
 {
     if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		ROW_HEIGHT     = 22;
+		ROW_HEIGHT     = 23;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 165;
@@ -69,7 +69,7 @@ void ui_theme_init(void)
 		SHOW_DIM = false;
 		FONT_MAIN = &lv_font_montserrat_32;  
 		FONT_MED = &lv_font_montserrat_22;
-		FONT_SMALL = &lv_font_montserrat_16;
+		FONT_SMALL = &lv_font_montserrat_22;
 		FONT_BIG = &lv_font_montserrat_48;
 	}
 }
@@ -250,6 +250,7 @@ void ui_main_init()
 		
 		lbl_status = lv_label_create(row);
         lv_label_set_text(lbl_status, "Status: Unknown");
+		lv_obj_set_style_text_align(lbl_status, LV_TEXT_ALIGN_CENTER, 0);  
 		lv_obj_remove_style_all(lbl_status);
         lv_obj_add_style(lbl_status, &style_status, 0);
 	}
@@ -522,7 +523,7 @@ void ui_main_update()
 						)  ? "Lamp starting..."   :
                        (s == STATE_RUNNING)   ? "Lamp running"   :
 					   (s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
-                       (s == STATE_FULLPOWER_TEST)     ? "Calibrating..." : "STATUS UNKNOWN";
+                       (s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
     
 	enum pwr_level  cmd = get_lamp_commanded_power(); // what PWM is doing
 	enum pwr_level req  = intensity_setting;  // user set-point
@@ -546,7 +547,7 @@ void ui_main_update()
 			lv_snprintf(buf, sizeof(buf), "%s", txt);
 		}
 	} else {
-		lv_snprintf(buf, sizeof(buf), "Status:\n%s - %d%%", txt, pct_cmd);
+		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
 	}
 	lv_label_set_text(lbl_status, buf);
 	
