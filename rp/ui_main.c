@@ -51,7 +51,7 @@ extern const lv_font_t * FONT_MED = NULL;
 void ui_theme_init(void)
 {
     if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		ROW_HEIGHT     = 23;
+		ROW_HEIGHT     = 22;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 165;
@@ -236,12 +236,29 @@ void ui_main_init()
         // lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         // lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 	// }
+	
+	//	lamp status row
+	{
+		lv_obj_t *row = lv_obj_create(screen);
+        lv_obj_add_style(row, &style_row, 0);
+        lv_obj_set_width(row, 239);
+        lv_obj_set_height(row, LV_SIZE_CONTENT);
+        //lv_obj_set_pos(row, 0, 240);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+		
+		lbl_status = lv_label_create(row);
+        lv_label_set_text(lbl_status, "Status: Unknown");
+		lv_obj_remove_style_all(lbl_status);
+        lv_obj_add_style(lbl_status, &style_status, 0);
+	}
 
 	// — POWER ——————————————————————————
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, LV_SIZE_CONTENT);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -271,7 +288,7 @@ void ui_main_init()
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, LV_SIZE_CONTENT);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -304,7 +321,7 @@ void ui_main_init()
      if (SHOW_DIM) {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, LV_SIZE_CONTENT);
+        lv_obj_set_size(row, 230, ROW_HEIGHT);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -392,33 +409,17 @@ void ui_main_init()
         lv_obj_set_x(lbl_tilt, 150);
         lv_obj_set_style_text_align(lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);
 
-    }
-//	lamp status row
-	{
-		lv_obj_t *row = lv_obj_create(screen);
-        lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_width(row, 239);
-        lv_obj_set_height(row, LV_SIZE_CONTENT);
-        lv_obj_set_pos(row, 0, 240);
-        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-        lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-		
-		lbl_status = lv_label_create(row);
-        lv_label_set_text(lbl_status, "Status: Unknown");
-		lv_obj_remove_style_all(lbl_status);
-        lv_obj_add_style(lbl_status, &style_status, 0);
-	}	
+    }	
 	
-    /* Navigation buttons row */
+    // Debug / other buttons rows
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
         lv_obj_set_width(row, LV_PCT(100));
         lv_obj_set_height(row, LV_SIZE_CONTENT);
-        lv_obj_set_pos(row,0, 240);
+        //lv_obj_set_pos(row,0, 240);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_END,  LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_CENTER);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 		//lv_obj_set_flex_grow(row, 0);                //  << important line		
 		//lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, 0);   // always 27 px from bottom
@@ -442,7 +443,7 @@ void ui_main_init()
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
         //lv_obj_set_pos(btn, DEBUG_POS,0);
-        lv_label_set_text(lv_label_create(btn), "DEBUG >");
+        lv_label_set_text(lv_label_create(btn), "DEBUG");
 		lv_obj_add_event_cb(btn, debug_btn_cb, LV_EVENT_CLICKED, NULL);
         lv_group_add_obj(the_group, btn);
     }
@@ -506,12 +507,10 @@ void ui_main_update()
 	ui_set_tilt(a);
 	
 	// update lamp status
+	
+	
 	enum lamp_state s = get_lamp_state();
-	enum pwr_level  cmd = get_lamp_commanded_power(); // what PWM is doing
-	// enum pwr_level cmd;
-	// get_lamp_reported_power(&cmd);
-	enum pwr_level req  = intensity_setting;  // user set-point
-    const char * txt = (s == STATE_OFF)       ? "Off"      :
+    const char * txt = (s == STATE_OFF)       ? "Lamp off"      :
                        ( 
 							(s == STATE_STARTING) || 
 							(s == STATE_RESTRIKE_COOLDOWN_1) ||
@@ -520,11 +519,14 @@ void ui_main_update()
 							(s == STATE_RESTRIKE_ATTEMPT_2) ||
 							(s == STATE_RESTRIKE_COOLDOWN_3) ||
 							(s == STATE_RESTRIKE_ATTEMPT_3) 
-						)  ? "Starting"   :
-                       (s == STATE_RUNNING)   ? "Running"   :
-					   (s == STATE_FAILED_OFF) ? "Off - Error" :
-                       (s == STATE_FULLPOWER_TEST)     ? "Calibrating" : "UNKNOWN";
-    int pct_cmd = (cmd == PWR_20PCT) ? 20 :
+						)  ? "Lamp starting..."   :
+                       (s == STATE_RUNNING)   ? "Lamp running"   :
+					   (s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
+                       (s == STATE_FULLPOWER_TEST)     ? "Calibrating..." : "STATUS UNKNOWN";
+    
+	enum pwr_level  cmd = get_lamp_commanded_power(); // what PWM is doing
+	enum pwr_level req  = intensity_setting;  // user set-point
+	int pct_cmd = (cmd == PWR_20PCT) ? 20 :
 				  (cmd == PWR_40PCT) ? 40 :
 				  (cmd == PWR_70PCT) ? 70 :
 				  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
@@ -532,12 +534,17 @@ void ui_main_update()
 				  (req == PWR_40PCT) ? 40 :
 				  (req == PWR_70PCT) ? 70 :
 				  (req == PWR_100PCT)? 100 : 0;
+				  
 	if(radar_on && pct_cmd < pct_req && power_on)
 		txt = "Proximity";
 
 	static char buf[48];
 	if (SHOW_DIM) { 
-		lv_snprintf(buf, sizeof(buf), "Status: %s - %d%%", txt, pct_cmd);
+		if (s!=STATE_OFF && s!=STATE_FAILED_OFF){
+			lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
+		} else{
+			lv_snprintf(buf, sizeof(buf), "%s", txt);
+		}
 	} else {
 		lv_snprintf(buf, sizeof(buf), "Status:\n%s - %d%%", txt, pct_cmd);
 	}

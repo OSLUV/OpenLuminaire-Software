@@ -27,6 +27,8 @@ void ui_debug_init()
 
 	label = lv_label_create(screen);
 	//lv_label_set_text(label, "DEBUG - PRESS ANY KEY TO RETURN");
+	lv_obj_remove_style(screen, NULL, LV_PART_SCROLLBAR);    /* kill scrollbar */
+    lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
 
     back_btn = lv_btn_create(screen);
     lv_obj_remove_style_all(back_btn);
