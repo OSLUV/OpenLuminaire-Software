@@ -73,7 +73,6 @@ void ui_debug_update()
     ADD_TEXT("Radar: S: %dcm %de\n", r->report.stationary_target_distance_cm, r->report.stationary_target_energy);
     ADD_TEXT("Radar: DD: %dcm / RD:%d\n", r->report.detection_distance_cm, get_radar_distance_cm());
 
-	
     lv_label_set_text(label, debug_label);
 }
 

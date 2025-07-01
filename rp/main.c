@@ -25,8 +25,6 @@
 #include "font.c"
 
 
-
-
 void main()
 {
 	display_screen_off();
@@ -50,9 +48,8 @@ void main()
 	display_init();
 
 	load_lamp_type_from_flash();
-	display_splash_image();
-	
-	lv_timer_handler();
+	splash_image_init();
+	splash_image_open();
 
 	init_buttons();
 	init_imu();
@@ -98,8 +95,8 @@ void main()
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;
-	/*bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
-	if (psu_ok) {
+	bool psu_ok = usbpd_get_is_12v() && (usbpd_get_negotiated_mA() >= 2500);
+	/*if (psu_ok) {
 		ui_main_open();
 	} else {
 		ui_psu_show();

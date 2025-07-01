@@ -6,6 +6,7 @@
 #include "menu.h"
 #include "buttons.h"
 #include "ui_debug.h"
+#include "ui_loading.h"
 #include "safety_logic.h"
 #include <string.h>
 #define COLOR_ACCENT  lv_color_hex(0x5600FF)
@@ -17,17 +18,28 @@ static lv_obj_t *slider_intensity;
 static lv_obj_t *lbl_radar;
 static lv_obj_t *lbl_slider;
 static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
+void ui_main_open();
 
 // Callbacks
 static void debug_btn_cb(lv_event_t * e)
 {
     ui_debug_open();
 }
+static void back_to_menu_cb(lv_event_t * e)
+{
+    ui_main_open();    // reopen the main menu screen
+}
+
+static void back_btn_cb(lv_event_t * e)
+{
+    splash_image_open(back_to_menu_cb);
+}
+
 
 uint16_t ROW_HEIGHT;
 uint16_t SWITCH_HEIGHT;
 uint16_t SWITCH_LENGTH;
-uint16_t DEBUG_POS;
+//uint16_t DEBUG_POS;
 bool SHOW_DIM;
 extern const lv_font_t * FONT_MAIN = NULL; //&lv_font_montserrat_24;
 extern const lv_font_t * FONT_BIG = NULL; //&lv_font_montserrat_42;
@@ -36,20 +48,20 @@ extern const lv_font_t * FONT_SMALL = NULL;
 void ui_theme_init(void)
 {
     if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		ROW_HEIGHT     = 28;
-		SWITCH_HEIGHT = 25;
-		SWITCH_LENGTH = 50;
-		DEBUG_POS = 165;
+		ROW_HEIGHT     = 26;
+		SWITCH_HEIGHT = ROW_HEIGHT-3;
+		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+		//DEBUG_POS = 165;
 		SHOW_DIM = true;
-		FONT_MAIN = &lv_font_montserrat_24;  
+		FONT_MAIN = &lv_font_montserrat_22;  
 		FONT_BIG = &lv_font_montserrat_44;
 		FONT_SMALL = &lv_font_montserrat_14;
         
     } else {
         ROW_HEIGHT     = 35;
-		SWITCH_HEIGHT = 33;
-		SWITCH_LENGTH = 66;
-		DEBUG_POS = 125;
+		SWITCH_HEIGHT = ROW_HEIGHT-3;
+		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+		//DEBUG_POS = 125;
 		SHOW_DIM = false;
 		FONT_MAIN = &lv_font_montserrat_32;  
 		FONT_BIG = &lv_font_montserrat_48;
@@ -130,7 +142,6 @@ static void styles_init(void)
     //  softly rounded corners ; LV_RADIUS_CIRCLE for a pill
     lv_style_set_radius(&style_label_inv, 4);
 
-
     lv_style_init(&style_btn_focus_inv);
     lv_style_set_bg_color (&style_btn_focus_inv, lv_color_white());
     lv_style_set_bg_opa   (&style_btn_focus_inv, LV_OPA_COVER);
@@ -163,7 +174,6 @@ static void styles_init(void)
 
     /* switch OFF (outline white) */
     lv_style_init(&style_switch_off);
-
     lv_style_set_bg_color(&style_switch_off, lv_color_black());
 	lv_style_set_border_width(&style_switch_off, 2);
     lv_style_set_border_opa(&style_switch_off, LV_OPA_100);
@@ -189,11 +199,9 @@ static void styles_init(void)
 	lv_style_set_opa            (&style_inactive, LV_OPA_40); // fade everything a bit
 	lv_style_set_bg_color       (&style_inactive, lv_color_hex(0x808080));
 	lv_style_set_outline_color  (&style_inactive, lv_color_hex(0x808080));  
-	lv_style_set_bg_color       (&style_inactive, lv_color_hex(0xa0a0a0));
+	lv_style_set_border_color       (&style_inactive, lv_color_hex(0x808080));
 	// grey text for labels that live inside the widget (slider value, etc.)
 	lv_style_set_text_color     (&style_inactive, lv_color_hex(0xc0c0c0));
-	
-
 }
 
 
@@ -286,7 +294,7 @@ void ui_main_init()
      if (SHOW_DIM) {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, ROW_HEIGHT);
+        lv_obj_set_size(row, 230, ROW_HEIGHT-1);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -356,10 +364,10 @@ void ui_main_init()
 
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, 55);
+        lv_obj_set_size(row, 230, 46);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
-
+		lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
         /* caption “TILT” */
         lv_obj_t *lbl_tilt = lv_label_create(row);
         lv_label_set_text(lbl_tilt, "TILT     ");
@@ -375,31 +383,43 @@ void ui_main_init()
         lv_obj_set_style_text_align(lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);
 
     }
+	/*lamp status row
+	{
+		lv_obj_t *row = lv_obj_create(screen);
+        lv_obj_add_style(row, &style_row, 0);
+        lv_obj_set_width(row, LV_PCT(100));
+        lv_obj_set_height(row, ROW_HEIGHT);
+        lv_obj_set_pos(row,0, 240);
+        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+		//lv_obj_set_flex_grow(row, 0);                //  << im
+	}	*/
 	
     /* Navigation buttons row */
     {
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_width(row, LV_PCT(100));               /* full 240 px */
-        lv_obj_set_height(row, 27);
-        lv_obj_set_pos(row,0,213);
+        lv_obj_set_width(row, LV_PCT(100));
+        lv_obj_set_height(row, 20);
+        lv_obj_set_pos(row,0, 240);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_SPACE_BETWEEN,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_END,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
         lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-		lv_obj_set_flex_grow(row, 0);                //  << important line
-		
-		lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, 0);   // always 27 px from bottom
-        lv_obj_t *btn = lv_btn_create(row);
+		//lv_obj_set_flex_grow(row, 0);                //  << important line		
+		//lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, 0);   // always 27 px from bottom
+        
+		/*lv_obj_t *btn = lv_btn_create(row);
         lv_obj_remove_style_all(btn);
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
         //lv_obj_set_pos(btn,10,0);
         lv_label_set_text(lv_label_create(btn), "< BACK");
 
-     //   lv_obj_add_event_cb(btn, cb_nav, LV_EVENT_PRESSED, ui_reset_open);
-        lv_group_add_obj(the_group, btn);
+        lv_obj_add_event_cb(btn, back_btn_cb, LV_EVENT_CLICKED, NULL);
+        lv_group_add_obj(the_group, btn);*/
 
-        btn = lv_btn_create(row);
+        lv_obj_t *btn = lv_btn_create(row);
         lv_obj_remove_style_all(btn);
         lv_obj_add_style(btn, &style_btn, 0);
 		lv_obj_add_style(btn, &style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
@@ -420,7 +440,7 @@ void ui_main_update()
 
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
-	bool inactive = !power_on || get_lamp_state() == STATE_FULLPOWER_TEST;
+	bool inactive = get_lamp_state() != STATE_RUNNING;
 
     enum pwr_level intensity_setting = PWR_100PCT;
 	if (SHOW_DIM) {
