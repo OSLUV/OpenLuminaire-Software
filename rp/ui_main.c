@@ -31,11 +31,11 @@ static void back_to_menu_cb(lv_event_t * e)
 {
     ui_main_open();    // reopen the main menu screen
 }
-
+/*
 static void back_btn_cb(lv_event_t * e)
 {
     splash_image_open(back_to_menu_cb);
-}
+}*/
 
 
 uint16_t ROW_HEIGHT;

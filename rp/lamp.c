@@ -255,23 +255,19 @@ void update_lamp()
 	{
 		commanded_power_level = PWR_100PCT;
 
-		if (requested_power_level == PWR_OFF)
+		if (reported_power_level == PWR_100PCT)
 		{
-			GOTO_STATE(PWR_OFF);
+			GOTO_STATE(STATE_RUNNING);
 		}
-
-
 
 		if (elapsed_ms_in_state > START_TIME)
 		{
-			if (reported_power_level != PWR_100PCT)
-			{
-				GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
-			}
-			else
-			{
-				GOTO_STATE(STATE_RUNNING);
-			}
+			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
+		}
+
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(PWR_OFF);
 		}
 
 		// Don't go to off once starting to avoid short cycling
@@ -542,6 +538,7 @@ int get_lamp_state_elapsed_ms()
 {
 	return (time_us_64() - lamp_state_transition_time) / 1000;
 }
+
 
 // power flags - for more verbose error messages later on
 
