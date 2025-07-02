@@ -7,6 +7,10 @@
 #define MAGIC_VAL 0xb8870200
 #define FLASH_TARGET_OFFSET (PICO_FLASH_SIZE_BYTES - 4096)
 
+#define DEFAULT_POWER_ON      1      /* lamp on  */
+#define DEFAULT_RADAR_ON      1      /* radar on */
+#define DEFAULT_DIM_INDEX     3      /* 0-3 → 100 % */
+
 struct persistance_region persistance_region = {0};
 bool dirty = false;
 const uint8_t *persistance_region_flash_ptr = 
@@ -20,6 +24,9 @@ void init_persistance_region()
 	{
 		memset(&persistance_region, 0, sizeof(persistance_region));
 		persistance_region.magic = MAGIC_VAL;
+		persistance_region.power_on   = DEFAULT_POWER_ON;
+        persistance_region.radar_on   = DEFAULT_RADAR_ON;
+        persistance_region.dim_index  = DEFAULT_DIM_INDEX;
 		dirty = true;
 	}
 }
