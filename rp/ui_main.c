@@ -31,11 +31,28 @@ static void back_to_menu_cb(lv_event_t * e)
 {
     ui_main_open();    // reopen the main menu screen
 }
-/*
-static void back_btn_cb(lv_event_t * e)
+
+/* --- persistence write helpers --------------------------------- */
+static void sw_power_changed_cb(lv_event_t * e)
 {
-    splash_image_open(back_to_menu_cb);
-}*/
+    bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
+    persist_set_power(on);
+    write_persistance_region();                        /* flash only if value changed */
+}
+
+static void sw_radar_changed_cb(lv_event_t * e)
+{
+    bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
+    persist_set_radar(on);
+    write_persistance_region();
+}
+
+static void slider_int_changed_cb(lv_event_t * e)
+{
+    uint8_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
+    persist_set_dim_idx(idx);
+    write_persistance_region();
+}
 
 
 uint16_t ROW_HEIGHT;
@@ -280,9 +297,11 @@ void ui_main_init()
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
 		lv_obj_add_style(sw_power, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-        lv_group_add_obj(the_group, sw_power);
+        
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_FOCUSED,   lbl);
 		lv_obj_add_event_cb(sw_power, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl);
+		lv_obj_add_event_cb(sw_power, sw_power_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+		lv_group_add_obj(the_group, sw_power);
 		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
     }
 
@@ -312,12 +331,13 @@ void ui_main_init()
 		lv_obj_add_style(sw_radar, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
 		lv_obj_add_style(sw_radar, &style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
 		lv_obj_add_style(sw_radar, &style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
-     //   lv_obj_add_event_cb(sw_radar, cb_radar, LV_EVENT_VALUE_CHANGED, NULL);
-        lv_group_add_obj(the_group, sw_radar);
+		lv_obj_add_event_cb(sw_radar, sw_radar_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+		lv_group_add_obj(the_group, sw_radar);
 
 		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
 		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_radar);
 		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_radar);
+		
 	}
 
     /* DIM slider (discrete 20/40/70/100 – default 100) */
@@ -359,6 +379,7 @@ void ui_main_init()
         lv_slider_set_range(slider_intensity, 0, 3);          /* 4 ticks          */
         //lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
 		lv_slider_set_value(slider_intensity, persist_get_dim_idx(), LV_ANIM_OFF);
+		lv_obj_add_event_cb(slider_intensity, slider_int_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, slider_intensity);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_slider);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_slider);
@@ -550,12 +571,12 @@ void ui_main_update()
 	}
 	lv_label_set_text(lbl_status, buf);
 	
-	// write to flash
-	persist_set_power(power_on);
-	persist_set_radar(radar_on);
-	if (SHOW_DIM)
-		persist_set_dim_idx(lv_slider_get_value(slider_intensity));
-	write_persistance_region();
+	// // write to flash
+	// persist_set_power(power_on);
+	// persist_set_radar(radar_on);
+	// if (SHOW_DIM)
+		// persist_set_dim_idx(lv_slider_get_value(slider_intensity));
+	// write_persistance_region();
 }
 
 void ui_main_open()
