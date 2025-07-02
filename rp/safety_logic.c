@@ -69,15 +69,17 @@ int get_distance_for_break_row(struct break_row* row, bool diffused, bool high_t
 
 int get_power_for_distance(int distance_cm, bool diffused, bool high_tilt)
 {
-	for (enum pwr_level i = 0; i < PWR_100PCT; i++)
-	{
-		if (distance_cm <= get_distance_for_break_row(&breaks[i], diffused, high_tilt))
-		{
-			return i;
-		}
-	}
+	// for (enum pwr_level i = 0; i < PWR_100PCT; i++)
+	// {
+		// if (distance_cm <= get_distance_for_break_row(&breaks[i], diffused, high_tilt))
+		// {
+			// return i;
+		// }
+	// }
 
-	return PWR_100PCT;
+	// return PWR_100PCT;
+	
+	return (distance_cm <= 110) ? PWR_OFF : PWR_100PCT;
 }
 
 char safety_action_desc[128] = {0};
@@ -105,6 +107,8 @@ void update_safety_logic()
 
 	enum pwr_level pwr = get_power_for_distance(distance, false, get_is_high_tilt());
 
+	// ignore requests to strike if the lamp is off but the requested distance requires dimming
+	// doesn't currently matter since we do a binary on/off for the radar
 	if (get_lamp_requested_power() == PWR_OFF && pwr != PWR_100PCT && pwr != PWR_OFF)
 	{
 		sprintf(safety_action_desc, "Tooclose/%s", pwr_level_str(pwr));
