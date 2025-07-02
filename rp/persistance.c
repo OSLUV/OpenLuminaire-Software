@@ -42,26 +42,8 @@ void write_persistance_region()
 {
 	if (!dirty) return;
 	flash_safe_execute(write_persistance_region_inner, NULL, 100);
+	dirty = false;
 }
-
-//
-
-
-static void __no_inline_not_in_flash_func(_flash_write)(void*)
-{
-    flash_range_erase(FLASH_TARGET_OFFSET, FLASH_SECTOR_SIZE);
-    flash_range_program(FLASH_TARGET_OFFSET,
-                        (const uint8_t*)&persistance_region,
-                        sizeof(persistance_region));
-}
-
-void persist_commit(void)
-{
-    if (!dirty) return;
-    flash_safe_execute(_flash_write, NULL, 100);
-    dirty = false;
-}
-
 
 /* -------- setters & getters ------------------------------- */
 void persist_set_power(bool on){ dirty |= (persistance_region.power_on != on);
