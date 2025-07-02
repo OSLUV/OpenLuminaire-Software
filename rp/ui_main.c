@@ -274,7 +274,8 @@ void ui_main_init()
         lv_obj_set_size(sw_power, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_pos(row, 5,20);
 
-        lv_obj_add_state(sw_power, LV_STATE_CHECKED);
+        // lv_obj_add_state(sw_power, LV_STATE_CHECKED);
+		if (persist_get_power())  lv_obj_add_state(sw_power, LV_STATE_CHECKED);
         lv_obj_set_style_bg_color(sw_power, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
@@ -303,6 +304,7 @@ void ui_main_init()
 		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
 		
         sw_radar = lv_switch_create(row);
+		if (persist_get_radar())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
         lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
@@ -355,8 +357,8 @@ void ui_main_init()
 		lv_obj_add_style(slider_intensity, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);  // filled part
 		
         lv_slider_set_range(slider_intensity, 0, 3);          /* 4 ticks          */
-        lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
-		
+        //lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
+		lv_slider_set_value(slider_intensity, persist_get_dim_idx(), LV_ANIM_OFF);
         lv_group_add_obj(the_group, slider_intensity);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_slider);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_slider);
@@ -470,6 +472,7 @@ void ui_main_update()
     {
         set_safety_logic_enabled(false);
         request_lamp_power(PWR_OFF);
+		persist_set_power(power_on);
     }
     else
     {
@@ -534,7 +537,7 @@ void ui_main_update()
     int pct_req = (req == PWR_20PCT) ? 20 :
 				  (req == PWR_40PCT) ? 40 :
 				  (req == PWR_70PCT) ? 70 :
-				  (req == PWR_100PCT)? 100 : ";
+				  (req == PWR_100PCT)? 100 : 0;
 				  
 	if(radar_on && pct_cmd < pct_req && power_on)
 		txt = "Proximity triggered ";
@@ -547,6 +550,12 @@ void ui_main_update()
 	}
 	lv_label_set_text(lbl_status, buf);
 	
+	// write to flash
+	persist_set_power(power_on);
+	persist_set_radar(radar_on);
+	if (SHOW_DIM)
+		persist_set_dim_idx(lv_slider_get_value(slider_intensity));
+	write_persistance_region();
 }
 
 void ui_main_open()
