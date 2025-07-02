@@ -458,7 +458,7 @@ void ui_main_update()
 	//update power/radar/intensity widgets
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
-	bool inactive = get_lamp_state() != STATE_RUNNING;
+	bool inactive = !power_on;
 
     enum pwr_level intensity_setting = PWR_100PCT;
 	if (SHOW_DIM) {
@@ -495,7 +495,7 @@ void ui_main_update()
 		}
 		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
     }
-	if (inactive && !radar_on) {
+	if (inactive) {
         lv_obj_add_state(sw_radar, LV_STATE_USER_2);
 		lv_obj_add_state(lbl_radar, LV_STATE_USER_2);
     } else {
@@ -511,21 +511,21 @@ void ui_main_update()
 	
 	
 	enum lamp_state s = get_lamp_state();
-    const char * txt = (s == STATE_OFF)       ? "Lamp off"      :
-                       ( 
-							(s == STATE_STARTING) || 
-							(s == STATE_RESTRIKE_COOLDOWN_1) ||
-							(s == STATE_RESTRIKE_ATTEMPT_1) ||
-							(s == STATE_RESTRIKE_COOLDOWN_2) ||
-							(s == STATE_RESTRIKE_ATTEMPT_2) ||
-							(s == STATE_RESTRIKE_COOLDOWN_3) ||
-							(s == STATE_RESTRIKE_ATTEMPT_3) 
-						)  ? "Lamp starting..."   :
-                       (s == STATE_RUNNING)   ? "Lamp running"   :
-					   (s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
-                       (s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
+    const char * txt = (s == STATE_OFF)       ? "Lamp off"      : 
+					(s == STATE_STARTING) ? "Lamp starting..."   :
+					(s == STATE_RESTRIKE_COOLDOWN_1) ? "Restrike cooldown 1":
+					(s == STATE_RESTRIKE_ATTEMPT_1) ? "Restrike attempt 1":
+					(s == STATE_RESTRIKE_COOLDOWN_2) ? "Restrike cooldown 2":
+					(s == STATE_RESTRIKE_ATTEMPT_2) ? "Restrike attempt 2":
+					(s == STATE_RESTRIKE_COOLDOWN_3) ? "Restrike cooldown 3":
+					(s == STATE_RESTRIKE_ATTEMPT_3) ? "Restrike attempt 3":
+					(s == STATE_RUNNING)   ? "Lamp running"   :
+					(s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
+					(s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
     
-	enum pwr_level  cmd = get_lamp_commanded_power(); // what PWM is doing
+	//enum pwr_level  cmd = get_lamp_commanded_power(); // what has been sent to pwm
+	enum pwr_level cmd; //reported level
+	get_lamp_reported_power(&cmd);  
 	enum pwr_level req  = intensity_setting;  // user set-point
 	int pct_cmd = (cmd == PWR_20PCT) ? 20 :
 				  (cmd == PWR_40PCT) ? 40 :
@@ -534,18 +534,14 @@ void ui_main_update()
     int pct_req = (req == PWR_20PCT) ? 20 :
 				  (req == PWR_40PCT) ? 40 :
 				  (req == PWR_70PCT) ? 70 :
-				  (req == PWR_100PCT)? 100 : 0;
+				  (req == PWR_100PCT)? 100 : ";
 				  
 	if(radar_on && pct_cmd < pct_req && power_on)
-		txt = "Proximity";
+		txt = "Proximity triggered ";
 
 	static char buf[48];
 	if (SHOW_DIM) { 
-		if (s!=STATE_OFF && s!=STATE_FAILED_OFF){
-			lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
-		} else{
-			lv_snprintf(buf, sizeof(buf), "%s", txt);
-		}
+		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
 	} else {
 		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
 	}

@@ -4,11 +4,6 @@
 #include "radar.h"
 #include "imu.h"
 
-#define RESTRIKE_DELAY_MS   2000         // wait this long before relight
-
-static bool      in_zero_lockout     = false;   // true after we hit 0 %
-static uint64_t  last_close_us       = 0;       // last time a close object was seen
-
 // entries are in centimeters, what is the furthest distance at which this power level restriction is in effect
 // no entry for PWR_100PCT since it's logically infinity
 
@@ -18,11 +13,16 @@ struct break_row {
 	int diffused_low_tilt;
 	int diffused_high_tilt;
 } breaks[PWR_100PCT] = {
-	//with 30% safety margin
-	[PWR_OFF] =   {44,  80,  15,  24},
-	[PWR_20PCT] = {64,  104,  21,  37},
-	[PWR_40PCT] = {86,  108,  29,  49},
-	[PWR_70PCT] = {102,  110, 35,  57}
+	// ICNIRP limits
+	[PWR_OFF] =   {110,  110,  54, 54},
+	[PWR_20PCT] = {113,  113,  88, 88},
+	[PWR_40PCT] = {115,  115,  111,  111},
+	[PWR_70PCT] = {116,  116, 112,  112}
+	// // with 30% safety margin
+	// [PWR_OFF] =   {44,  80,  15,  24},
+	// [PWR_20PCT] = {64,  104,  21,  37},
+	// [PWR_40PCT] = {86,  108,  29,  49},
+	// [PWR_70PCT] = {102,  110, 35,  57}
 	//// original
 	// [PWR_OFF] =   {36,  66,  12,  21},
 	// [PWR_20PCT] = {52,  96,  18,  31},
@@ -88,9 +88,14 @@ bool radar_safety_enabled = false;
 
 void update_safety_logic()
 {
+	if (!radar_safety_enabled)
+	{
+		sprintf(safety_action_desc, "Disabled");
+		return;
+	}
+
 	int distance = get_radar_distance_cm();
 
-	// this should essentially never trigger - the radar is too sensitive
 	if (distance == -1)
 	{
 		sprintf(safety_action_desc, "Radar failed -- 100%%");
@@ -112,7 +117,7 @@ void update_safety_logic()
 		debounce_new_time = time_us_64();
 	}
 
-	if ((time_us_64() - debounce_new_time) > (1000*1000))
+	if ((time_us_64() - debounce_new_time) > (1000*1000*3))
 	{
 		sprintf(safety_action_desc, "Req %s", pwr_level_str(pwr));
 		request_lamp_power(cap < pwr ? cap : pwr);
