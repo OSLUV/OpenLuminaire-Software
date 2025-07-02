@@ -276,7 +276,7 @@ void update_lamp()
 	{
 		commanded_power_level = requested_power_level;
 
-		if (get_lamp_type() == LAMP_TYPE_DIMMABLE && elapsed_ms_in_state > (30*1000))
+		if (get_lamp_type() == LAMP_TYPE_DIMMABLE && elapsed_ms_in_state > (2*60*60*1000))
 		{
 			printf("Initiate full-power test\n");
 			GOTO_STATE(STATE_FULLPOWER_TEST);
