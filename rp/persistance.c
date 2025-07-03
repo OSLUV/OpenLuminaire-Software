@@ -1,7 +1,7 @@
 #include <hardware/flash.h>
 #include <pico/flash.h>
 #include <string.h>
-
+#include <stdio.h>
 #include "persistance.h"
 
 #define MAGIC_VAL 0xb8870200
