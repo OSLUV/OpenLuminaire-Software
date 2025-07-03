@@ -67,7 +67,7 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
+    if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE) {   
 		ROW_HEIGHT     = 23;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
@@ -559,9 +559,10 @@ void ui_main_update()
 				  (req == PWR_40PCT) ? 40 :
 				  (req == PWR_70PCT) ? 70 :
 				  (req == PWR_100PCT)? 100 : 0;
-				  
-	if(radar_on && pct_cmd < pct_req && power_on)
-		txt = "Proximity triggered ";
+				
+	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
+	if(radar_active)
+		txt = "Radar triggered";
 
 	static char buf[48];
 	if (SHOW_DIM) { 
