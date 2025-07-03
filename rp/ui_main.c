@@ -571,12 +571,6 @@ void ui_main_update()
 	}
 	lv_label_set_text(lbl_status, buf);
 	
-	// // write to flash
-	// persist_set_power(power_on);
-	// persist_set_radar(radar_on);
-	// if (SHOW_DIM)
-		// persist_set_dim_idx(lv_slider_get_value(slider_intensity));
-	// write_persistance_region();
 }
 
 void ui_main_open()

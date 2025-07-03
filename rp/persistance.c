@@ -43,6 +43,7 @@ void write_persistance_region()
 	if (!dirty) return;
 	flash_safe_execute(write_persistance_region_inner, NULL, 100);
 	dirty = false;
+	printf("writing to persistance region");
 }
 
 /* -------- setters & getters ------------------------------- */
