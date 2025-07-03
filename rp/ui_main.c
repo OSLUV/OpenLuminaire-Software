@@ -8,6 +8,7 @@
 #include "ui_debug.h"
 #include "ui_loading.h"
 #include "safety_logic.h"
+#include "persistance.h"
 #include <string.h>
 #define COLOR_ACCENT  lv_color_hex(0x5600FF)
 
