@@ -26,7 +26,7 @@
 
 
 void main()
-{
+{	
 	display_screen_off();
 	stdio_init_all();
 
@@ -36,10 +36,6 @@ void main()
 	gpio_set_dir(4, GPIO_IN);
 	gpio_set_dir(5, GPIO_IN);
 	gpio_set_dir(6, GPIO_IN);
-	
-	// st7789_init(&lcd_config, LCD_WIDTH, LCD_HEIGHT);
-	// st7789_set_backlight(50);
-	// display_splash_screen();
 
 	init_persistance_region();
 	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
@@ -73,7 +69,7 @@ void main()
 
 	printf("Scripted start...\n");
 
-	lamp_perform_type_test();
+	if (power_ok()) lamp_perform_type_test();
 
 
 	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
