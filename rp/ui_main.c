@@ -73,7 +73,7 @@ void ui_theme_init(void)
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 165;
-		SHOW_DIM = true;
+		SHOW_DIM = false;
 		FONT_MAIN = &lv_font_montserrat_20;  
 		FONT_MED = &lv_font_montserrat_16;
 		FONT_SMALL = &lv_font_montserrat_14;
@@ -84,7 +84,7 @@ void ui_theme_init(void)
 		SWITCH_HEIGHT = ROW_HEIGHT-2;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 125;
-		SHOW_DIM = false;
+		SHOW_DIM = true;
 		FONT_MAIN = &lv_font_montserrat_32;  
 		FONT_MED = &lv_font_montserrat_22;
 		FONT_SMALL = &lv_font_montserrat_22;
