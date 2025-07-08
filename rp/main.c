@@ -24,6 +24,28 @@
 
 #include "font.c"
 
+void enable_lamp() {
+	request_lamp_power(PWR_OFF); 
+	update_lamp(); 
+	sleep_ms(20);
+	usbpd_negotiate(true);
+	set_fan(100);
+	sleep_ms(250);
+	update_sense();
+	set_switched_12v(true);
+	sleep_ms(1000);
+	update_sense();
+	printf("Scripted start...\n");
+
+	if (power_ok()) lamp_perform_type_test();
+
+	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
+	{
+		set_switched_24v(true);
+		sleep_ms(100);
+	}
+	request_lamp_power(PWR_100PCT);
+}
 
 void main()
 {	
@@ -55,50 +77,22 @@ void main()
 	init_radar();
 	init_fan();
 	init_radio();
-	usbpd_negotiate(true);
-	set_fan(100);
-
-	sleep_ms(250);
-	update_sense();
-
-	set_switched_12v(true);
-
-	sleep_ms(1000);
-
-	update_sense();
-
-	printf("Scripted start...\n");
-
-	if (power_ok()) lamp_perform_type_test();
-
-
-	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
-	{
-		set_switched_24v(true);
-		sleep_ms(100);
-	}
-
-	request_lamp_power(PWR_100PCT);
+	
+	//enable_lamp();
 	
 	printf("Enter mainloop... xx\n");
 	
 	// main UI init
     ui_main_init();
-    ui_debug_init();
-	
+    ui_debug_init();	
     //ui_main_open();  
-	
-	if (power_ok()) {
-		ui_main_open();
-	} else {
-		ui_psu_show();
-	}	
 	
     //housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
     uint64_t last_activity_us = time_us_64();
-    bool screen_dark = false;	
-	
+    bool screen_dark = false;		
+	bool last_power_ok = false; 
+
 	while (1) {
 		update_sense();
 		update_buttons();
@@ -108,8 +102,24 @@ void main()
 		update_usbpd(); //currently empty?
 		update_radio();
 		update_lamp();
+
+		//printf("12v: %f 24v: %f vbus: %f power_ok: %d\n", sense_12v, sense_24v, sense_vbus, power_ok());
 		
-		if (power_ok())
+		bool ok = power_ok();
+		if ( ok && !last_power_ok ) { 
+			enable_lamp();  // turn lamp on
+			ui_main_open();       //load ui screen on edge detection
+			display_screen_on();   
+			screen_dark  = false;      //cancel timeout
+		}
+		if ( !ok && last_power_ok ) {
+			ui_psu_show();         // error screen  
+			screen_dark  = false;
+		}
+		last_power_ok = ok;     // update edge detector 
+		
+		
+		if (ok)
 		{
 			if (buttons_released) { // triggered on end of button press       
 				last_activity_us = time_us_64();
@@ -139,6 +149,7 @@ void main()
 
 			update_safety_logic();
 		} else { 
+			lv_timer_handler();
 			ui_psu_show();
 		}
 	}
