@@ -7,6 +7,9 @@
 // entries are in centimeters, what is the furthest distance at which this power level restriction is in effect
 // no entry for PWR_100PCT since it's logically infinity
 
+#define DEBOUNCE_US_OFF   (1  * 1000 * 1000)    /* 1 s  */
+#define DEBOUNCE_US_ON    (3  * 1000 * 1000)    /* 3 s  */
+
 struct break_row {
 	int undiffused_low_tilt;
 	int undiffused_high_tilt;
@@ -121,7 +124,9 @@ void update_safety_logic()
 		debounce_new_time = time_us_64();
 	}
 
-	if ((time_us_64() - debounce_new_time) > (1000*1000*3))
+	
+	uint64_t debounce_us = (pwr == PWR_OFF) ? DEBOUNCE_US_OFF : DEBOUNCE_US_ON;
+	if ((time_us_64() - debounce_new_time) > debounce_us)
 	{
 		sprintf(safety_action_desc, "Req %s", pwr_level_str(pwr));
 		request_lamp_power(cap < pwr ? cap : pwr);
