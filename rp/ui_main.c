@@ -69,7 +69,7 @@ extern const lv_font_t * FONT_MED = NULL;
 void ui_theme_init(void)
 {
     if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		ROW_HEIGHT     = 23;
+		ROW_HEIGHT     = 27;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 165;
@@ -260,7 +260,7 @@ void ui_main_init()
 		lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
         lv_obj_set_width(row, 239);
-        lv_obj_set_height(row, LV_SIZE_CONTENT);
+        lv_obj_set_height(row, ROW_HEIGHT);
         //lv_obj_set_pos(row, 0, 240);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -416,7 +416,7 @@ void ui_main_init()
 
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, LV_SIZE_CONTENT);
+        lv_obj_set_size(row, 230, 60);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 		lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
