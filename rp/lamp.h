@@ -51,5 +51,6 @@ const char* pwr_level_str(enum pwr_level l);
 enum lamp_state get_lamp_state();
 const char* lamp_state_str(enum lamp_state s);
 int get_lamp_state_elapsed_ms();
+bool lamp_is_warming();
 void load_lamp_type_from_flash();
 bool power_ok();

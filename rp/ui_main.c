@@ -483,12 +483,65 @@ void ui_main_update()
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
-
-    enum pwr_level intensity_setting = PWR_100PCT;
+	enum pwr_level intensity_setting = PWR_100PCT; // default
+	// intensity 
 	if (SHOW_DIM) {
 		int intensity_setting_int = lv_slider_get_value(slider_intensity);
         intensity_setting = PWR_20PCT + intensity_setting_int;
 	}	
+	
+	// update lamp status
+	enum lamp_state s = get_lamp_state();
+    const char * txt = (s == STATE_OFF)       ? "Lamp off"      : 
+					(s == STATE_STARTING) ? "Lamp starting..."   :
+					(s == STATE_RESTRIKE_COOLDOWN_1) ? "Restrike cooldown 1":
+					(s == STATE_RESTRIKE_ATTEMPT_1) ? "Restrike attempt 1":
+					(s == STATE_RESTRIKE_COOLDOWN_2) ? "Restrike cooldown 2":
+					(s == STATE_RESTRIKE_ATTEMPT_2) ? "Restrike attempt 2":
+					(s == STATE_RESTRIKE_COOLDOWN_3) ? "Restrike cooldown 3":
+					(s == STATE_RESTRIKE_ATTEMPT_3) ? "Restrike attempt 3":
+					(s == STATE_RUNNING)   ? "Lamp running"   :
+					(s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
+					(s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
+    
+	enum pwr_level req  = intensity_setting;  // user set-point
+	int pct_req = (req == PWR_20PCT) ? 20 :
+				  (req == PWR_40PCT) ? 40 :
+				  (req == PWR_70PCT) ? 70 :
+				  (req == PWR_100PCT)? 100 : 0;
+	enum pwr_level  cmd = get_lamp_commanded_power(); // what has been sent to pwm
+	int pct_cmd;
+	bool warming = lamp_is_warming();
+	// bool warming_done = pct_rep > pct_cmd;
+	if (warming) {
+		txt = "Lamp starting...";
+		pct_cmd = 100;
+	} else {
+	pct_cmd = (cmd == PWR_20PCT) ? 20 :
+				  (cmd == PWR_40PCT) ? 40 :
+				  (cmd == PWR_70PCT) ? 70 :
+				  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
+	}
+    enum pwr_level rep; //reported level
+	get_lamp_reported_power(&rep);  
+    int pct_rep = (rep == PWR_20PCT) ? 20 :
+				  (rep == PWR_40PCT) ? 40 :
+				  (rep == PWR_70PCT) ? 70 :
+				  (rep == PWR_100PCT)? 100 : 0;
+				
+	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
+	if(radar_active)
+		txt = "Radar triggered";
+
+
+	static char buf[48];
+	if (SHOW_DIM) { 
+		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
+		
+	} else {
+		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
+	}
+	lv_label_set_text(lbl_status, buf);
 
     if (!power_on)
     {
@@ -511,7 +564,7 @@ void ui_main_update()
     }
 
 	if (SHOW_DIM){
-		if(inactive){
+		if(inactive || warming){
 			lv_obj_add_state(slider_intensity, LV_STATE_USER_2);   // grey it
 			lv_obj_add_state(lbl_slider, LV_STATE_USER_2);  
 		} else {
@@ -532,46 +585,7 @@ void ui_main_update()
 	int16_t a = get_angle_pointing_down(); 
 	ui_set_tilt(a);
 	
-	// update lamp status
 	
-	
-	enum lamp_state s = get_lamp_state();
-    const char * txt = (s == STATE_OFF)       ? "Lamp off"      : 
-					(s == STATE_STARTING) ? "Lamp starting..."   :
-					(s == STATE_RESTRIKE_COOLDOWN_1) ? "Restrike cooldown 1":
-					(s == STATE_RESTRIKE_ATTEMPT_1) ? "Restrike attempt 1":
-					(s == STATE_RESTRIKE_COOLDOWN_2) ? "Restrike cooldown 2":
-					(s == STATE_RESTRIKE_ATTEMPT_2) ? "Restrike attempt 2":
-					(s == STATE_RESTRIKE_COOLDOWN_3) ? "Restrike cooldown 3":
-					(s == STATE_RESTRIKE_ATTEMPT_3) ? "Restrike attempt 3":
-					(s == STATE_RUNNING)   ? "Lamp running"   :
-					(s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
-					(s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
-    
-	//enum pwr_level  cmd = get_lamp_commanded_power(); // what has been sent to pwm
-	enum pwr_level cmd; //reported level
-	get_lamp_reported_power(&cmd);  
-	enum pwr_level req  = intensity_setting;  // user set-point
-	int pct_cmd = (cmd == PWR_20PCT) ? 20 :
-				  (cmd == PWR_40PCT) ? 40 :
-				  (cmd == PWR_70PCT) ? 70 :
-				  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
-    int pct_req = (req == PWR_20PCT) ? 20 :
-				  (req == PWR_40PCT) ? 40 :
-				  (req == PWR_70PCT) ? 70 :
-				  (req == PWR_100PCT)? 100 : 0;
-				
-	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
-	if(radar_active)
-		txt = "Radar triggered";
-
-	static char buf[48];
-	if (SHOW_DIM) { 
-		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
-	} else {
-		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
-	}
-	lv_label_set_text(lbl_status, buf);
 	
 }
 

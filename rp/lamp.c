@@ -539,6 +539,12 @@ int get_lamp_state_elapsed_ms()
 	return (time_us_64() - lamp_state_transition_time) / 1000;
 }
 
+bool lamp_is_warming()
+{
+    uint32_t ms = get_lamp_state_elapsed_ms();
+    return  lamp_state == STATE_STARTING ||
+           (lamp_state == STATE_RUNNING && ms < START_TIME);
+}
 
 // power flags - for more verbose error messages later on
 
