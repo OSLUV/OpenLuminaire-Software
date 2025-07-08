@@ -44,8 +44,8 @@ void main()
 	display_init();
 
 	load_lamp_type_from_flash();
-	splash_image_init();
-	splash_image_open();
+	// splash_image_init();
+	// splash_image_open();
 
 	init_buttons();
 	init_imu();
