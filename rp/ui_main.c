@@ -68,37 +68,28 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    // if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		// ROW_HEIGHT     = 23;
-		// SWITCH_HEIGHT = ROW_HEIGHT-3;
-		// SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-		// //DEBUG_POS = 165;
-		// SHOW_DIM = true;
-		// FONT_MAIN = &lv_font_montserrat_20;  
-		// FONT_MED = &lv_font_montserrat_16;
-		// FONT_SMALL = &lv_font_montserrat_14;
-		// FONT_BIG = &lv_font_montserrat_44;
+    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
+		ROW_HEIGHT     = 23;
+		SWITCH_HEIGHT = ROW_HEIGHT-3;
+		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+		//DEBUG_POS = 165;
+		SHOW_DIM = true;
+		FONT_MAIN = &lv_font_montserrat_20;  
+		FONT_MED = &lv_font_montserrat_16;
+		FONT_SMALL = &lv_font_montserrat_14;
+		FONT_BIG = &lv_font_montserrat_44;
         
-    // } else {
-        // ROW_HEIGHT     = 32;
-		// SWITCH_HEIGHT = ROW_HEIGHT-2;
-		// SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-		// //DEBUG_POS = 125;
-		// SHOW_DIM = false;
-		// FONT_MAIN = &lv_font_montserrat_32;  
-		// FONT_MED = &lv_font_montserrat_22;
-		// FONT_SMALL = &lv_font_montserrat_22;
-		// FONT_BIG = &lv_font_montserrat_48;
-	// }
-	ROW_HEIGHT     = 32;
-	SWITCH_HEIGHT = ROW_HEIGHT-2;
-	SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-	//DEBUG_POS = 125;
-	SHOW_DIM = true;
-	FONT_MAIN = &lv_font_montserrat_32;  
-	FONT_MED = &lv_font_montserrat_22;
-	FONT_SMALL = &lv_font_montserrat_22;
-	FONT_BIG = &lv_font_montserrat_48;
+    } else {
+        ROW_HEIGHT     = 32;
+		SWITCH_HEIGHT = ROW_HEIGHT-2;
+		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+		//DEBUG_POS = 125;
+		SHOW_DIM = false;
+		FONT_MAIN = &lv_font_montserrat_32;  
+		FONT_MED = &lv_font_montserrat_22;
+		FONT_SMALL = &lv_font_montserrat_22;
+		FONT_BIG = &lv_font_montserrat_48;
+	}
 }
 
 
@@ -528,21 +519,20 @@ void ui_main_update()
 		}
 		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
     }
-	if (inactive) {
-        lv_obj_add_state(sw_radar, LV_STATE_USER_2);
-		lv_obj_add_state(lbl_radar, LV_STATE_USER_2);
-    } else {
-        lv_obj_clear_state(sw_radar, LV_STATE_USER_2);
-		lv_obj_clear_state(lbl_radar,  LV_STATE_USER_2);
-	}//lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
+	// if (inactive) {
+        // lv_obj_add_state(sw_radar, LV_STATE_USER_2);
+		// lv_obj_add_state(lbl_radar, LV_STATE_USER_2);
+    // } else {
+        // lv_obj_clear_state(sw_radar, LV_STATE_USER_2);
+		// lv_obj_clear_state(lbl_radar,  LV_STATE_USER_2);
+	// }//lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 	
 	// update tilt
 	int16_t a = get_angle_pointing_down(); 
 	ui_set_tilt(a);
 	
 	// update lamp status
-	
-	
+		
 	enum lamp_state s = get_lamp_state();
     const char * txt = (s == STATE_OFF)       ? "Lamp off"      : 
 					(s == STATE_STARTING) ? "Lamp starting..."   :
