@@ -70,7 +70,7 @@ void ui_debug_update()
     struct radar_report* r = debug_get_radar_report();
     int r_time = debug_get_radar_report_time();
     int dt = (time_us_64() - r_time)/(1000);
-    ADD_TEXT("Radar: Ty%d dT% 8dms %s\n", r->type, dt, (dt>1000 || r_time == 0)?"STALE":"OK");
+    ADD_TEXT("Radar: Ty%d dT% 8dms %s\n", r->type, dt, (dt>3000 || r_time == 0)?"STALE":"OK");
     ADD_TEXT("Radar: M: %dcm %de\n", r->report.moving_target_distance_cm, r->report.moving_target_energy);
     ADD_TEXT("Radar: S: %dcm %de\n", r->report.stationary_target_distance_cm, r->report.stationary_target_energy);
     ADD_TEXT("Radar: DD: %dcm / RD:%d\n", r->report.detection_distance_cm, get_radar_distance_cm());

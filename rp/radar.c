@@ -231,7 +231,7 @@ void update_radar()
 		// printf("(No new message, ptr=%d)\n", uart_rx_ptr);
 	}
 
-	if ((time_us_64() - last_report_time) > (1000*1000))
+	if ((time_us_64() - last_report_time) > (5*1000*1000))
 	{
 		radar_distance_cm = -1;
 	}
