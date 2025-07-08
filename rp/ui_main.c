@@ -68,28 +68,37 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		ROW_HEIGHT     = 23;
-		SWITCH_HEIGHT = ROW_HEIGHT-3;
-		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-		//DEBUG_POS = 165;
-		SHOW_DIM = true;
-		FONT_MAIN = &lv_font_montserrat_20;  
-		FONT_MED = &lv_font_montserrat_16;
-		FONT_SMALL = &lv_font_montserrat_14;
-		FONT_BIG = &lv_font_montserrat_44;
+    // if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
+		// ROW_HEIGHT     = 23;
+		// SWITCH_HEIGHT = ROW_HEIGHT-3;
+		// SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+		// //DEBUG_POS = 165;
+		// SHOW_DIM = true;
+		// FONT_MAIN = &lv_font_montserrat_20;  
+		// FONT_MED = &lv_font_montserrat_16;
+		// FONT_SMALL = &lv_font_montserrat_14;
+		// FONT_BIG = &lv_font_montserrat_44;
         
-    } else {
-        ROW_HEIGHT     = 32;
-		SWITCH_HEIGHT = ROW_HEIGHT-2;
-		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-		//DEBUG_POS = 125;
-		SHOW_DIM = false;
-		FONT_MAIN = &lv_font_montserrat_32;  
-		FONT_MED = &lv_font_montserrat_22;
-		FONT_SMALL = &lv_font_montserrat_22;
-		FONT_BIG = &lv_font_montserrat_48;
-	}
+    // } else {
+        // ROW_HEIGHT     = 32;
+		// SWITCH_HEIGHT = ROW_HEIGHT-2;
+		// SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+		// //DEBUG_POS = 125;
+		// SHOW_DIM = false;
+		// FONT_MAIN = &lv_font_montserrat_32;  
+		// FONT_MED = &lv_font_montserrat_22;
+		// FONT_SMALL = &lv_font_montserrat_22;
+		// FONT_BIG = &lv_font_montserrat_48;
+	// }
+	ROW_HEIGHT     = 32;
+	SWITCH_HEIGHT = ROW_HEIGHT-2;
+	SWITCH_LENGTH = SWITCH_HEIGHT * 2;
+	//DEBUG_POS = 125;
+	SHOW_DIM = true;
+	FONT_MAIN = &lv_font_montserrat_32;  
+	FONT_MED = &lv_font_montserrat_22;
+	FONT_SMALL = &lv_font_montserrat_22;
+	FONT_BIG = &lv_font_montserrat_48;
 }
 
 
@@ -306,40 +315,40 @@ void ui_main_init()
 		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
     }
 
-    // — RADAR ——————————————————————————
-    {
-        lv_obj_t *row = lv_obj_create(screen);
-        lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, ROW_HEIGHT);
-        lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-        lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-        //lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
+    // // — RADAR ——————————————————————————
+    // {
+        // lv_obj_t *row = lv_obj_create(screen);
+        // lv_obj_add_style(row, &style_row, 0);
+        // lv_obj_set_size(row, 230, ROW_HEIGHT);
+        // lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+        // lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
+        // lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+        // //lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
 
-        lbl_radar = lv_label_create(row);
-        lv_label_set_text(lbl_radar, "RADAR");
-        lv_obj_add_style(lbl_radar, &style_title, 0);
-        lv_obj_add_style(lbl_radar, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
-		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
-		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
+        // lbl_radar = lv_label_create(row);
+        // lv_label_set_text(lbl_radar, "RADAR");
+        // lv_obj_add_style(lbl_radar, &style_title, 0);
+        // lv_obj_add_style(lbl_radar, &style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+		// lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
+		// lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
 		
-        sw_radar = lv_switch_create(row);
-		if (persist_get_radar())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
-        lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
-        lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
-        lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
-        lv_obj_add_style(sw_radar, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
-		lv_obj_add_style(sw_radar, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-		lv_obj_add_style(sw_radar, &style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
-		lv_obj_add_style(sw_radar, &style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
-		lv_obj_add_event_cb(sw_radar, sw_radar_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
-		lv_group_add_obj(the_group, sw_radar);
+        // sw_radar = lv_switch_create(row);
+		// if (persist_get_radar())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
+        // lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
+        // lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
+        // lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
+        // lv_obj_add_style(sw_radar, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
+		// lv_obj_add_style(sw_radar, &style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
+		// lv_obj_add_style(sw_radar, &style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
+		// lv_obj_add_style(sw_radar, &style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
+		// lv_obj_add_event_cb(sw_radar, sw_radar_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
+		// lv_group_add_obj(the_group, sw_radar);
 
-		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
-		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_radar);
-		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_radar);
+		// //lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
+		// lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_radar);
+		// lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_radar);
 		
-	}
+	// }
 
     /* DIM slider (discrete 20/40/70/100 – default 100) */
      if (SHOW_DIM) {
@@ -481,7 +490,7 @@ void ui_main_update()
 	
 	//update power/radar/intensity widgets
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
-    bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
+    // bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
 
     enum pwr_level intensity_setting = PWR_100PCT;
@@ -494,21 +503,20 @@ void ui_main_update()
     {
         set_safety_logic_enabled(false);
         request_lamp_power(PWR_OFF);
-		persist_set_power(power_on);
     }
-    else
-    {
-        if (radar_on)
-        {
-            set_safety_logic_enabled(true);
-            set_safety_logic_cap(intensity_setting);
-        }
-        else
-        {
-            set_safety_logic_enabled(false);
-            request_lamp_power(intensity_setting);
-        }
-    }
+    // else
+    // {
+        // if (radar_on)
+        // {
+            // set_safety_logic_enabled(true);
+            // set_safety_logic_cap(intensity_setting);
+        // }
+        // else
+        // {
+            // set_safety_logic_enabled(false);
+            // request_lamp_power(intensity_setting);
+        // }
+    // }
 
 	if (SHOW_DIM){
 		if(inactive){
@@ -561,9 +569,9 @@ void ui_main_update()
 				  (req == PWR_70PCT) ? 70 :
 				  (req == PWR_100PCT)? 100 : 0;
 				
-	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
-	if(radar_active)
-		txt = "Radar triggered";
+	// bool radar_active = radar_on && pct_cmd < pct_req && power_on;
+	// if(radar_active)
+		// txt = "Radar triggered";
 
 	static char buf[48];
 	if (SHOW_DIM) { 

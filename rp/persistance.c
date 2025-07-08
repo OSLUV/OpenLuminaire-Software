@@ -8,7 +8,7 @@
 #define FLASH_TARGET_OFFSET (PICO_FLASH_SIZE_BYTES - 4096)
 
 #define DEFAULT_POWER_ON      1      // lamp on  
-#define DEFAULT_RADAR_ON      0      // radar on 
+#define DEFAULT_RADAR_ON      0      // radar off
 #define DEFAULT_DIM_INDEX     3      // 0-3 → 100 %
 
 struct persistance_region persistance_region = {0};
