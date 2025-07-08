@@ -77,7 +77,7 @@ void ui_theme_init(void)
 		FONT_MAIN = &lv_font_montserrat_20;  
 		FONT_MED = &lv_font_montserrat_16;
 		FONT_SMALL = &lv_font_montserrat_14;
-		FONT_BIG = &lv_font_montserrat_44;
+		FONT_BIG = &lv_font_montserrat_48;
         
     } else {
         ROW_HEIGHT     = 32;
