@@ -80,10 +80,10 @@ void ui_theme_init(void)
         
     } else {
         ROW_HEIGHT     = 42;
-		SWITCH_HEIGHT = ROW_HEIGHT-2;
+		SWITCH_HEIGHT = ROW_HEIGHT-5;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		SHOW_DIM = false;
-		FONT_MAIN = &lv_font_montserrat_30;  
+		FONT_MAIN = &lv_font_montserrat_28;  
 		FONT_MED = &lv_font_montserrat_22;
 		FONT_SMALL = &lv_font_montserrat_22;
 		FONT_BIG = &lv_font_montserrat_48;
@@ -244,14 +244,6 @@ void ui_main_init()
     lv_obj_remove_style(screen, NULL, LV_PART_SCROLLBAR);    /* kill scrollbar */
     lv_obj_set_scrollbar_mode(screen, LV_SCROLLBAR_MODE_OFF);
 
-	// if (!SHOW_DIM){ // buffer row
-		// lv_obj_t *row = lv_obj_create(screen);
-		// lv_obj_add_style(row, &style_row, 0);
-        // lv_obj_set_size(row, 230, 20);
-        // lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
-        // lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
-        // lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-	// }
 	
 	//	lamp status row
 	{
