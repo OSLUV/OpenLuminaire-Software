@@ -494,7 +494,9 @@ void ui_main_update()
     {
         set_safety_logic_enabled(false);
         request_lamp_power(PWR_OFF);
-    }
+    } else {
+		request_lamp_power(intensity_setting);
+	}
     // else
     // {
         // if (radar_on)
