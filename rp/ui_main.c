@@ -68,11 +68,10 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
+    if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE) {   
 		ROW_HEIGHT     = 23;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-		//DEBUG_POS = 165;
 		SHOW_DIM = true;
 		FONT_MAIN = &lv_font_montserrat_20;  
 		FONT_MED = &lv_font_montserrat_16;
@@ -80,12 +79,11 @@ void ui_theme_init(void)
 		FONT_BIG = &lv_font_montserrat_44;
         
     } else {
-        ROW_HEIGHT     = 32;
+        ROW_HEIGHT     = 42;
 		SWITCH_HEIGHT = ROW_HEIGHT-2;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
-		//DEBUG_POS = 125;
 		SHOW_DIM = false;
-		FONT_MAIN = &lv_font_montserrat_32;  
+		FONT_MAIN = &lv_font_montserrat_30;  
 		FONT_MED = &lv_font_montserrat_22;
 		FONT_SMALL = &lv_font_montserrat_22;
 		FONT_BIG = &lv_font_montserrat_48;
@@ -512,15 +510,14 @@ void ui_main_update()
 	enum pwr_level  cmd = get_lamp_commanded_power(); // what has been sent to pwm
 	int pct_cmd;
 	bool warming = lamp_is_warming();
-	// bool warming_done = pct_rep > pct_cmd;
 	if (warming) {
 		txt = "Lamp starting...";
 		pct_cmd = 100;
 	} else {
 	pct_cmd = (cmd == PWR_20PCT) ? 20 :
-				  (cmd == PWR_40PCT) ? 40 :
-				  (cmd == PWR_70PCT) ? 70 :
-				  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
+			  (cmd == PWR_40PCT) ? 40 :
+			  (cmd == PWR_70PCT) ? 70 :
+			  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
 	}
     enum pwr_level rep; //reported level
 	get_lamp_reported_power(&rep);  
@@ -539,7 +536,7 @@ void ui_main_update()
 		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
 		
 	} else {
-		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
+		lv_snprintf(buf, sizeof(buf), "%s\n          %d%%", txt, pct_cmd);
 	}
 	lv_label_set_text(lbl_status, buf);
 
