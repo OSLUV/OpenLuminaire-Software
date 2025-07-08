@@ -68,7 +68,7 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE) {   
+    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
 		ROW_HEIGHT     = 23;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
