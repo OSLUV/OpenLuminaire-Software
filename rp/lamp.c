@@ -382,6 +382,31 @@ void update_lamp()
 	}
 }
 
+void enable_lamp() {
+		
+	request_lamp_power(PWR_OFF);
+	update_lamp();
+	sleep_ms(20);
+		
+	usbpd_negotiate(true);
+	sleep_ms(250);
+	update_sense();
+	set_switched_12v(true);
+	update_sense();	
+	sleep_ms(1000);
+		
+	printf("Scripted start...\n");
+
+	if (power_ok()) lamp_perform_type_test();
+
+	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
+	{
+		set_switched_24v(true);
+		sleep_ms(100);
+	}
+	request_lamp_power(PWR_100PCT);
+}
+
 int get_lamp_raw_freq()
 {
 	return latched_lamp_hz;
@@ -546,6 +571,15 @@ bool lamp_is_warming()
            (lamp_state == STATE_RUNNING && ms < START_TIME);
 }
 
+bool lamp_enabled()
+{
+	if (get_lamp_type() != LAMP_TYPE_NONDIMMABLE){
+		return get_switched_12v();
+	} else {
+		return get_switched_12v() && get_switched_24v();
+	}
+}
+
 // power flags - for more verbose error messages later on
 
 bool power_too_low(){
@@ -563,19 +597,24 @@ bool power_ok()
 
 bool usb_too_low()
 {
-	return usbpd_get_is_trying_for_12v() && power_too_low();
+	return sense_vbus < 10.5 && power_too_low();
 }
 
 bool usb_too_high()
 {
-	return usbpd_get_is_trying_for_12v() && power_too_high();
+	return sense_vbus > 13.5 && power_too_high();
+}
+
+bool usb_ok() 
+{
+	return (!usb_too_high() && !usb_too_low());
 }
 
 bool jack_too_high()
 {
-	return power_too_high() && !usbpd_get_is_trying_for_12v();
+	return power_too_high() && !usb_too_high();
 }
 bool jack_too_low()
 {
-	return power_too_low() && !usbpd_get_is_trying_for_12v();
+	return power_too_low() && !usb_too_low();
 }

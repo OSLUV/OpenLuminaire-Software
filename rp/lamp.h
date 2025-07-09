@@ -54,3 +54,5 @@ int get_lamp_state_elapsed_ms();
 bool lamp_is_warming();
 void load_lamp_type_from_flash();
 bool power_ok();
+void enable_lamp();
+bool lamp_enabled();
