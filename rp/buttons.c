@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <hardware/gpio.h>
 #include <pico/stdlib.h>
 #include "buttons.h"
@@ -89,3 +90,38 @@ void update_buttons()
 	}
 }
 
+static const char * name_from_mask(uint32_t m)
+{
+    switch(m) {
+        case BUTTON_UP   : return "UP";
+        case BUTTON_DOWN : return "DOWN";
+        case BUTTON_LEFT : return "LEFT";
+        case BUTTON_RIGHT: return "RIGHT";
+        case BUTTON_CENTER: return "CENTER";
+        default          : return "?";
+    }
+}
+
+void dump_buttons() // for debugging
+{
+    if(buttons_pressed) {
+        printf("pressed :");
+        for(uint32_t bit = 1; bit; bit <<= 1)
+            if(buttons_pressed & bit) printf(" %s", name_from_mask(bit));
+        printf("\n");
+    }
+
+    if(buttons_released) {
+        printf("released:");
+        for(uint32_t bit = 1; bit; bit <<= 1)
+            if(buttons_released & bit) printf(" %s", name_from_mask(bit));
+        printf("\n");
+    }
+
+    if(buttons_down) {
+        printf("down    :");
+        for(uint32_t bit = 1; bit; bit <<= 1)
+            if(buttons_down & bit) printf(" %s", name_from_mask(bit));
+        printf("\n");
+    }
+}

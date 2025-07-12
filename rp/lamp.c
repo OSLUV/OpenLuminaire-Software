@@ -249,22 +249,25 @@ void update_lamp()
 
 	uint64_t elapsed_ms_in_state = (time_us_64() - lamp_state_transition_time) / 1000;
 
-	#define GOTO_STATE(x) {printf("State transition to %s\n", lamp_state_str(x)); lamp_state = x; lamp_state_transition_time = time_us_64();}
+	#define GOTO_STATE(x) {if (x != lamp_state) printf("State transition to %s\n", lamp_state_str(x)); lamp_state = x; lamp_state_transition_time = time_us_64();}
 
 	if (lamp_state == STATE_STARTING)
 	{
 		commanded_power_level = PWR_100PCT;
 
+		if (reported_power_level == PWR_100PCT)
+		{
+			GOTO_STATE(STATE_RUNNING);
+		}
+
 		if (elapsed_ms_in_state > START_TIME)
 		{
-			if (reported_power_level != PWR_100PCT)
-			{
-				GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
-			}
-			else
-			{
-				GOTO_STATE(STATE_RUNNING);
-			}
+			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
+		}
+
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(PWR_OFF);
 		}
 
 		// Don't go to off once starting to avoid short cycling
@@ -273,7 +276,7 @@ void update_lamp()
 	{
 		commanded_power_level = requested_power_level;
 
-		if (get_lamp_type() == LAMP_TYPE_DIMMABLE && elapsed_ms_in_state > (30*1000))
+		if (get_lamp_type() == LAMP_TYPE_DIMMABLE && elapsed_ms_in_state > (2*60*60*1000))
 		{
 			printf("Initiate full-power test\n");
 			GOTO_STATE(STATE_FULLPOWER_TEST);
@@ -305,6 +308,11 @@ void update_lamp()
 			GOTO_STATE(STATE_RESTRIKE_COOLDOWN_1);
 		}
 
+		if (requested_power_level == PWR_OFF)
+		{
+			GOTO_STATE(PWR_OFF);
+		}
+
 		// Don't go to off while fullpower test -- open question?
 	}
 
@@ -334,6 +342,10 @@ void update_lamp()
 		{\
 			printf("Timed out on restrike attempt #" #n "\n");\
 			GOTO_STATE(goto);\
+		}\
+		if (requested_power_level == PWR_OFF)\
+		{\
+			GOTO_STATE(PWR_OFF);\
 		}\
 	}
 
@@ -375,58 +387,75 @@ int get_lamp_raw_freq()
 	return latched_lamp_hz;
 }
 
+bool consider_state_test_failure(enum lamp_state state)
+{
+	if (state == STATE_FAILED_OFF)
+		return true;
+
+	if (state == STATE_RESTRIKE_COOLDOWN_1)
+		return true; // TODO: If we want to be really conservative, allow three restrikes while determining
+
+	return false;
+}
+
 void lamp_perform_type_test_inner()
 {
 	current_lamp_type = LAMP_TYPE_UNKNOWN;
+	request_lamp_power(PWR_OFF);
+	update_lamp();
+	update_lamp();
+	sleep_ms(100);
 	
 	set_switched_24v(false);
 	sleep_ms(100);
 	set_switched_12v(false);
 	sleep_ms(100);
 	set_switched_12v(true);
-	sleep_ms(100);
+	sleep_ms(1000);
 	request_lamp_power(PWR_100PCT);
 
-	uint64_t start = time_us_64();
-	while ((time_us_64() - start) < (1000*1000*3))
+	while (true)
 	{
 		update_lamp();
 		sleep_ms(10);
-	}
 
-	enum pwr_level lvl;
-	bool ok = get_lamp_reported_power(&lvl);
-
-	printf("12V test: GPIO=%d/%dhz\n", gpio_get(PIN_STATUS_LAMP), latched_lamp_hz);
-	if (!gpio_get(PIN_STATUS_LAMP))
-	{
-		printf("Determined dimmable\n");
-		current_lamp_type = LAMP_TYPE_DIMMABLE;
-		return;
+		if (consider_state_test_failure(get_lamp_state()))
+		{
+			break;
+		}
+		else if (get_lamp_state() == STATE_RUNNING)
+		{
+			printf("Determined dimmable\n");
+			current_lamp_type = LAMP_TYPE_DIMMABLE;
+			return;
+		}
 	}
 
 	request_lamp_power(PWR_OFF);
+	update_lamp();
+	update_lamp();
 	sleep_ms(100);
 
 	set_switched_24v(true);
-	sleep_ms(100);
+	sleep_ms(1000);
 
 	request_lamp_power(PWR_100PCT);
 
-	start = time_us_64();
-	while ((time_us_64() - start) < (1000*1000*3))
+	while (true)
 	{
 		update_lamp();
 		sleep_ms(10);
-	}
 
-	printf("24V test: GPIO=%d/%dhz\n", gpio_get(PIN_STATUS_LAMP), latched_lamp_hz);
-
-	if (!gpio_get(PIN_STATUS_LAMP))
-	{
-		printf("Determined non-dimmable\n");
-		current_lamp_type = LAMP_TYPE_NONDIMMABLE;
-		return;
+		if (consider_state_test_failure(get_lamp_state()))
+		{
+			break;
+		}
+		else if (get_lamp_state() == STATE_RUNNING)
+		{
+			printf("Determined non-dimmable\n");
+			current_lamp_type = LAMP_TYPE_NONDIMMABLE;
+			return;
+		}
 	}
 
 	printf("Determined unknown\n");
@@ -434,9 +463,15 @@ void lamp_perform_type_test_inner()
 	return;
 }
 
+void load_lamp_type_from_flash()
+{
+	printf("Determined type from flash\n");
+	current_lamp_type = persistance_region.factory_lamp_type;
+}
+
 void lamp_perform_type_test()
 {
-	if (persistance_region.factory_lamp_type == 0)
+	if (get_lamp_type() == LAMP_TYPE_UNKNOWN)
 	{
 		printf("Performing lamp type test\n");
 		lamp_perform_type_test_inner();
@@ -448,11 +483,6 @@ void lamp_perform_type_test()
 			persistance_region.factory_lamp_type = get_lamp_type();
 			write_persistance_region();
 		}
-	}
-	else
-	{
-		printf("Determined type from flash\n");
-		current_lamp_type = persistance_region.factory_lamp_type;
 	}
 }
 
@@ -507,4 +537,45 @@ const char* lamp_state_str(enum lamp_state s)
 int get_lamp_state_elapsed_ms()
 {
 	return (time_us_64() - lamp_state_transition_time) / 1000;
+}
+
+bool lamp_is_warming()
+{
+    uint32_t ms = get_lamp_state_elapsed_ms();
+    return  lamp_state == STATE_STARTING ||
+           (lamp_state == STATE_RUNNING && ms < START_TIME);
+}
+
+// power flags - for more verbose error messages later on
+
+bool power_too_low(){
+	return sense_12v < 10.5;
+}
+
+bool power_too_high(){
+	return sense_12v > 13.5;
+}
+
+bool power_ok()
+{
+	return (!power_too_low() && !power_too_high());
+}
+
+bool usb_too_low()
+{
+	return usbpd_get_is_trying_for_12v() && power_too_low();
+}
+
+bool usb_too_high()
+{
+	return usbpd_get_is_trying_for_12v() && power_too_high();
+}
+
+bool jack_too_high()
+{
+	return power_too_high() && !usbpd_get_is_trying_for_12v();
+}
+bool jack_too_low()
+{
+	return power_too_low() && !usbpd_get_is_trying_for_12v();
 }

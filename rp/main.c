@@ -16,94 +16,18 @@
 #include "radio.h"
 #include "safety_logic.h"
 #include "persistance.h"
-
-const struct st7789_config lcd_config = {
-		.spi      = spi0,
-		.gpio_din = PIN_LCD_MOSI,
-		.gpio_clk = PIN_LCD_SCK,
-		.gpio_cs  = PIN_LCD_CS,
-		.gpio_dc  = PIN_LCD_DC,
-		.gpio_rst = PIN_LCD_RST,
-		.gpio_bl  = PIN_LCD_BACKLIGHT,
-};
-
-#define LCD_WIDTH 240
-#define LCD_HEIGHT 240
-uint16_t screen_buffer[LCD_WIDTH][LCD_HEIGHT];
+#include "display.h"
+#include "ui_main.h"
+#include "ui_loading.h"
+#include "ui_debug.h"
+#include <lvgl.h>
 
 #include "font.c"
 
-int curr_y = 0;
-int curr_x = 0;
-
-void draw_text(char* c, int nc)
-{
-	for (int ch = 0; ch < nc; ch++)
-		{
-			if (c[ch] == '\n')
-			{
-				curr_x = 0;
-				curr_y += 8;
-				continue;
-			}
-
-			for (int x = 0; x < 8; x++)
-			{
-				for (int y = 0; y < 8; y++)
-				{
-					int xo = curr_x + x;
-					int yo = curr_y + y;
-					if (xo >= LCD_WIDTH) continue;
-					if (yo >= LCD_HEIGHT) continue;
-					bool set = ((font8x8_basic[c[ch]][y] >> x) & 1);
-					screen_buffer[yo][xo] = set?0xffff:0x0000;
-					
-				}
-			}
-
-			curr_x += 8;
-		}
-}
-
-void draw_box(int x, int y, int w, int c)
-{
-	for (int dx = 0; dx < w; dx++)
-	{
-		for (int dy = 0; dy < w; dy++)
-		{
-			int xo = x + dx;
-			int yo = y + dy;
-			if (xo >= LCD_WIDTH) continue;
-			if (yo >= LCD_HEIGHT) continue;
-			screen_buffer[yo][xo] = c;
-		}
-	}
-}
-
-
-
-void dbgf(const char *fmt, ...) {
-	static char work_buf[512];
-
-	va_list args;
-	va_start(args, fmt);
-
-	int n = vsnprintf(work_buf, sizeof(work_buf)-2, fmt, args);
-
-	va_end(args);
-
-	draw_text(work_buf, n);
-}
-
-#include "image.c"
-
-void display_splash_screen()
-{
-	st7789_blit_screen(LCD_WIDTH*LCD_HEIGHT, (uint16_t*)gimp_image.pixel_data);
-}
 
 void main()
-{
+{	
+	display_screen_off();
 	stdio_init_all();
 
 	gpio_init(4);
@@ -112,10 +36,16 @@ void main()
 	gpio_set_dir(4, GPIO_IN);
 	gpio_set_dir(5, GPIO_IN);
 	gpio_set_dir(6, GPIO_IN);
-	
-	st7789_init(&lcd_config, LCD_WIDTH, LCD_HEIGHT);
-	st7789_set_backlight(50);
-	display_splash_screen();
+
+	init_persistance_region();
+	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
+		
+	lv_init();
+	display_init();
+
+	load_lamp_type_from_flash();
+	splash_image_init();
+	splash_image_open();
 
 	init_buttons();
 	init_imu();
@@ -138,59 +68,78 @@ void main()
 	update_sense();
 
 	printf("Scripted start...\n");
-	printf("Setup persistance region...\n");
 
-	init_persistance_region();
-	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
+	if (power_ok()) lamp_perform_type_test();
 
-	lamp_perform_type_test();
+
+	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
+	{
+		set_switched_24v(true);
+		sleep_ms(100);
+	}
 
 	request_lamp_power(PWR_100PCT);
-
-	printf("Enter mainloop...\n");
-
-	sleep_ms(1000);
-
-
-	bool splash_screen = true;
-	uint64_t last_buttons = 0;
-
+	
+	printf("Enter mainloop... xx\n");
+	
+	// main UI init
+    ui_main_init();
+    ui_debug_init();
+	
+    //ui_main_open();  
+	
+	if (power_ok()) {
+		ui_main_open();
+	} else {
+		ui_psu_show();
+	}	
+	
+    //housekeeping flags
+    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
+    uint64_t last_activity_us = time_us_64();
+    bool screen_dark = false;	
+	
 	while (1) {
 		update_sense();
 		update_buttons();
 		update_imu();
 		update_mag();
 		update_radar();
-		update_usbpd();
+		update_usbpd(); //currently empty?
 		update_radio();
 		update_lamp();
-
-		curr_x = 0;
-		curr_y = 0;
-
-		if (splash_screen && buttons_pressed)
+		
+		if (power_ok())
 		{
-			splash_screen = false;
-		}
-		else if (!splash_screen)
-		{
-			memset(screen_buffer, 0x01, sizeof(screen_buffer));
-			do_menu();
-			st7789_blit_screen(LCD_WIDTH*LCD_HEIGHT, (uint16_t*)screen_buffer);
-		}
+			if (buttons_released) { // triggered on end of button press       
+				last_activity_us = time_us_64();
 
-		if (((time_us_64() - last_buttons) > (1000*1000*30)) && !buttons_pressed && !splash_screen)
-		{
-			last_buttons = time_us_64();
-			display_splash_screen();
-			splash_screen = true;
-		}
+				if (screen_dark) {        // wake-up path         
+					display_screen_on();  // back-light on + one flush     
+					screen_dark = false;
+				}
+			}
+			
+			// ----------- UI & DISPLAY ---------------------------------- 
+			if (!screen_dark) {
+				lv_timer_handler(); //
+				ui_main_update();         // normal widgets                
+				ui_debug_update();
+			}
 
-		if (buttons_pressed)
-		{
-			last_buttons = time_us_64();
-		}
+			// ----------- TIMEOUT CHECK --------------------------------- 
+			if (!screen_dark &&
+				(time_us_64() - last_activity_us) > TIMEOUT_US) {
+				display_screen_off();     // back-light to 0               
+				screen_dark = true;
+			}
 
-		update_safety_logic();
+			// static int cycle= 0;
+			// printf("Mainloop... %d\n", cycle++);
+
+			update_safety_logic();
+		} else { 
+			ui_psu_show();
+		}
 	}
 }
