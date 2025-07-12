@@ -122,5 +122,5 @@ The easiest way to change the splash image that appears when the lamp first turn
 	- [ ] Use 1 bit Run-Length-Encoding
 	- [x] **Save alpha channel (RGBA/RGB)**
 	- [x] **Save as RGB565 (16-bit)**
-5. Drop the `image.c` file in `OpenLuminaire-Software/v4/rp2040`
+5. Drop the `image.c` file in `OpenLuminaire-Software/rp`
 6. Rebuild with `make` from inside the build directory and reflash. 
