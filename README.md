@@ -62,7 +62,7 @@ Now, you can compile the software.
 
 1.  **Navigate to the Source Directory:**
     ```bash
-    cd OpenLuminaire-Software/v4/rp2040
+    cd OpenLuminaire-Software/rp
     ```
 
 2.  **Create a Build Directory:**
