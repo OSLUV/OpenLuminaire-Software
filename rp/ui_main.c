@@ -69,7 +69,7 @@ extern const lv_font_t * FONT_MED = NULL;
 void ui_theme_init(void)
 {
     if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
-		ROW_HEIGHT     = 23;
+		ROW_HEIGHT     = 27; // changed for SA 
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
 		//DEBUG_POS = 165;
@@ -77,7 +77,7 @@ void ui_theme_init(void)
 		FONT_MAIN = &lv_font_montserrat_20;  
 		FONT_MED = &lv_font_montserrat_16;
 		FONT_SMALL = &lv_font_montserrat_14;
-		FONT_BIG = &lv_font_montserrat_44;
+		FONT_BIG = &lv_font_montserrat_48; // changed for SA 
         
     } else {
         ROW_HEIGHT     = 32;
@@ -260,7 +260,7 @@ void ui_main_init()
 		lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
         lv_obj_set_width(row, 239);
-        lv_obj_set_height(row, LV_SIZE_CONTENT);
+        lv_obj_set_height(row, ROW_HEIGHT); //SA Patch
         //lv_obj_set_pos(row, 0, 240);
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER,  LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -306,6 +306,7 @@ void ui_main_init()
 		//lv_obj_add_event_cb(sw, focus_sync_cb, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
     }
 
+    /* Radar Disabled for SA
     // — RADAR ——————————————————————————
     {
         lv_obj_t *row = lv_obj_create(screen);
@@ -340,6 +341,7 @@ void ui_main_init()
 		lv_obj_add_event_cb(sw_radar, focus_sync_cb, LV_EVENT_DEFOCUSED, lbl_radar);
 		
 	}
+   */ 
 
     /* DIM slider (discrete 20/40/70/100 – default 100) */
      if (SHOW_DIM) {
@@ -416,7 +418,7 @@ void ui_main_init()
 
         lv_obj_t *row = lv_obj_create(screen);
         lv_obj_add_style(row, &style_row, 0);
-        lv_obj_set_size(row, 230, LV_SIZE_CONTENT);
+        lv_obj_set_size(row, 230, 60); //Changed for SA UI
         lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
         lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
 		lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
@@ -481,7 +483,7 @@ void ui_main_update()
 	
 	//update power/radar/intensity widgets
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
-    bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
+    //bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED); //Disabled for SA
 	bool inactive = !power_on;
 	enum pwr_level intensity_setting = PWR_100PCT; // default
 	// intensity 
@@ -528,10 +530,12 @@ void ui_main_update()
 				  (rep == PWR_40PCT) ? 40 :
 				  (rep == PWR_70PCT) ? 70 :
 				  (rep == PWR_100PCT)? 100 : 0;
-				
+	
+    /* Disable for SA
 	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
 	if(radar_active)
 		txt = "Radar triggered";
+    */
 
 
 	static char buf[48];
@@ -547,8 +551,11 @@ void ui_main_update()
     {
         set_safety_logic_enabled(false);
         request_lamp_power(PWR_OFF);
-		persist_set_power(power_on);
     }
+    else {
+		request_lamp_power(intensity_setting); // Change for SA
+	}
+    /* Disable for SA
     else
     {
         if (radar_on)
@@ -562,6 +569,7 @@ void ui_main_update()
             request_lamp_power(intensity_setting);
         }
     }
+    */
 
 	if (SHOW_DIM){
 		if(inactive || warming){
@@ -573,6 +581,7 @@ void ui_main_update()
 		}
 		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
     }
+    /* Disable for SA
 	if (inactive) {
         lv_obj_add_state(sw_radar, LV_STATE_USER_2);
 		lv_obj_add_state(lbl_radar, LV_STATE_USER_2);
@@ -580,7 +589,7 @@ void ui_main_update()
         lv_obj_clear_state(sw_radar, LV_STATE_USER_2);
 		lv_obj_clear_state(lbl_radar,  LV_STATE_USER_2);
 	}//lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
-	
+	*/
 	// update tilt
 	int16_t a = get_angle_pointing_down(); 
 	ui_set_tilt(a);
