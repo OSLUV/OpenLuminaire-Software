@@ -46,6 +46,7 @@ void main()
 	load_lamp_type_from_flash();
 	//splash_image_init(); //Disable splash image for SA
 	//splash_image_open();
+	display_screen_on() // Do this explicitly here because of disabled splash screens - SA.
 
 	init_buttons();
 	init_imu();
