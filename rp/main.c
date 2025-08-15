@@ -55,6 +55,9 @@ void main()
 	init_radar();
 	init_fan();
 	init_radio();
+	stusb4500_nvm_debug_dump();                                // show what’s there now
+	stusb4500_nvm_ensure_12v_profile(12000, 2500, true);      // writes ONLY if needed
+	stusb4500_nvm_debug_dump();                                // confirm it stuck
 	usbpd_negotiate(true);
 	set_fan(100);
 
