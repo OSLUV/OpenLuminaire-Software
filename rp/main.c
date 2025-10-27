@@ -37,109 +37,106 @@ void main()
 	gpio_set_dir(5, GPIO_IN);
 	gpio_set_dir(6, GPIO_IN);
 
-	init_persistance_region();
-	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
+	// init_persistance_region();
+	// printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
 		
 	lv_init();
 	display_init();
 
-	load_lamp_type_from_flash();
+	// add a new image init here
+
+	// load_lamp_type_from_flash();
 	splash_image_init();
 	splash_image_open();
 
-	init_buttons();
-	init_imu();
-	init_mag();
-	init_lamp();
-	init_sense();
+	// init_buttons();
+	// init_imu();
+	// init_mag();
+	// init_lamp();
+	// init_sense();
 	init_radar();
-	init_fan();
-	init_radio();
-	usbpd_negotiate(true);
-	set_fan(100);
+	// init_fan();
+	// init_radio();
+	// usbpd_negotiate(true);
+	// set_fan(100);
 
-	sleep_ms(250);
-	update_sense();
+	// sleep_ms(250);
+	// update_sense();
 
-	set_switched_12v(true);
+	// set_switched_12v(true);
 
-	sleep_ms(1000);
+	// sleep_ms(1000);
 
-	update_sense();
+	// update_sense();
 
-	printf("Scripted start...\n");
+	// printf("Scripted start...\n");
 
-	if (power_ok()) lamp_perform_type_test();
+	// if (power_ok()) lamp_perform_type_test();
 
 
-	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
-	{
-		set_switched_24v(true);
-		sleep_ms(100);
-	}
+	// if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
+	// {
+		// set_switched_24v(true);
+		// sleep_ms(100);
+	// }
 
-	request_lamp_power(PWR_100PCT);
+	// request_lamp_power(PWR_100PCT);
 	
-	printf("Enter mainloop... xx\n");
+	// printf("Enter mainloop... xx\n");
 	
 	// main UI init
-    ui_main_init();
+    //ui_main_init();
     ui_debug_init();
 	
-    //ui_main_open();  
+    ui_debug_open();  
 	
-	if (power_ok()) {
-		ui_main_open();
-	} else {
-		ui_psu_show();
-	}	
+	// if (power_ok()) {
+		// ui_main_open();
+	// } else {
+		// ui_psu_show();
+	// }	
 	
-    //housekeeping flags
-    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
-    uint64_t last_activity_us = time_us_64();
-    bool screen_dark = false;	
+    // //housekeeping flags
+    // const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
+    // uint64_t last_activity_us = time_us_64();
+    // bool screen_dark = false;	
 	
 	while (1) {
-		update_sense();
-		update_buttons();
-		update_imu();
-		update_mag();
+		// update_sense();
+		// update_buttons();
+		// update_imu();
+		// update_mag();
 		update_radar();
-		update_usbpd(); //currently empty?
-		update_radio();
-		update_lamp();
+		// update_usbpd(); //currently empty?
+		// update_radio();
+		// update_lamp();
 		
-		if (power_ok())
-		{
-			if (buttons_released) { // triggered on end of button press       
-				last_activity_us = time_us_64();
+		// if (buttons_released) { // triggered on end of button press       
+			// last_activity_us = time_us_64();
 
-				if (screen_dark) {        // wake-up path         
-					display_screen_on();  // back-light on + one flush     
-					screen_dark = false;
-				}
-			}
-			
-			// ----------- UI & DISPLAY ---------------------------------- 
-			if (!screen_dark) {
-				lv_timer_handler(); //
-				ui_main_update();         // normal widgets                
-				ui_debug_update();
-			}
+			// if (screen_dark) {        // wake-up path         
+				// display_screen_on();  // back-light on + one flush     
+				// screen_dark = false;
+			// }
+		// }
+		
+		// ----------- UI & DISPLAY ---------------------------------- 
+		
+		lv_timer_handler(); //
+		// ui_main_update();         // normal widgets                
+		ui_debug_update();
 
-			// ----------- TIMEOUT CHECK --------------------------------- 
-			if (!screen_dark &&
-				(time_us_64() - last_activity_us) > TIMEOUT_US) {
-				display_screen_off();     // back-light to 0               
-				screen_dark = true;
-			}
+		// // ----------- TIMEOUT CHECK --------------------------------- 
+		// if (!screen_dark &&
+			// (time_us_64() - last_activity_us) > TIMEOUT_US) {
+			// display_screen_off();     // back-light to 0               
+			// screen_dark = true;
+		// }
 
-			// static int cycle= 0;
-			// printf("Mainloop... %d\n", cycle++);
+		// static int cycle= 0;
+		// printf("Mainloop... %d\n", cycle++);
 
-			update_safety_logic();
-		} else { 
-			ui_psu_show();
-		}
+		// update_safety_logic();
+		
 	}
 }
