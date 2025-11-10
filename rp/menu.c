@@ -55,11 +55,11 @@ void do_menu()
 
 	selected_menu();
 
-	if (buttons_pressed & BUTTON_UP)
+	if (g_buttons_pressed & BUTTON_UP_C)
 	{
 		selected_idx--;
 	}
-	else if (buttons_pressed & BUTTON_DOWN)
+	else if (g_buttons_pressed & BUTTON_DOWN_C)
 	{
 		selected_idx++;
 	}
@@ -89,14 +89,14 @@ void root_menu()
 
 	if (usbpd_get_is_trying_for_12v())
 	{
-		if (selectablef("Down-negotiate USB") && (buttons_pressed & BUTTON_CENTER))
+		if (selectablef("Down-negotiate USB") && (g_buttons_pressed & BUTTON_CENTER_C))
 		{
 			usbpd_negotiate(false);
 		}
 	}
 	else
 	{
-		if (selectablef("Up-negotiate USB") && (buttons_pressed & BUTTON_CENTER))
+		if (selectablef("Up-negotiate USB") && (g_buttons_pressed & BUTTON_CENTER_C))
 		{
 			usbpd_negotiate(true);
 		}
@@ -106,12 +106,12 @@ void root_menu()
 
 	dbgf("12V Switched %s / 24V Reg %s\n", get_switched_12v()?"ON ":"off", get_switched_24v()?"ON ":"off");
 
-	if (selectablef("Toggle 12V") && (buttons_pressed & BUTTON_CENTER))
+	if (selectablef("Toggle 12V") && (g_buttons_pressed & BUTTON_CENTER_C))
 	{
 		set_switched_12v(!get_switched_12v());
 	}
 
-	if (selectablef("Toggle 24V") && (buttons_pressed & BUTTON_CENTER))
+	if (selectablef("Toggle 24V") && (g_buttons_pressed & BUTTON_CENTER_C))
 	{
 		set_switched_24v(!get_switched_24v());
 	}
@@ -136,7 +136,7 @@ void root_menu()
 
 	if (selectablef("Lamp Type: %s (retest)", lamp_type[get_lamp_type()]))
 	{
-		if (buttons_pressed & BUTTON_CENTER)
+		if (g_buttons_pressed & BUTTON_CENTER_C)
 		{
 			lamp_perform_type_test();
 		}
@@ -146,7 +146,7 @@ void root_menu()
 	{
 		enum pwr_level req_lvl = get_lamp_requested_power();
 
-		if ((buttons_pulsed & BUTTON_LEFT) && (req_lvl > 0))
+		if ((g_buttons_pulsed & BUTTON_LEFT_C) && (req_lvl > 0))
 		{
 			printf("Req LEFT\n");
 			if (get_lamp_type() == LAMP_TYPE_DIMMABLE)
@@ -158,7 +158,7 @@ void root_menu()
 				req_lvl = PWR_OFF;
 			}
 		}
-		else if ((buttons_pulsed & BUTTON_RIGHT) && (req_lvl < (NUM_REAL_PWR_SETTING-1)))
+		else if ((g_buttons_pulsed & BUTTON_RIGHT_C) && (req_lvl < (NUM_REAL_PWR_SETTING-1)))
 		{
 			printf("Req RIGHT\n");
 			if (get_lamp_type() == LAMP_TYPE_DIMMABLE)
@@ -170,7 +170,7 @@ void root_menu()
 				req_lvl = PWR_100PCT;
 			}
 		}
-		else if (buttons_pressed & BUTTON_CENTER)
+		else if (g_buttons_pressed & BUTTON_CENTER_C)
 		{
 			printf("Req CENTER\n");
 			req_lvl = (req_lvl == PWR_OFF) ? PWR_100PCT : PWR_OFF;
@@ -188,17 +188,17 @@ void root_menu()
 
 	if (selectablef("Adjust Fan (%3d%%)", get_fan()))
 	{
-		if (buttons_pulsed & BUTTON_LEFT)
+		if (g_buttons_pulsed & BUTTON_LEFT_C)
 		{
 			set_fan(get_fan()-5);
 		}
-		else if (buttons_pulsed & BUTTON_RIGHT)
+		else if (g_buttons_pulsed & BUTTON_RIGHT_C)
 		{
 			set_fan(get_fan()+5);
 		}
 	}
 
-	if (selectablef("Toggle Prox (%s/tilt %s)", get_safety_logic_enabled()?" ON":"off", get_is_high_tilt()?"hi":"lo") && (buttons_pressed & BUTTON_CENTER))
+	if (selectablef("Toggle Prox (%s/tilt %s)", get_safety_logic_enabled()?" ON":"off", get_is_high_tilt()?"hi":"lo") && (g_buttons_pressed & BUTTON_CENTER_C))
 	{
 		set_safety_logic_enabled(!get_safety_logic_enabled());
 	}
@@ -207,12 +207,12 @@ void root_menu()
 
 	if (selectablef("Adjust Backlight (%d%%)", st7789_get_backlight()))
 	{
-		if (buttons_pulsed & BUTTON_LEFT)
+		if (g_buttons_pulsed & BUTTON_LEFT_C)
 		{
 			printf("adj -5\n");
 			st7789_set_backlight(st7789_get_backlight()-5);
 		}
-		else if (buttons_pulsed & BUTTON_RIGHT)
+		else if (g_buttons_pulsed & BUTTON_RIGHT_C)
 		{
 			printf("adj +5\n");
 			st7789_set_backlight(st7789_get_backlight()+5);

@@ -202,12 +202,12 @@ static void keypad_read(lv_indev_t * indev_drv, lv_indev_data_t * data)
 {
 	static int last_key = 0;
 
-	if (buttons_down)
+	if (g_buttons_down)
 	{
 		int bit = 0;
 		while (bit < 5)
 		{
-			if (buttons_down & (1<<bit))
+			if (g_buttons_down & (1<<bit))
 			{
 				break;
 			}

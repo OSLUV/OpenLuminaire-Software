@@ -47,7 +47,7 @@ void main()
 	splash_image_init();
 	splash_image_open();
 
-	init_buttons();
+	buttons_init();
 	init_imu();
 	init_mag();
 	init_lamp();
@@ -69,7 +69,10 @@ void main()
 
 	printf("Scripted start...\n");
 
-	if (power_ok()) lamp_perform_type_test();
+	if (power_ok()) 
+	{
+		lamp_perform_type_test();
+	}
 
 
 	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
@@ -88,9 +91,11 @@ void main()
 	
     //ui_main_open();  
 	
-	if (power_ok()) {
+	if (power_ok()) 
+	{
 		ui_main_open();
-	} else {
+	} else 
+	{
 		ui_psu_show();
 	}	
 	
@@ -99,9 +104,10 @@ void main()
     uint64_t last_activity_us = time_us_64();
     bool screen_dark = false;	
 	
-	while (1) {
+	while (1)
+	{
 		update_sense();
-		update_buttons();
+		buttons_update();
 		update_imu();
 		update_mag();
 		update_radar();
@@ -111,7 +117,7 @@ void main()
 		
 		if (power_ok())
 		{
-			if (buttons_released) { // triggered on end of button press       
+			if (g_buttons_released) { // triggered on end of button press       
 				last_activity_us = time_us_64();
 
 				if (screen_dark) {        // wake-up path         
