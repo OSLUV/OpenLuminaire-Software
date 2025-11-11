@@ -221,8 +221,8 @@ void root_menu()
 
 	dbgf("\n");
 
-	dbgf("IMU: %+.2f/%+.2f/%+.2f\n", imu_x, imu_y, imu_z);
-	dbgf("Mag: %+ 5d/%+ 5d/%+ 5d\n", mag_x, mag_y, mag_z);
+	dbgf("IMU: %+.2f/%+.2f/%+.2f\n", g_imu_x, g_imu_y, g_imu_z);
+	dbgf("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_mag_x, g_mag_y, g_mag_z);
 
 	dbgf("\n");
 
@@ -231,11 +231,11 @@ void root_menu()
 
 	dbgf("\n");
 
-	dbgf("IMU angle: %d\n", get_angle_pointing_down());
+	dbgf("IMU angle: %d\n", imu_get_pointing_down_angle());
 
 	// debug_radio();
 
-	draw_box(200, 200 + imu_x*20, 10, 0xf000);
-	draw_box(210, 200 + imu_y*20, 10, 0x0ff0);
-	draw_box(220, 200 + imu_z*20, 10, 0x000f);
+	draw_box(200, 200 + g_imu_x*20, 10, 0xf000);
+	draw_box(210, 200 + g_imu_y*20, 10, 0x0ff0);
+	draw_box(220, 200 + g_imu_z*20, 10, 0x000f);
 }

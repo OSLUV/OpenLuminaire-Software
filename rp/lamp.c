@@ -2,8 +2,8 @@
  * @file      lamp.c
  * @author    The OSLUV Project
  * @brief     Driver for lamp control
- * @ref       lamp_controller.SchDoc
- * @ref       power.SchDoc
+ * @schematic lamp_controller.SchDoc
+ * @schematic power.SchDoc
  *  
  */
 
@@ -402,6 +402,8 @@ void lamp_update(void)
 /**
  * @brief Loads the preset factory lamp type @ref LAMP_TYPE_E
  * 
+ * @return 	void  
+ * 
  */
 void lamp_load_type_from_flash(void)
 {
@@ -422,6 +424,8 @@ LAMP_TYPE_E lamp_get_type(void)
 
 /**
  * @brief 
+ * 
+ * @return 	void  
  * 
  */
 void lamp_perform_type_test(void)
@@ -447,6 +451,8 @@ void lamp_perform_type_test(void)
  * Enabling requires voltage to be in a range 11.5V to 12.5V
  * 
  * @param b_on 
+ * 
+ * @return 	void
  */
 void lamp_set_switched_12v(bool b_on)
 {
@@ -491,6 +497,8 @@ bool lamp_get_switched_12v(void)
  * Enabling Switched 24 requires that Switched 12V is previously enabled
  * 
  * @param b_on 
+ * 
+ * @return 	void
  */
 void lamp_set_switched_24v(bool b_on)
 {
@@ -728,6 +736,8 @@ bool lamp_is_warming(void)
  * 
  * @param a_gpio 
  * @param a_events 
+ * 
+ * @return 	void
  */
 void lamp_status_gpio_callback(uint gpio, uint32_t events)
 {
@@ -746,6 +756,8 @@ void lamp_status_gpio_callback(uint gpio, uint32_t events)
  * @param state The new state to set
  * 
  * @related LAMP_STATE_E
+ * 
+ * @return 	void
  */
 static inline void lamp_go_to_state(LAMP_STATE_E state)
 {
@@ -760,6 +772,7 @@ static inline void lamp_go_to_state(LAMP_STATE_E state)
 /**
  * @brief 
  * 
+ * @return 	void
  */
 static void lamp_perform_type_test_inner(void)
 {

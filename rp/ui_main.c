@@ -582,7 +582,7 @@ void ui_main_update()
 	}//lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 	
 	// update tilt
-	int16_t a = get_angle_pointing_down(); 
+	int16_t a = imu_get_pointing_down_angle(); 
 	ui_set_tilt(a);
 	
 	

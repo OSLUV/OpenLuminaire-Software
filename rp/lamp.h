@@ -61,7 +61,7 @@ typedef enum {
 } LAMP_STATE_E;
 
 
-/* Exported functions --------------------------------------------------------*/
+/* Exported functions prototypes ---------------------------------------------*/
 
 void lamp_init(void);
 void lamp_update(void);

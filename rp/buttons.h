@@ -28,7 +28,7 @@ extern BUTTONS_E g_buttons_down;
 extern BUTTONS_E g_buttons_pulsed;
 
 
-/* Exported functions --------------------------------------------------------*/
+/* Exported functions prototypes ---------------------------------------------*/
 
 void buttons_init();
 void buttons_update();

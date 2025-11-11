@@ -47,7 +47,7 @@ int get_tilt_break()
 
 bool get_is_high_tilt()
 {
-	return get_angle_pointing_down() > get_tilt_break();
+	return imu_get_pointing_down_angle() > get_tilt_break();
 }
 
 int get_distance_for_break_row(struct break_row* row, bool diffused, bool high_tilt)

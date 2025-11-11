@@ -3,7 +3,7 @@
  * @author    The OSLUV Project
  * @brief     Driver for system's buttons state monitoring
  * @hwref     U3 (RP2040)
- * @ref       lamp_controller.SchDoc
+ * @schematic lamp_controller.SchDoc
  *  
  */
 

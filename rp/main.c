@@ -48,8 +48,8 @@ void main()
 	splash_image_open();
 
 	buttons_init();
-	init_imu();
-	init_mag();
+	imu_init();
+	mag_init();
 	lamp_init();
 	init_sense();
 	init_radar();
@@ -108,8 +108,8 @@ void main()
 	{
 		update_sense();
 		buttons_update();
-		update_imu();
-		update_mag();
+		imu_update();
+		mag_update();
 		update_radar();
 		update_usbpd(); //currently empty?
 		update_radio();
