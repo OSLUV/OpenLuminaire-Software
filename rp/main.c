@@ -54,7 +54,7 @@ void main()
 	init_sense();
 	init_radar();
 	init_fan();
-	init_radio();
+	radio_init();
 	usbpd_negotiate(true);
 	set_fan(100);
 
@@ -112,7 +112,6 @@ void main()
 		mag_update();
 		update_radar();
 		update_usbpd(); //currently empty?
-		update_radio();
 		lamp_update();
 		
 		if (lamp_is_power_ok())

@@ -233,7 +233,7 @@ void root_menu()
 
 	dbgf("IMU angle: %d\n", imu_get_pointing_down_angle());
 
-	// debug_radio();
+	// radio_debug();
 
 	draw_box(200, 200 + g_imu_x*20, 10, 0xf000);
 	draw_box(210, 200 + g_imu_y*20, 10, 0x0ff0);
