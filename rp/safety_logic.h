@@ -6,5 +6,5 @@ void update_safety_logic();
 char* get_safety_logic_state_desc();
 bool get_safety_logic_enabled();
 void set_safety_logic_enabled(bool);
-void set_safety_logic_cap(enum pwr_level);
+void set_safety_logic_cap(LAMP_PWR_LEVEL_E);
 void toggle_radar();

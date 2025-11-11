@@ -1,3 +1,15 @@
+/**
+ * @file      mag.c
+ * @author    The OSLUV Project
+ * @brief     Driver for magnet sensor
+ * @hwref     U8 (TMAG5273A2QDBVR)
+ * @ref       lamp_controller.SchDoc
+ *  
+ */
+
+
+/* Includes ------------------------------------------------------------------*/
+
 #include <hardware/i2c.h>
 #include <pico/stdlib.h>
 

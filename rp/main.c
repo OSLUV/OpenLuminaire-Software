@@ -43,14 +43,14 @@ void main()
 	lv_init();
 	display_init();
 
-	load_lamp_type_from_flash();
+	lamp_load_type_from_flash();
 	splash_image_init();
 	splash_image_open();
 
 	buttons_init();
 	init_imu();
 	init_mag();
-	init_lamp();
+	lamp_init();
 	init_sense();
 	init_radar();
 	init_fan();
@@ -61,7 +61,7 @@ void main()
 	sleep_ms(250);
 	update_sense();
 
-	set_switched_12v(true);
+	lamp_set_switched_12v(true);
 
 	sleep_ms(1000);
 
@@ -69,19 +69,19 @@ void main()
 
 	printf("Scripted start...\n");
 
-	if (power_ok()) 
+	if (lamp_is_power_ok()) 
 	{
 		lamp_perform_type_test();
 	}
 
 
-	if (get_lamp_type() == LAMP_TYPE_NONDIMMABLE)
+	if (lamp_get_type() == LAMP_TYPE_NON_DIMMABLE_C)
 	{
-		set_switched_24v(true);
+		lamp_set_switched_24v(true);
 		sleep_ms(100);
 	}
 
-	request_lamp_power(PWR_100PCT);
+	lamp_request_power_level(LAMP_PWR_100PCT_C);
 	
 	printf("Enter mainloop... xx\n");
 	
@@ -91,7 +91,7 @@ void main()
 	
     //ui_main_open();  
 	
-	if (power_ok()) 
+	if (lamp_is_power_ok()) 
 	{
 		ui_main_open();
 	} else 
@@ -113,9 +113,9 @@ void main()
 		update_radar();
 		update_usbpd(); //currently empty?
 		update_radio();
-		update_lamp();
+		lamp_update();
 		
-		if (power_ok())
+		if (lamp_is_power_ok())
 		{
 			if (g_buttons_released) { // triggered on end of button press       
 				last_activity_us = time_us_64();

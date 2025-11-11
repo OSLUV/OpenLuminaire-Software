@@ -3,6 +3,9 @@
 
 #define PIN_ADC0 26
 
+
+float sense_vbus, sense_12v, sense_24v = 0;
+
 void init_sense()
 {
 	adc_init();
@@ -20,8 +23,6 @@ float convert(uint16_t sample)
 	float voltage = (reading * (r1 + r2)) / r2;
 	return voltage;
 }
-
-float sense_vbus, sense_12v, sense_24v = 0;
 
 void update_sense()
 {

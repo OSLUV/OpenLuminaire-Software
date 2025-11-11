@@ -104,37 +104,37 @@ void root_menu()
 
 	dbgf("\n");
 
-	dbgf("12V Switched %s / 24V Reg %s\n", get_switched_12v()?"ON ":"off", get_switched_24v()?"ON ":"off");
+	dbgf("12V Switched %s / 24V Reg %s\n", lamp_get_switched_12v()?"ON ":"off", lamp_get_switched_24v()?"ON ":"off");
 
 	if (selectablef("Toggle 12V") && (g_buttons_pressed & BUTTON_CENTER_C))
 	{
-		set_switched_12v(!get_switched_12v());
+		lamp_set_switched_12v(!lamp_get_switched_12v());
 	}
 
 	if (selectablef("Toggle 24V") && (g_buttons_pressed & BUTTON_CENTER_C))
 	{
-		set_switched_24v(!get_switched_24v());
+		lamp_set_switched_24v(!lamp_get_switched_24v());
 	}
 
-	enum pwr_level rep;
-	get_lamp_reported_power(&rep);
+	LAMP_PWR_LEVEL_E rep;
+	lamp_get_reported_power_level(&rep);
 
 	dbgf("Lamp  Req  / Cmd  / Report\n");
 	dbgf("Power %04s / %04s / %04s %dHz\n",
-		pwr_level_str(get_lamp_requested_power()),
-		pwr_level_str(get_lamp_commanded_power()),
-		pwr_level_str(rep),
-		get_lamp_raw_freq());
+		lamp_get_power_level_string(lamp_get_requested_power_level()),
+		lamp_get_power_level_string(lamp_get_commanded_power_level()),
+		lamp_get_power_level_string(rep),
+		lamp_get_raw_freq());
 
-	dbgf("State: %s %d\n", lamp_state_str(get_lamp_state()), get_lamp_state_elapsed_ms());
+	dbgf("State: %s %d\n", lamp_get_lamp_state_str(lamp_get_lamp_state()), lamp_get_state_elapsed_ms());
 
 	const char* lamp_type[] = {
-		[LAMP_TYPE_DIMMABLE] = "DIMMABLE",
-		[LAMP_TYPE_NONDIMMABLE] = "NONDIMMABLE",
-		[LAMP_TYPE_UNKNOWN] = "UNKNOWN"
+		[LAMP_TYPE_DIMMABLE_C] = "DIMMABLE",
+		[LAMP_TYPE_NON_DIMMABLE_C] = "NONDIMMABLE",
+		[LAMP_TYPE_UNKNOWN_C] = "UNKNOWN"
 	};
 
-	if (selectablef("Lamp Type: %s (retest)", lamp_type[get_lamp_type()]))
+	if (selectablef("Lamp Type: %s (retest)", lamp_type[lamp_get_type()]))
 	{
 		if (g_buttons_pressed & BUTTON_CENTER_C)
 		{
@@ -144,46 +144,46 @@ void root_menu()
 
 	if (selectablef("Adjust Power"))
 	{
-		enum pwr_level req_lvl = get_lamp_requested_power();
+		LAMP_PWR_LEVEL_E req_lvl = lamp_get_requested_power_level();
 
 		if ((g_buttons_pulsed & BUTTON_LEFT_C) && (req_lvl > 0))
 		{
 			printf("Req LEFT\n");
-			if (get_lamp_type() == LAMP_TYPE_DIMMABLE)
+			if (lamp_get_type() == LAMP_TYPE_DIMMABLE_C)
 			{
 				req_lvl--;
 			}
 			else
 			{
-				req_lvl = PWR_OFF;
+				req_lvl = LAMP_PWR_OFF_C;
 			}
 		}
-		else if ((g_buttons_pulsed & BUTTON_RIGHT_C) && (req_lvl < (NUM_REAL_PWR_SETTING-1)))
+		else if ((g_buttons_pulsed & BUTTON_RIGHT_C) && (req_lvl < (LAMP_PWR_MAX_SETTINGS_C-1)))
 		{
 			printf("Req RIGHT\n");
-			if (get_lamp_type() == LAMP_TYPE_DIMMABLE)
+			if (lamp_get_type() == LAMP_TYPE_DIMMABLE_C)
 			{
 				req_lvl++;
 			}
 			else
 			{
-				req_lvl = PWR_100PCT;
+				req_lvl = LAMP_PWR_100PCT_C;
 			}
 		}
 		else if (g_buttons_pressed & BUTTON_CENTER_C)
 		{
 			printf("Req CENTER\n");
-			req_lvl = (req_lvl == PWR_OFF) ? PWR_100PCT : PWR_OFF;
+			req_lvl = (req_lvl == LAMP_PWR_OFF_C) ? LAMP_PWR_100PCT_C : LAMP_PWR_OFF_C;
 		}
 
-		if (req_lvl != get_lamp_requested_power())
+		if (req_lvl != lamp_get_requested_power_level())
 		{
-			printf("Adjust power req %d, have %d\n", req_lvl, get_lamp_requested_power());
-			request_lamp_power(req_lvl);
+			printf("Adjust power req %d, have %d\n", req_lvl, lamp_get_requested_power_level());
+			lamp_request_power_level(req_lvl);
 		}
 	}
 
-	// int freq = get_lamp_raw_freq();
+	// int freq = lamp_get_raw_freq();
 	// dbgf("  -> %3d%% PWM/%.1fV\n", get_lamp_dim(), ((float)get_lamp_dim())/100.*3.3);
 
 	if (selectablef("Adjust Fan (%3d%%)", get_fan()))

@@ -174,7 +174,7 @@ void update_radar()
 		reset_rx();
 	}
 
-	if ((time_us_64() - last_report_time) > (1000*3000) && (time_us_64() - last_reinit_time) > (1000*3000) && get_switched_12v())
+	if ((time_us_64() - last_report_time) > (1000*3000) && (time_us_64() - last_reinit_time) > (1000*3000) && lamp_get_switched_12v())
 	{
 		init_radar_comms();
 		last_reinit_time = time_us_64();

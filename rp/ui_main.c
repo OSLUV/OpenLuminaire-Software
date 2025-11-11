@@ -68,7 +68,7 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
+    if (lamp_get_type() == LAMP_TYPE_DIMMABLE_C) {   
 		ROW_HEIGHT     = 23;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
@@ -483,33 +483,33 @@ void ui_main_update()
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
-	enum pwr_level intensity_setting = PWR_100PCT; // default
+	LAMP_PWR_LEVEL_E intensity_setting = LAMP_PWR_100PCT_C; // default
 	// intensity 
 	if (SHOW_DIM) {
 		int intensity_setting_int = lv_slider_get_value(slider_intensity);
-        intensity_setting = PWR_20PCT + intensity_setting_int;
+        intensity_setting = LAMP_PWR_20PCT_C + intensity_setting_int;
 	}	
 	
 	// update lamp status
-	enum lamp_state s = get_lamp_state();
-    const char * txt = (s == STATE_OFF)       ? "Lamp off"      : 
-					(s == STATE_STARTING) ? "Lamp starting..."   :
-					(s == STATE_RESTRIKE_COOLDOWN_1) ? "Restrike cooldown 1":
-					(s == STATE_RESTRIKE_ATTEMPT_1) ? "Restrike attempt 1":
-					(s == STATE_RESTRIKE_COOLDOWN_2) ? "Restrike cooldown 2":
-					(s == STATE_RESTRIKE_ATTEMPT_2) ? "Restrike attempt 2":
-					(s == STATE_RESTRIKE_COOLDOWN_3) ? "Restrike cooldown 3":
-					(s == STATE_RESTRIKE_ATTEMPT_3) ? "Restrike attempt 3":
-					(s == STATE_RUNNING)   ? "Lamp running"   :
-					(s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
-					(s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
+	LAMP_STATE_E s = lamp_get_lamp_state();
+    const char * txt = (s == LAMP_STATE_OFF_C)       ? "Lamp off"      : 
+					(s == LAMP_STATE_STARTING_C) ? "Lamp starting..."   :
+					(s == LAMP_STATE_RESTRIKE_COOLDOWN_1_C) ? "Restrike cooldown 1":
+					(s == LAMP_STATE_RESTRIKE_ATTEMPT_1_C) ? "Restrike attempt 1":
+					(s == LAMP_STATE_RESTRIKE_COOLDOWN_2_C) ? "Restrike cooldown 2":
+					(s == LAMP_STATE_RESTRIKE_ATTEMPT_2_C) ? "Restrike attempt 2":
+					(s == LAMP_STATE_RESTRIKE_COOLDOWN_3_C) ? "Restrike cooldown 3":
+					(s == LAMP_STATE_RESTRIKE_ATTEMPT_3_C) ? "Restrike attempt 3":
+					(s == LAMP_STATE_RUNNING_C)   ? "Lamp running"   :
+					(s == LAMP_STATE_FAILED_OFF_C) ? "Lamp off - ERROR" :
+					(s == LAMP_STATE_FULLPOWER_TEST_C) ? "Calibrating..." : "STATUS UNKNOWN";
     
-	enum pwr_level req  = intensity_setting;  // user set-point
-	int pct_req = (req == PWR_20PCT) ? 20 :
-				  (req == PWR_40PCT) ? 40 :
-				  (req == PWR_70PCT) ? 70 :
-				  (req == PWR_100PCT)? 100 : 0;
-	enum pwr_level  cmd = get_lamp_commanded_power(); // what has been sent to pwm
+	LAMP_PWR_LEVEL_E req  = intensity_setting;  // user set-point
+	int pct_req = (req == LAMP_PWR_20PCT_C) ? 20 :
+				  (req == LAMP_PWR_40PCT_C) ? 40 :
+				  (req == LAMP_PWR_70PCT_C) ? 70 :
+				  (req == LAMP_PWR_100PCT_C)? 100 : 0;
+	LAMP_PWR_LEVEL_E  cmd = lamp_get_commanded_power_level(); // what has been sent to pwm
 	int pct_cmd;
 	bool warming = lamp_is_warming();
 	// bool warming_done = pct_rep > pct_cmd;
@@ -517,17 +517,17 @@ void ui_main_update()
 		txt = "Lamp starting...";
 		pct_cmd = 100;
 	} else {
-	pct_cmd = (cmd == PWR_20PCT) ? 20 :
-				  (cmd == PWR_40PCT) ? 40 :
-				  (cmd == PWR_70PCT) ? 70 :
-				  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
+	pct_cmd = (cmd == LAMP_PWR_20PCT_C) ? 20 :
+				  (cmd == LAMP_PWR_40PCT_C) ? 40 :
+				  (cmd == LAMP_PWR_70PCT_C) ? 70 :
+				  (cmd == LAMP_PWR_100PCT_C)? 100 : 0;  // LAMP_PWR_OFF_C or unknown
 	}
-    enum pwr_level rep; //reported level
-	get_lamp_reported_power(&rep);  
-    int pct_rep = (rep == PWR_20PCT) ? 20 :
-				  (rep == PWR_40PCT) ? 40 :
-				  (rep == PWR_70PCT) ? 70 :
-				  (rep == PWR_100PCT)? 100 : 0;
+    LAMP_PWR_LEVEL_E rep; //reported level
+	lamp_get_reported_power_level(&rep);  
+    int pct_rep = (rep == LAMP_PWR_20PCT_C) ? 20 :
+				  (rep == LAMP_PWR_40PCT_C) ? 40 :
+				  (rep == LAMP_PWR_70PCT_C) ? 70 :
+				  (rep == LAMP_PWR_100PCT_C)? 100 : 0;
 				
 	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
 	if(radar_active)
@@ -546,7 +546,7 @@ void ui_main_update()
     if (!power_on)
     {
         set_safety_logic_enabled(false);
-        request_lamp_power(PWR_OFF);
+        lamp_request_power_level(LAMP_PWR_OFF_C);
 		persist_set_power(power_on);
     }
     else
@@ -559,7 +559,7 @@ void ui_main_update()
         else
         {
             set_safety_logic_enabled(false);
-            request_lamp_power(intensity_setting);
+            lamp_request_power_level(intensity_setting);
         }
     }
 
@@ -571,7 +571,7 @@ void ui_main_update()
 			lv_obj_clear_state(slider_intensity, LV_STATE_USER_2); // full color
 			lv_obj_clear_state(lbl_slider, LV_STATE_USER_2);
 		}
-		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
+		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, lamp_get_type() != LAMP_TYPE_DIMMABLE || !power_on || lamp_get_lamp_state() == LAMP_STATE_FULLPOWER_TEST_C);
     }
 	if (inactive) {
         lv_obj_add_state(sw_radar, LV_STATE_USER_2);

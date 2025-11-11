@@ -41,9 +41,9 @@ void splash_image_init()
 	the_group = lv_group_create();
     /* 1 ─ pick the bitmap ------------------------------------------------ */
     const lv_image_dsc_t *src = &splash_default_img;       /* fallback   */
-    switch (get_lamp_type()) {
-        case LAMP_TYPE_DIMMABLE:    src = &splash_dimmable_img; break;
-        case LAMP_TYPE_NONDIMMABLE: src = &splash_basic_img;    break;
+    switch (lamp_get_type()) {
+        case LAMP_TYPE_DIMMABLE_C:    src = &splash_dimmable_img; break;
+        case LAMP_TYPE_NON_DIMMABLE_C: src = &splash_basic_img;    break;
         default: /* UNKNOWN */                               break;
     }
 
