@@ -168,7 +168,7 @@ bool trying_up = false;
 
 void usbpd_negotiate(bool up)
 {
-	if (get_lamp_commanded_power() != PWR_OFF) return;
+	if (lamp_get_commanded_power_level() != LAMP_PWR_OFF_C) return;
 	
 	printf("Do negotiate...\n");
 
