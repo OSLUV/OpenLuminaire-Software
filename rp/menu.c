@@ -186,15 +186,15 @@ void root_menu()
 	// int freq = lamp_get_raw_freq();
 	// dbgf("  -> %3d%% PWM/%.1fV\n", get_lamp_dim(), ((float)get_lamp_dim())/100.*3.3);
 
-	if (selectablef("Adjust Fan (%3d%%)", get_fan()))
+	if (selectablef("Adjust Fan (%3d%%)", fan_get_speed()))
 	{
 		if (g_buttons_pulsed & BUTTON_LEFT_C)
 		{
-			set_fan(get_fan()-5);
+			fan_set_speed(fan_get_speed()-5);
 		}
 		else if (g_buttons_pulsed & BUTTON_RIGHT_C)
 		{
-			set_fan(get_fan()+5);
+			fan_set_speed(fan_get_speed()+5);
 		}
 	}
 

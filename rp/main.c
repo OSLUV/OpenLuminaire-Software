@@ -53,10 +53,10 @@ void main()
 	lamp_init();
 	init_sense();
 	radar_init();
-	init_fan();
+	fan_init();
 	radio_init();
 	usbpd_negotiate(true);
-	set_fan(100);
+	fan_set_speed(100);
 
 	sleep_ms(250);
 	update_sense();
