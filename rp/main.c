@@ -44,8 +44,8 @@ void main()
 	display_init();
 
 	lamp_load_type_from_flash();
-	splash_image_init();
-	splash_image_open();
+	ui_loading_splash_image_init();
+	ui_loading_splash_image_open(NULL);
 
 	buttons_init();
 	imu_init();
@@ -96,7 +96,7 @@ void main()
 		ui_main_open();
 	} else 
 	{
-		ui_psu_show();
+		ui_loading_show_psu();
 	}	
 	
     //housekeeping flags
@@ -144,7 +144,7 @@ void main()
 
 			update_safety_logic();
 		} else { 
-			ui_psu_show();
+			ui_loading_show_psu();
 		}
 	}
 }
