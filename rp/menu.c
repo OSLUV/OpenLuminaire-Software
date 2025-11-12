@@ -198,12 +198,12 @@ void root_menu()
 		}
 	}
 
-	if (selectablef("Toggle Prox (%s/tilt %s)", get_safety_logic_enabled()?" ON":"off", get_is_high_tilt()?"hi":"lo") && (g_buttons_pressed & BUTTON_CENTER_C))
+	if (selectablef("Toggle Prox (%s/tilt %s)", safety_logic_get_radar_enabled_state()?" ON":"off", safety_logic_is_high_tilt()?"hi":"lo") && (g_buttons_pressed & BUTTON_CENTER_C))
 	{
-		set_safety_logic_enabled(!get_safety_logic_enabled());
+		safety_logic_set_radar_enabled_state(!safety_logic_get_radar_enabled_state());
 	}
 
-	dbgf("  ->%s\n", get_safety_logic_state_desc());
+	dbgf("  ->%s\n", safety_logic_get_state_desc());
 
 	if (selectablef("Adjust Backlight (%d%%)", st7789_get_backlight()))
 	{

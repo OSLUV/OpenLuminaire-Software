@@ -546,7 +546,7 @@ void ui_main_update()
 
     if (!power_on)
     {
-        set_safety_logic_enabled(false);
+        safety_logic_set_radar_enabled_state(false);
         lamp_request_power_level(LAMP_PWR_OFF_C);
 		persistance_set_power_state(power_on);
     }
@@ -554,12 +554,12 @@ void ui_main_update()
     {
         if (radar_on)
         {
-            set_safety_logic_enabled(true);
-            set_safety_logic_cap(intensity_setting);
+            safety_logic_set_radar_enabled_state(true);
+            safety_logic_set_cap_power(intensity_setting);
         }
         else
         {
-            set_safety_logic_enabled(false);
+            safety_logic_set_radar_enabled_state(false);
             lamp_request_power_level(intensity_setting);
         }
     }

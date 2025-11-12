@@ -142,7 +142,7 @@ void main()
 			// static int cycle= 0;
 			// printf("Mainloop... %d\n", cycle++);
 
-			update_safety_logic();
+			safety_logic_update();
 		} else { 
 			ui_loading_show_psu();
 		}
