@@ -409,7 +409,7 @@ void lamp_load_type_from_flash(void)
 {
 	printf("Determined type from flash\n");
 
-	lamp_current_type = persistance_region.factory_lamp_type;
+	lamp_current_type = g_persistance_region.factory_lamp_type;
 }
 
 /**
@@ -439,8 +439,8 @@ void lamp_perform_type_test(void)
 		if (lamp_get_type() != LAMP_TYPE_UNKNOWN_C)
 		{
 			printf("Writing concluded type\n");
-			persistance_region.factory_lamp_type = lamp_get_type();
-			write_persistance_region();
+			g_persistance_region.factory_lamp_type = lamp_get_type();
+			persistance_write_region();
 		}
 	}
 }

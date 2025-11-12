@@ -37,8 +37,8 @@ void main()
 	gpio_set_dir(5, GPIO_IN);
 	gpio_set_dir(6, GPIO_IN);
 
-	init_persistance_region();
-	printf("persistance_region.factory_lamp_type = %d\n", persistance_region.factory_lamp_type);
+	persistance_read_region();
+	printf("g_persistance_region.factory_lamp_type = %d\n", g_persistance_region.factory_lamp_type);
 		
 	lv_init();
 	display_init();

@@ -7,6 +7,7 @@
 #include "buttons.h"
 #include "ui_debug.h"
 #include "ui_loading.h"
+#include "ui_main.h"
 #include "safety_logic.h"
 #include "persistance.h"
 #include <string.h>
@@ -20,7 +21,7 @@ static lv_obj_t *lbl_radar;
 static lv_obj_t *lbl_slider;
 static lv_obj_t *lbl_status;
 static lv_obj_t *lbl_percent;
-static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
+static const uint8_t dim_levels[UI_MAIN_MAX_DIM_LEVELS_C] = { 20, 40, 70, 100 };
 void ui_main_open();
 
 // Callbacks
@@ -37,22 +38,22 @@ static void back_to_menu_cb(lv_event_t * e)
 static void sw_power_changed_cb(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    persist_set_power(on);
-    write_persistance_region();                        /* flash only if value changed */
+    persistance_set_power_state(on);
+    persistance_write_region();                        /* flash only if value changed */
 }
 
 static void sw_radar_changed_cb(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    persist_set_radar(on);
-    write_persistance_region();
+    persistance_set_radar_state(on);
+    persistance_write_region();
 }
 
 static void slider_int_changed_cb(lv_event_t * e)
 {
     uint8_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
-    persist_set_dim_idx(idx);
-    write_persistance_region();
+    persistance_set_dim_index(idx);
+    persistance_write_region();
 }
 
 
@@ -293,7 +294,7 @@ void ui_main_init()
         lv_obj_set_pos(row, 5,20);
 
         // lv_obj_add_state(sw_power, LV_STATE_CHECKED);
-		if (persist_get_power())  lv_obj_add_state(sw_power, LV_STATE_CHECKED);
+		if (persistance_get_power_state())  lv_obj_add_state(sw_power, LV_STATE_CHECKED);
         lv_obj_set_style_bg_color(sw_power, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
@@ -324,7 +325,7 @@ void ui_main_init()
 		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
 		
         sw_radar = lv_switch_create(row);
-		if (persist_get_radar())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
+		if (persistance_get_radar_state())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
         lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
@@ -379,7 +380,7 @@ void ui_main_init()
 		
         lv_slider_set_range(slider_intensity, 0, 3);          /* 4 ticks          */
         //lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
-		lv_slider_set_value(slider_intensity, persist_get_dim_idx(), LV_ANIM_OFF);
+		lv_slider_set_value(slider_intensity, persistance_get_dim_index(), LV_ANIM_OFF);
 		lv_obj_add_event_cb(slider_intensity, slider_int_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, slider_intensity);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_slider);
@@ -547,7 +548,7 @@ void ui_main_update()
     {
         set_safety_logic_enabled(false);
         lamp_request_power_level(LAMP_PWR_OFF_C);
-		persist_set_power(power_on);
+		persistance_set_power_state(power_on);
     }
     else
     {
