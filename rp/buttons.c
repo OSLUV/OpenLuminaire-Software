@@ -44,7 +44,7 @@ BUTTONS_E g_buttons_pressed, g_buttons_released, g_buttons_down, g_buttons_pulse
 
 /* Private variables  --------------------------------------------------------*/
 
-BTN_CTRL_T buttons[BUTTONS_COUNT_C] = {
+static BTN_CTRL_T buttons[BUTTONS_COUNT_C] = {
 	{PIN_BUTTON_UP, 	BUTTON_UP_C,     0, 0, false},
 	{PIN_BUTTON_DOWN, 	BUTTON_DOWN_C,   0, 0, false},
 	{PIN_BUTTON_LEFT, 	BUTTON_LEFT_C,   0, 0, false},

@@ -97,7 +97,7 @@ void radio_debug(void)
  * @brief Callback for UART data reception from radio device
  * 
  */
-static void radio_uart_rx_callback(void)
+void radio_uart_rx_callback(void)
 {
 	while (uart_is_readable(UART_INST_RADIO)) 
     {

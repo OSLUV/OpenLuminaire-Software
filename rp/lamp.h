@@ -9,7 +9,7 @@
 #define _D_LAMP_H_
 
 
-/* Exported typedef --------------------------------------------------------*/
+/* Exported typedef ----------------------------------------------------------*/
 
 /**
  * @enum LAMP_TYPE_E
@@ -25,7 +25,7 @@ typedef enum {
 } LAMP_TYPE_E;
 
 /**
- * @eunm LAMP_PWR_LEVEL_E
+ * @enum LAMP_PWR_LEVEL_E
  * 
  * @brief Available power levels for lamp
  * 
@@ -41,7 +41,7 @@ typedef enum {
 } LAMP_PWR_LEVEL_E;
 
 /**
- * @eunm LAMP_STATE_E
+ * @enum LAMP_STATE_E
  * 
  * @brief Lamp states list
  * 

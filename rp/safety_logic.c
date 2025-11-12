@@ -99,7 +99,7 @@ void update_safety_logic()
 		return;
 	}
 
-	int distance = get_radar_distance_cm();
+	int distance = radar_get_distance_cm();
 
 	if (distance == -1)
 	{

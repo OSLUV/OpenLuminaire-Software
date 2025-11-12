@@ -67,13 +67,13 @@ void ui_debug_update()
     ADD_TEXT("VBUS: %.1f/12V: %.1f/12V: %.1f/24V\n", sense_vbus, sense_12v, sense_24v);
     ADD_TEXT("USB %s %s/%.1fA\n", usbpd_get_is_trying_for_12v()?"Req 12V":"Req 5V", usbpd_get_is_12v()?"Got 12V":"Got 5V", ((float)usbpd_get_negotiated_mA())/1000.);
 
-    struct radar_report* r = debug_get_radar_report();
-    int r_time = debug_get_radar_report_time();
+    RADAR_REPORT_T* r = radar_debug_get_report();
+    int r_time = radar_debug_get_report_time();
     int dt = (time_us_64() - r_time)/(1000);
     ADD_TEXT("Radar: Ty%d dT% 8dms %s\n", r->type, dt, (dt>3000 || r_time == 0)?"STALE":"OK");
     ADD_TEXT("Radar: M: %dcm %de\n", r->report.moving_target_distance_cm, r->report.moving_target_energy);
     ADD_TEXT("Radar: S: %dcm %de\n", r->report.stationary_target_distance_cm, r->report.stationary_target_energy);
-    ADD_TEXT("Radar: DD: %dcm / RD:%d\n", r->report.detection_distance_cm, get_radar_distance_cm());
+    ADD_TEXT("Radar: DD: %dcm / RD:%d\n", r->report.detection_distance_cm, radar_get_distance_cm());
 
     lv_label_set_text(label, debug_label);
 }

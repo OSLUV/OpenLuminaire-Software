@@ -42,33 +42,33 @@ typedef struct {
 
 /* Private variables  --------------------------------------------------------*/
 
-const int LAMP_STEPCOUNT_SOFTSTART_C = 64;
-const int LAMP_STEPCOUNT_DIMMING_C   = 100;
+const int 				LAMP_STEPCOUNT_SOFTSTART_C = 64;
+const int 				LAMP_STEPCOUNT_DIMMING_C   = 100;
 
-const LAMP_PWR_CTL_T lamp_pwr_settings[LAMP_PWR_MAX_SETTINGS_C] = {
-	[LAMP_PWR_OFF_C]    = {0,     0},
-	[LAMP_PWR_20PCT_C]  = {100,  20},
-	[LAMP_PWR_40PCT_C]  = {83,   40},
-	[LAMP_PWR_70PCT_C]  = {50,   70},
-	[LAMP_PWR_100PCT_C] = {0,   100},
-};
+const LAMP_PWR_CTL_T 	lamp_pwr_settings[LAMP_PWR_MAX_SETTINGS_C] = {
+							[LAMP_PWR_OFF_C]    = {0,     0},
+							[LAMP_PWR_20PCT_C]  = {100,  20},
+							[LAMP_PWR_40PCT_C]  = {83,   40},
+							[LAMP_PWR_70PCT_C]  = {50,   70},
+							[LAMP_PWR_100PCT_C] = {0,   100},
+						};
 
-static bool b_lamp_is_12v_on = false;
-static bool b_lamp_is_24v_on = false;
+static bool 			b_lamp_is_12v_on = false;
+static bool 			b_lamp_is_24v_on = false;
 
-static LAMP_TYPE_E  lamp_current_type = LAMP_TYPE_UNKNOWN_C;
-static LAMP_STATE_E lamp_state 		  = LAMP_STATE_OFF_C;
+static LAMP_TYPE_E  	lamp_current_type = LAMP_TYPE_UNKNOWN_C;
+static LAMP_STATE_E 	lamp_state 		  = LAMP_STATE_OFF_C;
 
 static LAMP_PWR_LEVEL_E lamp_requested_power_level = LAMP_PWR_OFF_C;
 static LAMP_PWR_LEVEL_E lamp_commanded_power_level = LAMP_PWR_OFF_C;
 static LAMP_PWR_LEVEL_E lamp_reported_power_level  = LAMP_PWR_UNKNOWN_C;
 
-static uint64_t lamp_state_transition_time = 0;
+static uint64_t 		lamp_state_transition_time = 0;
 
-static uint64_t lamp_last_update = 0;
-static int lamp_latched_freq_hz  = 0;
+static uint64_t 		lamp_last_update = 0;
+static int 				lamp_latched_freq_hz  = 0;
 
-volatile int lamp_status_events  = 0;
+volatile int 			lamp_status_events  = 0;
 
 
 /* Callback prototypes -------------------------------------------------------*/

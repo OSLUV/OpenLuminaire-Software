@@ -52,7 +52,7 @@ void main()
 	mag_init();
 	lamp_init();
 	init_sense();
-	init_radar();
+	radar_init();
 	init_fan();
 	radio_init();
 	usbpd_negotiate(true);
@@ -110,7 +110,7 @@ void main()
 		buttons_update();
 		imu_update();
 		mag_update();
-		update_radar();
+		radar_update();
 		update_usbpd(); //currently empty?
 		lamp_update();
 		
