@@ -389,7 +389,7 @@ void lamp_update(void)
 	pwm_set_gpio_level(PIN_PWM_LAMP, lamp_pwr_settings[lamp_commanded_power_level].pwm);
 	gpio_put(PIN_ENABLE_LAMP, lamp_commanded_power_level != LAMP_PWR_OFF_C);
 
-	if (sense_12v < 10.5 || sense_12v > 13.5)
+	if ((g_sense_12v < 10.5) || (g_sense_12v > 13.5))
 	{
 		gpio_put(PIN_ENABLE_LAMP, true);
 		sleep_ms(10);
@@ -456,7 +456,7 @@ void lamp_perform_type_test(void)
  */
 void lamp_set_switched_12v(bool b_on)
 {
-	if (((sense_12v < 11.5) || (sense_12v > 12.5)) && b_on)
+	if (((g_sense_12v < 11.5) || (g_sense_12v > 12.5)) && b_on)
 	{
 		printf("Reject turn on 12V when 12v not OK\n");
 	}
@@ -869,7 +869,7 @@ static bool lamp_is_test_state_failure(LAMP_STATE_E state)
  */
 static bool lamp_power_is_too_low(void)
 {
-	return sense_12v < 10.5;
+	return g_sense_12v < 10.5;
 }
 
 /**
@@ -880,7 +880,7 @@ static bool lamp_power_is_too_low(void)
  */
 static bool lamp_power_is_too_high(void)
 {
-	return sense_12v > 13.5;
+	return g_sense_12v > 13.5;
 }
 
 /**

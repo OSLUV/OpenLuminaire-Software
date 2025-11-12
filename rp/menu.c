@@ -84,7 +84,7 @@ void root_menu()
 
 	dbgf("\n");
 
-	dbgf("VBUS: %.1f/12V: %.1f/24V: %.1f\n", sense_vbus, sense_12v, sense_24v);
+	dbgf("VBUS: %.1f/12V: %.1f/24V: %.1f\n", g_sense_vbus, g_sense_12v, g_sense_24v);
 	dbgf("USB %s %s/%.1fA\n", usbpd_get_is_trying_for_12v()?"Req 12V":"Req 5V", usbpd_get_is_12v()?"Got 12V":"Got 5V", ((float)usbpd_get_negotiated_mA())/1000.);
 
 	if (usbpd_get_is_trying_for_12v())

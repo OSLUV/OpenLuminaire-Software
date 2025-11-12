@@ -64,7 +64,7 @@ void ui_debug_update()
     ADD_TEXT("IMU: %+.2f/%+.2f/%+.2f\n", g_imu_x, g_imu_y, g_imu_z);
     ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_mag_x, g_mag_y, g_mag_z);
     ADD_TEXT("12V Switched %s / 24V Reg %s\n", lamp_get_switched_12v()?"ON ":"off", lamp_get_switched_24v()?"ON ":"off");
-    ADD_TEXT("VBUS: %.1f/12V: %.1f/12V: %.1f/24V\n", sense_vbus, sense_12v, sense_24v);
+    ADD_TEXT("VBUS: %.1f/12V: %.1f/12V: %.1f/24V\n", g_sense_vbus, g_sense_12v, g_sense_24v);
     ADD_TEXT("USB %s %s/%.1fA\n", usbpd_get_is_trying_for_12v()?"Req 12V":"Req 5V", usbpd_get_is_12v()?"Got 12V":"Got 5V", ((float)usbpd_get_negotiated_mA())/1000.);
 
     RADAR_REPORT_T* r = radar_debug_get_report();

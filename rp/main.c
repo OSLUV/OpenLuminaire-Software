@@ -51,7 +51,7 @@ void main()
 	imu_init();
 	mag_init();
 	lamp_init();
-	init_sense();
+	sense_init();
 	radar_init();
 	fan_init();
 	radio_init();
@@ -59,13 +59,13 @@ void main()
 	fan_set_speed(100);
 
 	sleep_ms(250);
-	update_sense();
+	sense_update();
 
 	lamp_set_switched_12v(true);
 
 	sleep_ms(1000);
 
-	update_sense();
+	sense_update();
 
 	printf("Scripted start...\n");
 
@@ -106,7 +106,7 @@ void main()
 	
 	while (1)
 	{
-		update_sense();
+		sense_update();
 		buttons_update();
 		imu_update();
 		mag_update();
