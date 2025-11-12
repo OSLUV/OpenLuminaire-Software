@@ -36,11 +36,11 @@ extern PERSISTANCE_REGION_T g_persistance_region;
 void persistance_read_region(void);
 void persistance_write_region(void);
 
-void  persistance_set_power_state(bool b_pwr_on);
-bool  persistance_get_power_state(void);
-void  persistance_set_radar_state(bool b_radar_on);
-bool  persistance_get_radar_state(void);
-void  persistance_set_dim_index(uint8_t idx);
+void persistance_set_power_state(bool b_pwr_on);
+bool persistance_get_power_state(void);
+void persistance_set_radar_state(bool b_radar_on);
+bool persistance_get_radar_state(void);
+void persistance_set_dim_index(uint8_t idx);
 uint8_t persistance_get_dim_index(void);
 
 
