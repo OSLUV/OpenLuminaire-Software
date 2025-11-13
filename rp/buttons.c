@@ -108,8 +108,8 @@ void buttons_update(void)
 			buttons[idx].first_down_us = 0;
 		}
 
-		bool btn_is_down =  (buttons[idx].first_down_us != 0) &&  \
-			 				((now - buttons[idx].first_down_us) > \
+		bool btn_is_down =  (buttons[idx].first_down_us != 0) &&
+			 				((now - buttons[idx].first_down_us) >
 							 BUTTONS_DEBOUNCE_TIME_US_C);
 
 		if (btn_is_down)
@@ -133,7 +133,7 @@ void buttons_update(void)
 		{
 			if (buttons[idx].down_last_frame)
 			{
-				g_buttons_released |= btn;
+				g_buttons_released |= btn;										// Triggered on end of button press
 			}
 
 			buttons[idx].last_pulsed_us = 0;

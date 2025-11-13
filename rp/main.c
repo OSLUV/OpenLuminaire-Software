@@ -1,6 +1,19 @@
+/**
+ * @file      main.c
+ * @author    The OSLUV Project
+ * @brief     Main application loop
+ * @schematic lamp_controller.SchDoc
+ * @schematic power.SchDoc
+ *  
+ */
+
+
+/* Includes ------------------------------------------------------------------*/
+
 #include <stdio.h>
 #include <string.h>
 #include <pico/stdlib.h>
+#include <lvgl.h>
 
 #include "st7789.h"
 #include "pins.h"
@@ -20,12 +33,13 @@
 #include "ui_main.h"
 #include "ui_loading.h"
 #include "ui_debug.h"
-#include <lvgl.h>
 
 #include "font.c"
 
 
-void main()
+/* Application main function -------------------------------------------------*/
+
+void main(void)
 {	
 	display_screen_off();
 	stdio_init_all();
@@ -38,7 +52,8 @@ void main()
 	gpio_set_dir(6, GPIO_IN);
 
 	persistance_read_region();
-	printf("g_persistance_region.factory_lamp_type = %d\n", g_persistance_region.factory_lamp_type);
+	printf("g_persistance_region.factory_lamp_type = %d\n", 
+		   g_persistance_region.factory_lamp_type);
 		
 	lv_init();
 	display_init();
@@ -74,7 +89,6 @@ void main()
 		lamp_perform_type_test();
 	}
 
-
 	if (lamp_get_type() == LAMP_TYPE_NON_DIMMABLE_C)
 	{
 		lamp_set_switched_24v(true);
@@ -85,7 +99,7 @@ void main()
 	
 	printf("Enter mainloop... xx\n");
 	
-	// main UI init
+	// Main UI init
     ui_main_init();
     ui_debug_init();
 	
@@ -94,15 +108,16 @@ void main()
 	if (lamp_is_power_ok()) 
 	{
 		ui_main_open();
-	} else 
+	} 
+	else 
 	{
 		ui_loading_show_psu();
 	}	
 	
-    //housekeeping flags
-    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   // 5 min     
+    // Housekeeping flags
+    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   						// 5 min     
     uint64_t last_activity_us = time_us_64();
-    bool screen_dark = false;	
+    bool b_is_screen_dark = false;
 	
 	while (1)
 	{
@@ -111,40 +126,49 @@ void main()
 		imu_update();
 		mag_update();
 		radar_update();
-		update_usbpd(); //currently empty?
+		update_usbpd();
 		lamp_update();
 		
 		if (lamp_is_power_ok())
 		{
-			if (g_buttons_released) { // triggered on end of button press       
+			if (g_buttons_released) 
+			{
 				last_activity_us = time_us_64();
 
-				if (screen_dark) {        // wake-up path         
-					display_screen_on();  // back-light on + one flush     
-					screen_dark = false;
+				if (b_is_screen_dark)
+				{
+					// Wake-up path         
+					display_screen_on();  										// Back-light on + one flush     
+					b_is_screen_dark = false;
 				}
 			}
 			
 			// ----------- UI & DISPLAY ---------------------------------- 
-			if (!screen_dark) {
-				lv_timer_handler(); //
-				ui_main_update();         // normal widgets                
+			if (!b_is_screen_dark) 
+			{
+				lv_timer_handler();
+				ui_main_update();         										// Normal widgets                
 				ui_debug_update();
 			}
 
 			// ----------- TIMEOUT CHECK --------------------------------- 
-			if (!screen_dark &&
-				(time_us_64() - last_activity_us) > TIMEOUT_US) {
-				display_screen_off();     // back-light to 0               
-				screen_dark = true;
+			if (!b_is_screen_dark && 
+				((time_us_64() - last_activity_us) > TIMEOUT_US))
+			{
+				display_screen_off();     										// Set back-light to 0               
+				b_is_screen_dark = true;
 			}
 
 			// static int cycle= 0;
 			// printf("Mainloop... %d\n", cycle++);
 
 			safety_logic_update();
-		} else { 
+		}
+		else 
+		{
 			ui_loading_show_psu();
 		}
 	}
 }
+
+/*** END OF FILE ***/

@@ -76,7 +76,7 @@ static char 			safety_logic_action_desc[128] = {0};
 static LAMP_PWR_LEVEL_E safety_logic_debounce_new_level = LAMP_PWR_OFF_C;
 static uint64_t 		safety_logic_debounce_new_time = 0;
 
-static bool 			safety_logic_is_radar_enabled = false;
+static bool 			b_safety_logic_is_radar_enabled = false;
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -106,7 +106,7 @@ bool safety_logic_is_high_tilt(void)
  */
 void safety_logic_update(void)
 {
-	if (!safety_logic_is_radar_enabled)
+	if (!b_safety_logic_is_radar_enabled)
 	{
 		sprintf(safety_logic_action_desc, "Disabled");
 		return;
@@ -183,7 +183,7 @@ char* safety_logic_get_state_desc(void)
  */
 void safety_logic_set_radar_enabled_state(bool b_enable)
 {
-	safety_logic_is_radar_enabled = b_enable;
+	b_safety_logic_is_radar_enabled = b_enable;
 }
 
 /**
@@ -194,7 +194,7 @@ void safety_logic_set_radar_enabled_state(bool b_enable)
  */
 bool safety_logic_get_radar_enabled_state(void)
 {
-	return safety_logic_is_radar_enabled;
+	return b_safety_logic_is_radar_enabled;
 }
 
 #if 0
