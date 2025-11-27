@@ -127,7 +127,7 @@ void ui_loading_splash_image_open(lv_event_cb_t on_exit_cb)
 	ui_loading_lv_exit_callback = on_exit_cb;
 
     lv_screen_load(ui_loading_lv_splash_screen);                                // Swap to the new screen
-    backlight_set_brightness(33);    
+    display_set_backlight_brightness(33);    
 	
 	display_set_indev_group(ui_loading_lv_group);
 	lv_group_focus_obj(ui_loading_lv_catch);                                    // Ensure it has focus
