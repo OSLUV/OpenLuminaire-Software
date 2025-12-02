@@ -1,36 +1,65 @@
+/**
+ * @file      radar.h
+ * @author    The OSLUV Project
+ * @brief     Functions prototypes for mmWave Radar driver
+ *  
+ */
 
-void init_radar();
-void init_radar_comms();
-void update_radar();
-void radar_debug();
-int get_radar_distance_cm(); // or -1 if stale
-int get_moving_target_cm();
-int get_stationary_target_cm();
+#ifndef _D_RADAR_H_
+#define _D_RADAR_H_
 
-struct __packed radar_report 
+
+/* Exported typedef ----------------------------------------------------------*/
+
+/**
+ * @struct RADAR_REPORT_T
+ * @brief 
+ * 
+ */
+typedef struct __packed 
 {
 	uint8_t type;
 	uint8_t _head;
 	struct __packed
 	{
-		uint8_t target_state;
+		uint8_t  target_state;
 		uint16_t moving_target_distance_cm;
-		uint8_t moving_target_energy;
+		uint8_t  moving_target_energy;
 		uint16_t stationary_target_distance_cm;
-		uint8_t stationary_target_energy;
+		uint8_t  stationary_target_energy;
 		uint16_t detection_distance_cm;
 	} report;
 	uint8_t _end;
 	uint8_t _check;
-};
+} RADAR_REPORT_T;
 
-struct __packed radar_message
+/**
+ * @struct RADAR_MESSAGE_T
+ * @brief 
+ * 
+ */
+typedef struct __packed
 {
-	uint8_t preamble[4];
-	uint16_t length;
-	struct radar_report inner;
-	uint8_t postamble[4];
-};
+	uint8_t 		preamble[4];
+	uint16_t 		length;
+	RADAR_REPORT_T  inner;
+	uint8_t 		postamble[4];
+} RADAR_MESSAGE_T;
 
-struct radar_report* debug_get_radar_report();
-int debug_get_radar_report_time();
+
+/* Exported functions prototypes ---------------------------------------------*/
+
+void radar_init(void);
+void radar_update(void);
+void radar_debug(void);
+int radar_get_distance_cm(void); // or -1 if stale
+int radar_get_moving_target_cm(void);
+int radar_get_stationary_target_cm(void);
+
+RADAR_REPORT_T* radar_debug_get_report(void);
+int radar_debug_get_report_time(void);
+
+
+#endif /* _D_RADAR_H_ */
+
+/*** END OF FILE ***/
