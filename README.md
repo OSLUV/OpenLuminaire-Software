@@ -112,7 +112,7 @@ Follow these steps to upload the `app.uf2` file to your OpenLuminaire lamp:
 
 The easiest way to change the splash image that appears when the lamp first turns on is by using GIMP.
 
-1. Download and install GIMP at https://www.gimp.org/downloads/
+1. Download and install GIMP
 2. Open the desired image in GIMP. Resize it to 240x240 pixels. 
 3. Go to `File > Export as...` and rename the image to `image.c`
 4. In the export menu, use these settings.
