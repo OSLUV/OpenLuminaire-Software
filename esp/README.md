@@ -47,7 +47,7 @@ For more information on structure and contents of ESP-IDF projects, please refer
 
 Please use the following feedback channels:
 
-* For technical queries, go to the [esp32.com](https://esp32.com/) forum
+* For technical queries, go to the esp32 dot com forum
 * For a feature request or bug report, create a [GitHub issue](https://github.com/espressif/esp-idf/issues)
 
 We will get back to you as soon as possible.
