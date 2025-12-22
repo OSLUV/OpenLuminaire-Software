@@ -7,6 +7,7 @@
 #include "buttons.h"
 #include "ui_debug.h"
 #include "ui_loading.h"
+#include "ui_main.h"
 #include "safety_logic.h"
 #include "persistance.h"
 #include <string.h>
@@ -20,7 +21,7 @@ static lv_obj_t *lbl_radar;
 static lv_obj_t *lbl_slider;
 static lv_obj_t *lbl_status;
 static lv_obj_t *lbl_percent;
-static const uint8_t dim_levels[] = { 20, 40, 70, 100 };
+static const uint8_t dim_levels[UI_MAIN_MAX_DIM_LEVELS_C] = { 20, 40, 70, 100 };
 void ui_main_open();
 
 // Callbacks
@@ -37,22 +38,22 @@ static void back_to_menu_cb(lv_event_t * e)
 static void sw_power_changed_cb(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    persist_set_power(on);
-    write_persistance_region();                        /* flash only if value changed */
+    persistance_set_power_state(on);
+    persistance_write_region();                        /* flash only if value changed */
 }
 
 static void sw_radar_changed_cb(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    persist_set_radar(on);
-    write_persistance_region();
+    persistance_set_radar_state(on);
+    persistance_write_region();
 }
 
 static void slider_int_changed_cb(lv_event_t * e)
 {
     uint8_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
-    persist_set_dim_idx(idx);
-    write_persistance_region();
+    persistance_set_dim_index(idx);
+    persistance_write_region();
 }
 
 
@@ -68,7 +69,7 @@ extern const lv_font_t * FONT_MED = NULL;
 
 void ui_theme_init(void)
 {
-    if (get_lamp_type() == LAMP_TYPE_DIMMABLE) {   
+    if (lamp_get_type() == LAMP_TYPE_DIMMABLE_C) {   
 		ROW_HEIGHT     = 23;
 		SWITCH_HEIGHT = ROW_HEIGHT-3;
 		SWITCH_LENGTH = SWITCH_HEIGHT * 2;
@@ -293,7 +294,7 @@ void ui_main_init()
         lv_obj_set_pos(row, 5,20);
 
         // lv_obj_add_state(sw_power, LV_STATE_CHECKED);
-		if (persist_get_power())  lv_obj_add_state(sw_power, LV_STATE_CHECKED);
+		if (persistance_get_power_state())  lv_obj_add_state(sw_power, LV_STATE_CHECKED);
         lv_obj_set_style_bg_color(sw_power, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_power, &style_switch_off, LV_PART_MAIN);
         lv_obj_add_style(sw_power, &style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
@@ -324,7 +325,7 @@ void ui_main_init()
 		lv_obj_add_style(lbl_radar, &style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
 		
         sw_radar = lv_switch_create(row);
-		if (persist_get_radar())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
+		if (persistance_get_radar_state())  lv_obj_add_state(sw_radar, LV_STATE_CHECKED);
         lv_obj_set_size(sw_radar, SWITCH_LENGTH, SWITCH_HEIGHT);
         lv_obj_set_style_bg_color(sw_radar, COLOR_ACCENT, LV_PART_INDICATOR | LV_STATE_CHECKED);
         lv_obj_add_style(sw_radar, &style_switch_off, LV_PART_MAIN);
@@ -379,7 +380,7 @@ void ui_main_init()
 		
         lv_slider_set_range(slider_intensity, 0, 3);          /* 4 ticks          */
         //lv_slider_set_value(slider_intensity, 3, LV_ANIM_OFF);/* default 100 %    */
-		lv_slider_set_value(slider_intensity, persist_get_dim_idx(), LV_ANIM_OFF);
+		lv_slider_set_value(slider_intensity, persistance_get_dim_index(), LV_ANIM_OFF);
 		lv_obj_add_event_cb(slider_intensity, slider_int_changed_cb, LV_EVENT_VALUE_CHANGED, NULL);
         lv_group_add_obj(the_group, slider_intensity);
 		lv_obj_add_event_cb(slider_intensity, focus_sync_cb, LV_EVENT_FOCUSED,   lbl_slider);
@@ -483,33 +484,33 @@ void ui_main_update()
     bool power_on = lv_obj_has_state(sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
-	enum pwr_level intensity_setting = PWR_100PCT; // default
+	LAMP_PWR_LEVEL_E intensity_setting = LAMP_PWR_100PCT_C; // default
 	// intensity 
 	if (SHOW_DIM) {
 		int intensity_setting_int = lv_slider_get_value(slider_intensity);
-        intensity_setting = PWR_20PCT + intensity_setting_int;
+        intensity_setting = LAMP_PWR_20PCT_C + intensity_setting_int;
 	}	
 	
 	// update lamp status
-	enum lamp_state s = get_lamp_state();
-    const char * txt = (s == STATE_OFF)       ? "Lamp off"      : 
-					(s == STATE_STARTING) ? "Lamp starting..."   :
-					(s == STATE_RESTRIKE_COOLDOWN_1) ? "Restrike cooldown 1":
-					(s == STATE_RESTRIKE_ATTEMPT_1) ? "Restrike attempt 1":
-					(s == STATE_RESTRIKE_COOLDOWN_2) ? "Restrike cooldown 2":
-					(s == STATE_RESTRIKE_ATTEMPT_2) ? "Restrike attempt 2":
-					(s == STATE_RESTRIKE_COOLDOWN_3) ? "Restrike cooldown 3":
-					(s == STATE_RESTRIKE_ATTEMPT_3) ? "Restrike attempt 3":
-					(s == STATE_RUNNING)   ? "Lamp running"   :
-					(s == STATE_FAILED_OFF) ? "Lamp off - ERROR" :
-					(s == STATE_FULLPOWER_TEST) ? "Calibrating..." : "STATUS UNKNOWN";
+	LAMP_STATE_E s = lamp_get_lamp_state();
+    const char * txt = (s == LAMP_STATE_OFF_C)       ? "Lamp off"      : 
+					(s == LAMP_STATE_STARTING_C) ? "Lamp starting..."   :
+					(s == LAMP_STATE_RESTRIKE_COOLDOWN_1_C) ? "Restrike cooldown 1":
+					(s == LAMP_STATE_RESTRIKE_ATTEMPT_1_C) ? "Restrike attempt 1":
+					(s == LAMP_STATE_RESTRIKE_COOLDOWN_2_C) ? "Restrike cooldown 2":
+					(s == LAMP_STATE_RESTRIKE_ATTEMPT_2_C) ? "Restrike attempt 2":
+					(s == LAMP_STATE_RESTRIKE_COOLDOWN_3_C) ? "Restrike cooldown 3":
+					(s == LAMP_STATE_RESTRIKE_ATTEMPT_3_C) ? "Restrike attempt 3":
+					(s == LAMP_STATE_RUNNING_C)   ? "Lamp running"   :
+					(s == LAMP_STATE_FAILED_OFF_C) ? "Lamp off - ERROR" :
+					(s == LAMP_STATE_FULLPOWER_TEST_C) ? "Calibrating..." : "STATUS UNKNOWN";
     
-	enum pwr_level req  = intensity_setting;  // user set-point
-	int pct_req = (req == PWR_20PCT) ? 20 :
-				  (req == PWR_40PCT) ? 40 :
-				  (req == PWR_70PCT) ? 70 :
-				  (req == PWR_100PCT)? 100 : 0;
-	enum pwr_level  cmd = get_lamp_commanded_power(); // what has been sent to pwm
+	LAMP_PWR_LEVEL_E req  = intensity_setting;  // user set-point
+	int pct_req = (req == LAMP_PWR_20PCT_C) ? 20 :
+				  (req == LAMP_PWR_40PCT_C) ? 40 :
+				  (req == LAMP_PWR_70PCT_C) ? 70 :
+				  (req == LAMP_PWR_100PCT_C)? 100 : 0;
+	LAMP_PWR_LEVEL_E  cmd = lamp_get_commanded_power_level(); // what has been sent to pwm
 	int pct_cmd;
 	bool warming = lamp_is_warming();
 	// bool warming_done = pct_rep > pct_cmd;
@@ -517,17 +518,17 @@ void ui_main_update()
 		txt = "Lamp starting...";
 		pct_cmd = 100;
 	} else {
-	pct_cmd = (cmd == PWR_20PCT) ? 20 :
-				  (cmd == PWR_40PCT) ? 40 :
-				  (cmd == PWR_70PCT) ? 70 :
-				  (cmd == PWR_100PCT)? 100 : 0;  // PWR_OFF or unknown
+	pct_cmd = (cmd == LAMP_PWR_20PCT_C) ? 20 :
+				  (cmd == LAMP_PWR_40PCT_C) ? 40 :
+				  (cmd == LAMP_PWR_70PCT_C) ? 70 :
+				  (cmd == LAMP_PWR_100PCT_C)? 100 : 0;  // LAMP_PWR_OFF_C or unknown
 	}
-    enum pwr_level rep; //reported level
-	get_lamp_reported_power(&rep);  
-    int pct_rep = (rep == PWR_20PCT) ? 20 :
-				  (rep == PWR_40PCT) ? 40 :
-				  (rep == PWR_70PCT) ? 70 :
-				  (rep == PWR_100PCT)? 100 : 0;
+    LAMP_PWR_LEVEL_E rep; //reported level
+	lamp_get_reported_power_level(&rep);  
+    int pct_rep = (rep == LAMP_PWR_20PCT_C) ? 20 :
+				  (rep == LAMP_PWR_40PCT_C) ? 40 :
+				  (rep == LAMP_PWR_70PCT_C) ? 70 :
+				  (rep == LAMP_PWR_100PCT_C)? 100 : 0;
 				
 	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
 	if(radar_active)
@@ -545,21 +546,21 @@ void ui_main_update()
 
     if (!power_on)
     {
-        set_safety_logic_enabled(false);
-        request_lamp_power(PWR_OFF);
-		persist_set_power(power_on);
+        safety_logic_set_radar_enabled_state(false);
+        lamp_request_power_level(LAMP_PWR_OFF_C);
+		persistance_set_power_state(power_on);
     }
     else
     {
         if (radar_on)
         {
-            set_safety_logic_enabled(true);
-            set_safety_logic_cap(intensity_setting);
+            safety_logic_set_radar_enabled_state(true);
+            safety_logic_set_cap_power(intensity_setting);
         }
         else
         {
-            set_safety_logic_enabled(false);
-            request_lamp_power(intensity_setting);
+            safety_logic_set_radar_enabled_state(false);
+            lamp_request_power_level(intensity_setting);
         }
     }
 
@@ -571,7 +572,7 @@ void ui_main_update()
 			lv_obj_clear_state(slider_intensity, LV_STATE_USER_2); // full color
 			lv_obj_clear_state(lbl_slider, LV_STATE_USER_2);
 		}
-		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, get_lamp_type() != LAMP_TYPE_DIMMABLE || !power_on || get_lamp_state() == STATE_FULLPOWER_TEST);
+		//lv_obj_set_state(slider_intensity, LV_STATE_DISABLED, lamp_get_type() != LAMP_TYPE_DIMMABLE || !power_on || lamp_get_lamp_state() == LAMP_STATE_FULLPOWER_TEST_C);
     }
 	if (inactive) {
         lv_obj_add_state(sw_radar, LV_STATE_USER_2);
@@ -582,7 +583,7 @@ void ui_main_update()
 	}//lv_obj_set_state(sw_radar, LV_STATE_DISABLED, !power_on);
 	
 	// update tilt
-	int16_t a = get_angle_pointing_down(); 
+	int16_t a = imu_get_pointing_down_angle(); 
 	ui_set_tilt(a);
 	
 	
