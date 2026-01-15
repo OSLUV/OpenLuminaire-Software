@@ -29,6 +29,8 @@ add_executable(app
 	ui_main.c
 	ui_loading.c
 	ui_debug.c
+	d_uart_cmd.c
+	m_cmd.c
 )
 
 pico_enable_stdio_usb(app 1)
@@ -48,6 +50,7 @@ target_link_libraries(app
 	hardware_adc
 	hardware_dma
 	hardware_flash
+	hardware_uart
 
 	lvgl
 )

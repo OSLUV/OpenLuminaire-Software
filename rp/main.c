@@ -34,6 +34,8 @@
 #include "ui_loading.h"
 #include "ui_debug.h"
 
+#include "m_cmd.h"
+
 #include "font.c"
 
 
@@ -69,9 +71,10 @@ void main(void)
 	sense_init();
 	radar_init();
 	fan_init();
-	radio_init();
+	//radio_init();
 	usbpd_negotiate(true);
 	fan_set_speed(100);
+	m_cmd_init();
 
 	sleep_ms(250);
 	sense_update();
@@ -121,6 +124,7 @@ void main(void)
 	
 	while (1)
 	{
+		m_cmd_handler();
 		sense_update();
 		buttons_update();
 		imu_update();

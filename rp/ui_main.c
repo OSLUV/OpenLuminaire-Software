@@ -489,7 +489,7 @@ void ui_main_update()
 	if (SHOW_DIM) {
 		int intensity_setting_int = lv_slider_get_value(slider_intensity);
         intensity_setting = LAMP_PWR_20PCT_C + intensity_setting_int;
-	}	
+	}
 	
 	// update lamp status
 	LAMP_STATE_E s = lamp_get_lamp_state();
@@ -596,4 +596,150 @@ void ui_main_open()
     display_set_indev_group(the_group);
     lv_group_focus_obj(sw_power);
     lv_obj_send_event(sw_power, LV_EVENT_FOCUSED, NULL);
+}
+
+int16_t ui_main_lamp_set_stt(uint16_t req_state)
+{
+    LAMP_PWR_LEVEL_E lamp_pwr_lvl;
+
+    if (req_state == 0)
+    {
+        lamp_get_reported_power_level(&lamp_pwr_lvl);
+
+        //if (lamp_pwr_lvl != LAMP_PWR_OFF_C)                                     // Lamp is ON ?
+        {
+            persistance_set_power_state(0);
+            persistance_write_region();
+
+            lv_obj_set_state(sw_power, LV_STATE_CHECKED, false);                // Update function will update lamp's state
+        }
+
+        return 1;
+    }
+    else if (req_state == 1)
+    {
+        lamp_get_reported_power_level(&lamp_pwr_lvl);
+
+        if (lamp_pwr_lvl == LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
+        {
+            /*if (SHOW_DIM)
+            {
+                // TODO: 
+
+                persistance_get_dim_index();
+
+	            lamp_get_reported_power_level(&lamp_pwr_lvl);  
+                lamp_request_power_level(lamp_pwr_lvl);
+            }
+            else 
+            {
+                lamp_request_power_level(LAMP_PWR_100PCT_C);
+            }*/
+
+            persistance_set_power_state(1);
+            persistance_write_region();
+
+            lv_obj_set_state(sw_power, LV_STATE_CHECKED, true);                 // Update function will update lamp's state
+        }
+
+        return 1;
+    }
+
+    return 0; // Error
+}
+
+int16_t ui_main_lamp_get_stt(uint16_t state)
+{
+    return persistance_get_power_state();
+}
+
+int16_t ui_main_lamp_set_dim(uint16_t level)
+{
+    LAMP_PWR_LEVEL_E lamp_pwr_level;
+
+    lamp_pwr_level = LAMP_PWR_UNKNOWN_C;
+    switch (level)
+    {
+        case 0:
+            //lamp_pwr_level = LAMP_PWR_OFF_C;
+            return 0;
+        break;
+
+        case 20:
+            lamp_pwr_level = LAMP_PWR_20PCT_C;
+        break;
+        
+        case 40:
+            lamp_pwr_level = LAMP_PWR_40PCT_C;
+        break;
+        
+        case 70:
+            lamp_pwr_level = LAMP_PWR_70PCT_C;
+        break;
+        
+        case 100:
+            lamp_pwr_level = LAMP_PWR_100PCT_C;
+        break;
+
+        default:
+            return 0;
+        break;
+    }
+
+    if (SHOW_DIM && (lamp_pwr_level < LAMP_PWR_MAX_SETTINGS_C))
+    {
+        lamp_pwr_level -= LAMP_PWR_20PCT_C;
+
+        persistance_set_dim_index(lamp_pwr_level);
+
+        lv_slider_set_value(slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
+
+        return level;
+    }
+
+    return 0;
+}
+
+int16_t ui_main_lamp_get_dim(uint16_t level)
+{
+    int dim_setting;
+    LAMP_PWR_LEVEL_E lamp_pwr_lvl;
+    int16_t dim_level;
+
+    dim_level = 100;
+	
+	if (SHOW_DIM) 
+    {
+		dim_setting  = lv_slider_get_value(slider_intensity);
+        lamp_pwr_lvl = LAMP_PWR_20PCT_C + dim_setting;
+	
+        switch (lamp_pwr_lvl)
+        {
+            case LAMP_PWR_OFF_C:
+                dim_level = 0;
+            break;
+
+            case LAMP_PWR_20PCT_C:
+                dim_level = 20;
+            break;
+            
+            case LAMP_PWR_40PCT_C:
+                dim_level = 40;
+            break;
+            
+            case LAMP_PWR_70PCT_C:
+                dim_level = 70;
+            break;
+            
+            case LAMP_PWR_100PCT_C:
+                dim_level = 100;
+            break;
+
+            default:
+                dim_level = 100;
+            break;
+        }
+	}
+
+    return dim_level;
 }
