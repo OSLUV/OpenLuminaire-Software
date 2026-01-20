@@ -118,9 +118,9 @@ void main(void)
 	}	
 	
     // Housekeeping flags
-    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   						// 5 min     
+    const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   						// 5 min
     uint64_t last_activity_us = time_us_64();
-    bool b_is_screen_dark = false;
+	bool b_is_screen_dark = false;
 	
 	while (1)
 	{
@@ -142,14 +142,22 @@ void main(void)
 				if (b_is_screen_dark)
 				{
 					// Wake-up path         
-					display_screen_on();  										// Back-light on + one flush     
+					display_screen_on();  										// Back-light on + one flush
 					b_is_screen_dark = false;
 				}
 			}
 			
 			// ----------- UI & DISPLAY ---------------------------------- 
-			if (!b_is_screen_dark) 
+			if (!b_is_screen_dark ||
+				(display_get_backlight_brightness() > 0)) 						// Is screen on ?
 			{
+				if (b_is_screen_dark)
+				{
+					b_is_screen_dark = false;
+
+					last_activity_us = time_us_64();
+				}
+
 				lv_timer_handler();
 				ui_main_update();         										// Normal widgets                
 				ui_debug_update();
@@ -159,7 +167,7 @@ void main(void)
 			if (!b_is_screen_dark && 
 				((time_us_64() - last_activity_us) > TIMEOUT_US))
 			{
-				display_screen_off();     										// Set back-light to 0               
+				display_screen_off();     										// Set back-light to 0
 				b_is_screen_dark = true;
 			}
 

@@ -40,6 +40,7 @@
 /* Private variables  --------------------------------------------------------*/
 
 static uint8_t display_draw_buffer[DISPLAY_BUF_SIZE_C];
+static uint8_t disp_brightness;
 
 lv_indev_t * indev_keypad;
 lv_group_t * the_group;
@@ -132,7 +133,7 @@ void display_init(void)
 /**
  * @brief Sets the display's backlight brightness level
  * 
- * @param brightness	Brightness iun percentage 
+ * @param brightness	Brightness in percentage 
  */
 void display_set_backlight_brightness(uint8_t brightness)
 {
@@ -140,18 +141,29 @@ void display_set_backlight_brightness(uint8_t brightness)
 	uint 	 channel;
 	uint16_t pwm_level;
 
-	if (brightness > DISPLAY_BACKLIGHT_MAX_BRIGHTNESS_C)
+	disp_brightness = brightness;
+	if (disp_brightness > DISPLAY_BACKLIGHT_MAX_BRIGHTNESS_C)
 	{
-		brightness = DISPLAY_BACKLIGHT_MAX_BRIGHTNESS_C;
+		disp_brightness = DISPLAY_BACKLIGHT_MAX_BRIGHTNESS_C;
 	}
 
 	slice   = pwm_gpio_to_slice_num(PIN_LCD_BACKLIGHT);
 	channel = pwm_gpio_to_channel(PIN_LCD_BACKLIGHT);
 
-	pwm_level = brightness * 
+	pwm_level = disp_brightness * 
 			  	DISPLAY_BACKLIGHT_WRAP_C / DISPLAY_BACKLIGHT_MAX_BRIGHTNESS_C;
 
 	pwm_set_chan_level(slice, channel, pwm_level);
+}
+
+/**
+ * @brief Gets the display's current backlight brightness level
+ * 
+ * @return uint8_t 
+ */
+uint8_t display_get_backlight_brightness(void)
+{
+	return disp_brightness;
 }
 
 /**

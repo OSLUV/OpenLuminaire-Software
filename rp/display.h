@@ -18,6 +18,7 @@
 
 void display_init(void);
 void display_set_backlight_brightness(uint8_t brightness);
+uint8_t display_get_backlight_brightness(void);
 
 void display_screen_off(void);
 void display_screen_on(void);

@@ -606,6 +606,8 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
     {
         lamp_get_reported_power_level(&lamp_pwr_lvl);
 
+        display_screen_on();
+
         //if (lamp_pwr_lvl != LAMP_PWR_OFF_C)                                     // Lamp is ON ?
         {
             persistance_set_power_state(0);
@@ -622,19 +624,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
         if (lamp_pwr_lvl == LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
         {
-            /*if (SHOW_DIM)
-            {
-                // TODO: 
-
-                persistance_get_dim_index();
-
-	            lamp_get_reported_power_level(&lamp_pwr_lvl);  
-                lamp_request_power_level(lamp_pwr_lvl);
-            }
-            else 
-            {
-                lamp_request_power_level(LAMP_PWR_100PCT_C);
-            }*/
+            display_screen_on();
 
             persistance_set_power_state(1);
             persistance_write_region();
@@ -688,6 +678,8 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
 
     if (SHOW_DIM && (lamp_pwr_level < LAMP_PWR_MAX_SETTINGS_C))
     {
+        display_screen_on();
+
         lamp_pwr_level -= LAMP_PWR_20PCT_C;
 
         persistance_set_dim_index(lamp_pwr_level);
