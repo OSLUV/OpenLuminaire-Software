@@ -75,16 +75,16 @@ void lamp_set_switched_24v(bool on);
 bool lamp_get_switched_12v(void);
 bool lamp_get_switched_24v(void);
 
-bool lamp_request_power_level(LAMP_PWR_LEVEL_E);
+bool lamp_request_power_level(LAMP_PWR_LEVEL_E pwr_level);
 LAMP_PWR_LEVEL_E lamp_get_requested_power_level(void);
 LAMP_PWR_LEVEL_E lamp_get_commanded_power_level(void);
 bool lamp_get_reported_power_level(LAMP_PWR_LEVEL_E *p_pwr_level);
 bool lamp_is_power_ok(void);
-const char* lamp_get_power_level_string(LAMP_PWR_LEVEL_E l);
+const char* lamp_get_power_level_string(LAMP_PWR_LEVEL_E pwr_level);
 
 int lamp_get_raw_freq(void);
 LAMP_STATE_E lamp_get_lamp_state(void);
-const char* lamp_get_lamp_state_str(LAMP_STATE_E s);
+const char* lamp_get_lamp_state_str(LAMP_STATE_E state);
 int lamp_get_state_elapsed_ms(void);
 bool lamp_is_warming(void);
 

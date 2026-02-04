@@ -1,7 +1,7 @@
 /**
  * @file      ui_debug.h
  * @author    The OSLUV Project
- * @brief     Functions prototypes for ui debugging tools
+ * @brief     Functions prototypes for UI debugging tools
  *  
  */
 

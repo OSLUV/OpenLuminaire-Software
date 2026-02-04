@@ -44,8 +44,6 @@ static void ui_debug_back_btn_callback(lv_event_t* p_evt);
 /**
  * @brief UI debug initialization procedure
  * 
- * @return 	void  
- * 
  */
 void ui_debug_init(void)
 {
@@ -147,7 +145,7 @@ void ui_debug_update(void)
 }
 
 /**
- * @brief 
+ * @brief Display debug screen
  * 
  */
 void ui_debug_open(void)

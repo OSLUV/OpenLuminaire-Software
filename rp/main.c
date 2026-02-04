@@ -24,7 +24,7 @@
 #include "buttons.h"
 #include "sense.h"
 #include "radar.h"
-#include "menu.h"
+//#include "menu.h"
 #include "fan.h"
 #include "radio.h"
 #include "safety_logic.h"
@@ -130,7 +130,7 @@ void main(void)
 		imu_update();
 		mag_update();
 		radar_update();
-		update_usbpd();
+		usbpd_update();
 		lamp_update();
 		
 		if (lamp_is_power_ok())
