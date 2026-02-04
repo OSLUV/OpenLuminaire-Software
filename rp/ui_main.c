@@ -13,7 +13,6 @@
 #include "display.h"
 #include "lamp.h"
 #include "imu.h"
-#include "menu.h"
 #include "buttons.h"
 #include "ui_debug.h"
 #include "ui_loading.h"

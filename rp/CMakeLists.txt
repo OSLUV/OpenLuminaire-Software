@@ -19,7 +19,6 @@ add_executable(app
 	buttons.c
 	sense.c
 	radar.c
-	menu.c
 	fan.c
 	radio.c
 	safety_logic.c
