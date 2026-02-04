@@ -4,6 +4,10 @@
  * @brief     Main application loop
  * @schematic lamp_controller.SchDoc
  * @schematic power.SchDoc
+ * 
+ * @mainpage Software for OSLUV OpenLuminaire
+ * OpenLuminaire is  OSHWA certified Open Source 222nm luminiare for the 
+ * RP2040-based hardware.
  *  
  */
 
