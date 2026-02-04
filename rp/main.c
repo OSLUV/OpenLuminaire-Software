@@ -24,7 +24,6 @@
 #include "buttons.h"
 #include "sense.h"
 #include "radar.h"
-//#include "menu.h"
 #include "fan.h"
 #include "radio.h"
 #include "safety_logic.h"
