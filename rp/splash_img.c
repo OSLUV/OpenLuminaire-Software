@@ -1,7 +1,20 @@
+/**
+ * @file      splash_img.c
+ * @author    The OSLUV Project
+ * @brief     Splash image data
+ *  
+ */
+
+
+/* Includes ------------------------------------------------------------------*/
+
 #include "image_basic.c"      /* image_basic.{width,height,pixel_data}     */
 #include "image_dimmable.c"   /* image_dimmable.{…}                        */
 #include "image_default.c"    /* image_default.{…}                         */
 #include "lvgl.h"
+
+
+/* Global variables  ---------------------------------------------------------*/
 
 /* NOTE: every *.pixel_data[] array must already be RGB565 little-endian */
 
@@ -43,3 +56,5 @@ const lv_image_dsc_t splash_default_img = {
     .data_size = image_default.width * image_default.height * 2,
     .data      = (const uint8_t *)image_default.pixel_data
 };
+
+/*** END OF FILE ***/

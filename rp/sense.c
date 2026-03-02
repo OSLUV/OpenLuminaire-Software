@@ -1,9 +1,44 @@
+/**
+ * @file      sense.c
+ * @author    The OSLUV Project
+ * @brief     Driver for voltages sensing
+ * @schematic lamp_controller.SchDoc
+ *  
+ */
+
+
+/* Includes ------------------------------------------------------------------*/
+
 #include <hardware/adc.h>
 #include "pins.h"
 
-#define PIN_ADC0 26
 
-void init_sense()
+/* Private typedef -----------------------------------------------------------*/
+/* Private define ------------------------------------------------------------*/
+
+#define SENSE_PIN_ADC0_C	26
+
+
+/* Global variables  ---------------------------------------------------------*/
+
+float g_sense_vbus, g_sense_12v, g_sense_24v = 0;
+
+
+/* Private variables  --------------------------------------------------------*/
+/* Private function prototypes -----------------------------------------------*/
+
+static float sense_convert_adc_sample(uint16_t sample);
+
+
+/* Exported functions --------------------------------------------------------*/
+
+/**
+ * @brief Voltages sensing initialization procedure
+ * 
+ * @return 	void  
+ * 
+ */
+void sense_init(void)
 {
 	adc_init();
 
@@ -12,25 +47,40 @@ void init_sense()
     adc_gpio_init(PIN_VSENSE_24V);
 }
 
-float convert(uint16_t sample)
+/**
+ * @brief   Updates voltages readings
+ * 
+ * @return 	void  
+ */
+void sense_update(void)
 {
-	float reading = ((float)sample) * (3.3f / (float)(1 << 12));
+	adc_select_input(PIN_VSENSE_VBUS - SENSE_PIN_ADC0_C);
+	g_sense_vbus = sense_convert_adc_sample(adc_read());
+
+	adc_select_input(PIN_VSENSE_12V - SENSE_PIN_ADC0_C);
+	g_sense_12v = sense_convert_adc_sample(adc_read());
+
+	adc_select_input(PIN_VSENSE_24V - SENSE_PIN_ADC0_C);
+	g_sense_24v = sense_convert_adc_sample(adc_read());
+}
+
+
+/* Private functions ---------------------------------------------------------*/
+
+/**
+ * @brief Converts an ADC sample to a human readable voltage
+ * 
+ * @param adc_sample ADC channel sample
+ * @return float 
+ */
+static float sense_convert_adc_sample(uint16_t adc_sample)
+{
+	float reading = ((float)adc_sample) * (3.3f / (float)(1 << 12));
 	float r1 = 100000;
 	float r2 = 10000;
 	float voltage = (reading * (r1 + r2)) / r2;
+
 	return voltage;
 }
 
-float sense_vbus, sense_12v, sense_24v = 0;
-
-void update_sense()
-{
-	adc_select_input(PIN_VSENSE_VBUS - PIN_ADC0);
-	sense_vbus = convert(adc_read());
-
-	adc_select_input(PIN_VSENSE_12V - PIN_ADC0);
-	sense_12v = convert(adc_read());
-
-	adc_select_input(PIN_VSENSE_24V - PIN_ADC0);
-	sense_24v = convert(adc_read());
-}
+/*** END OF FILE ***/
