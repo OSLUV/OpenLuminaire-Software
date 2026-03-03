@@ -11,6 +11,9 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
+#define STB_IMAGE_RESIZE_IMPLEMENTATION
+#include "stb_image_resize2.h"
+
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -401,9 +404,14 @@ int main(int argc, char *argv[])
     }
 
     if (w != IMG_W || h != IMG_H) {
-        fprintf(stderr, "Image is %dx%d, expected %dx%d\n", w, h, IMG_W, IMG_H);
+        printf("Resizing %dx%d -> %dx%d\n", w, h, IMG_W, IMG_H);
+        uint8_t *resized = malloc(IMG_W * IMG_H * 4);
+        if (!resized) { stbi_image_free(img); return 1; }
+        stbir_resize_uint8_linear(img, w, h, 0,
+                                  resized, IMG_W, IMG_H, 0,
+                                  STBIR_RGBA);
         stbi_image_free(img);
-        return 1;
+        img = resized;
     }
 
     /* Convert to RGB565 LE */

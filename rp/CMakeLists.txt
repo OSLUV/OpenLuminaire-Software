@@ -19,6 +19,7 @@ add_custom_command(
 		${CMAKE_CURRENT_SOURCE_DIR}/png_to_csource.c -lm
 	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/png_to_csource.c
 		${CMAKE_CURRENT_SOURCE_DIR}/stb_image.h
+		${CMAKE_CURRENT_SOURCE_DIR}/stb_image_resize2.h
 	COMMENT "Building png_to_csource (host tool)"
 )
 
