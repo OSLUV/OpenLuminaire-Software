@@ -10,7 +10,9 @@ set(CMAKE_CXX_STANDARD 17)
 
 pico_sdk_init()
 
-# --- Host tool: convert PNG splash images to C source (RGB565) ------
+# --- Host tool: convert splash images to C source (RGB565) ----------
+# All image formats supported by stb_image:
+set(STB_IMAGE_EXTENSIONS png jpg jpeg bmp tga psd gif hdr pic pnm pgm ppm)
 set(PNG_TO_CSOURCE ${CMAKE_CURRENT_BINARY_DIR}/png_to_csource)
 
 add_custom_command(
@@ -26,14 +28,26 @@ add_custom_command(
 set(SPLASH_IMAGES basic default dimmable)
 set(SPLASH_C_FILES)
 foreach(img ${SPLASH_IMAGES})
+	# Find the source image by trying each supported extension
+	set(SPLASH_SRC_${img})
+	foreach(ext ${STB_IMAGE_EXTENSIONS})
+		if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.${ext})
+			set(SPLASH_SRC_${img} ${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.${ext})
+			break()
+		endif()
+	endforeach()
+	if(NOT SPLASH_SRC_${img})
+		message(FATAL_ERROR "No image file found for image_${img} (tried: ${STB_IMAGE_EXTENSIONS})")
+	endif()
+
 	add_custom_command(
 		OUTPUT  ${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.c
 		COMMAND ${PNG_TO_CSOURCE}
-			${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.png
+			${SPLASH_SRC_${img}}
 			-o ${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.c
 		DEPENDS ${PNG_TO_CSOURCE}
-			${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.png
-		COMMENT "Converting image_${img}.png -> image_${img}.c"
+			${SPLASH_SRC_${img}}
+		COMMENT "Converting ${SPLASH_SRC_${img}} -> image_${img}.c"
 	)
 	list(APPEND SPLASH_C_FILES ${CMAKE_CURRENT_SOURCE_DIR}/image_${img}.c)
 endforeach()
