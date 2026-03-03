@@ -110,7 +110,14 @@ Follow these steps to upload the `app.uf2` file to your OpenLuminaire lamp:
 
 ## Changing the firmware splash image
 
-The easiest way to change the splash image that appears when the lamp first turns on is by using GIMP.
+### NEW METHOD
+
+To change the firmware splash image, simply drop 3 .png files into the /rp directory. They must be:
+
+1. 240x240 pixels
+2. Named 'image_default.png', 'image_basic.png', and 'image_dimmable.png'
+
+### OLD METHOD - GIMP
 
 1. Download and install GIMP
 2. Open the desired image in GIMP. Resize it to 240x240 pixels. 
