@@ -207,7 +207,7 @@ static void ui_debug_back_btn_callback(lv_event_t* p_evt)
  */
 static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
 {
-    printf("[V1.2] Retest requested from debug menu\n");
+    printf("Retest requested from debug menu\n");
 
     lv_label_set_text(ui_debug_label, "RETESTING...\n\nLamp will turn off,\nthen board will\nreboot when done.");
     lv_obj_invalidate(ui_debug_screen);
@@ -227,7 +227,7 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
     lamp_reset_type();
     lamp_perform_type_test();
 
-    printf("[V1.2] Retest complete, type=%d. Rebooting to apply new UI layout...\n",
+    printf("Retest complete, type=%d. Rebooting to apply new UI layout...\n",
            lamp_get_type());
 
     watchdog_reboot(0, 0, 0);

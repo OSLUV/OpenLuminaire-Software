@@ -454,7 +454,7 @@ void lamp_reset_type(void)
 	lamp_current_type = LAMP_TYPE_UNKNOWN_C;
 	persistance_set_factory_lamp_type(LAMP_TYPE_UNKNOWN_C);
 	persistance_write_region();
-	printf("[V1.2] Lamp type reset to UNKNOWN\n");
+	printf("Lamp type reset to UNKNOWN\n");
 }
 
 /**
