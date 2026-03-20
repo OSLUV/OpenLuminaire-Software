@@ -439,10 +439,22 @@ void lamp_perform_type_test(void)
 		if (lamp_get_type() != LAMP_TYPE_UNKNOWN_C)
 		{
 			printf("Writing concluded type\n");
-			g_persistance_region.factory_lamp_type = lamp_get_type();
+			persistance_set_factory_lamp_type(lamp_get_type());
 			persistance_write_region();
 		}
 	}
+}
+
+/**
+ * @brief Resets the lamp type to UNKNOWN and clears persistence.
+ *        Allows lamp_perform_type_test() to re-run detection.
+ */
+void lamp_reset_type(void)
+{
+	lamp_current_type = LAMP_TYPE_UNKNOWN_C;
+	persistance_set_factory_lamp_type(LAMP_TYPE_UNKNOWN_C);
+	persistance_write_region();
+	printf("[V1.2] Lamp type reset to UNKNOWN\n");
 }
 
 /**

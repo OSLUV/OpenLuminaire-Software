@@ -69,6 +69,7 @@ void lamp_update(void);
 void lamp_load_type_from_flash(void);
 LAMP_TYPE_E lamp_get_type(void);
 void lamp_perform_type_test(void);
+void lamp_reset_type(void);
 
 void lamp_set_switched_12v(bool on);
 void lamp_set_switched_24v(bool on);

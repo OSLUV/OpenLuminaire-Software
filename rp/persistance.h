@@ -42,6 +42,8 @@ void persistance_set_radar_state(bool b_radar_on);
 bool persistance_get_radar_state(void);
 void persistance_set_dim_index(uint8_t idx);
 uint8_t persistance_get_dim_index(void);
+void persistance_set_factory_lamp_type(uint8_t type);
+uint8_t persistance_get_factory_lamp_type(void);
 
 
 #endif /* _D_PERSISTANCE_H_ */
