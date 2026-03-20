@@ -846,10 +846,11 @@ static void lamp_perform_type_test_inner(void)
 	// V1.1: lamp_set_switched_12v(true); → test dimmable (12V only)
 	// V1.1: lamp_set_switched_24v(true); → test non-dimmable (add 24V)
 
-	// V1.2: Dimming-response test. Both rails stay on. Request 70% power —
-	// STARTING state forces 100% to strike the arc. Once RUNNING, commanded
-	// drops to 70%. I3 (dimmable) responds → STATUS freq ~1000Hz.
-	// I2 (non-dimmable) has no DIMMING pin → STATUS stays DC LOW.
+	// V1.2: Dimming-response test. Both rails stay on. Request 70% —
+	// STARTING forces 100% to strike. Once RUNNING, commanded drops to 70%.
+	// Then wait for reported to match commanded:
+	//   - Match (reported=70%) → dimmable (I3 responded to DIMMING pin)
+	//   - Timeout (reported=100%) → non-dimmable (I2 has no DIMMING pin)
 
 	lamp_current_type = LAMP_TYPE_UNKNOWN_C;
 	lamp_request_power_level(LAMP_PWR_OFF_C);
@@ -857,11 +858,13 @@ static void lamp_perform_type_test_inner(void)
 	lamp_update();
 	sleep_ms(100);
 
+	// Phase 1: Strike the lamp
 	printf("[V1.2] Type test: requesting 70%%, striking at 100%%...\n");
 	lamp_request_power_level(LAMP_PWR_70PCT_C);
 
-	// Wait for strike (STARTING → RUNNING). Once RUNNING, commanded = 70%.
-	while (true)
+	// Wait for strike (STARTING → RUNNING) with safety timeout
+	uint64_t start = time_us_64();
+	while ((time_us_64() - start) < (30ULL * 1000 * 1000))
 	{
 		lamp_update();
 		sleep_ms(10);
@@ -874,25 +877,52 @@ static void lamp_perform_type_test_inner(void)
 		}
 		if (lamp_get_lamp_state() == LAMP_STATE_RUNNING_C)
 		{
-			printf("[V1.2] Type test: lamp running at 70%%, checking dimming response...\n");
 			break;
 		}
 	}
 
-	// Lamp is RUNNING at 70% commanded. Wait 3s for frequency detection
-	// (report cycle is 1s — need at least one full cycle to measure freq).
-	uint64_t dim_start = time_us_64();
-	while ((time_us_64() - dim_start) < (3ULL * 1000 * 1000))
+	if (lamp_get_lamp_state() != LAMP_STATE_RUNNING_C)
+	{
+		printf("[V1.2] Type test: strike timeout\n");
+		lamp_current_type = LAMP_TYPE_UNKNOWN_C;
+		lamp_request_power_level(LAMP_PWR_100PCT_C);
+		return;
+	}
+
+	// Wait for warmup to complete before testing dimming response —
+	// the ballast ignores DIMMING commands during its ~10s warmup period.
+	printf("[V1.2] Type test: lamp running, waiting for warmup...\n");
+	while (lamp_is_warming())
 	{
 		lamp_update();
 		sleep_ms(10);
 	}
 
-	// Check reported level
+	// Phase 2: Check dimming response — wait for reported == commanded
+	// Dimmable (I3) responds to DIMMING pin → reported settles to 70%
+	// Non-dimmable (I2) ignores it → reported stays at 100%
+	printf("[V1.2] Type test: warmup done, checking dimming response...\n");
+
+	uint64_t dim_start = time_us_64();
 	LAMP_PWR_LEVEL_E reported;
+
+	while ((time_us_64() - dim_start) < (5ULL * 1000 * 1000))
+	{
+		lamp_update();
+		sleep_ms(10);
+
+		lamp_get_reported_power_level(&reported);
+		if (reported == lamp_get_commanded_power_level())
+		{
+			break;
+		}
+	}
+
 	lamp_get_reported_power_level(&reported);
-	printf("[V1.2] Type test: reported=%s, freq=%dHz\n",
-		   lamp_get_power_level_string(reported), lamp_get_raw_freq());
+	printf("[V1.2] Type test: commanded=%s, reported=%s, freq=%dHz\n",
+		   lamp_get_power_level_string(lamp_get_commanded_power_level()),
+		   lamp_get_power_level_string(reported),
+		   lamp_get_raw_freq());
 
 	if (reported == LAMP_PWR_70PCT_C)
 	{
@@ -901,18 +931,17 @@ static void lamp_perform_type_test_inner(void)
 	}
 	else if (reported == LAMP_PWR_100PCT_C)
 	{
-		printf("[V1.2] Determined non-dimmable (I2, ignored dimming, still at 100%%)\n");
+		printf("[V1.2] Determined non-dimmable (I2, ignored dimming)\n");
 		lamp_current_type = LAMP_TYPE_NON_DIMMABLE_C;
+		lamp_request_power_level(LAMP_PWR_100PCT_C);
 	}
 	else
 	{
 		printf("[V1.2] Type test inconclusive (reported=%s) — UNKNOWN\n",
 			   lamp_get_power_level_string(reported));
 		lamp_current_type = LAMP_TYPE_UNKNOWN_C;
+		lamp_request_power_level(LAMP_PWR_100PCT_C);
 	}
-
-	// Restore to 100%
-	lamp_request_power_level(LAMP_PWR_100PCT_C);
 }
 
 /**
