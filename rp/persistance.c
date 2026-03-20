@@ -163,6 +163,27 @@ uint8_t persistance_get_dim_index(void)
 	return g_persistance_region.dim_index;
 }
 
+/**
+ * @brief Sets the factory lamp type in persistence
+ *
+ * @param type @ref LAMP_TYPE_E
+ */
+void persistance_set_factory_lamp_type(uint8_t type)
+{
+	b_persistance_is_dirty |= (g_persistance_region.factory_lamp_type != type);
+	g_persistance_region.factory_lamp_type = type;
+}
+
+/**
+ * @brief Gets the factory lamp type from persistence
+ *
+ * @return uint8_t @ref LAMP_TYPE_E
+ */
+uint8_t persistance_get_factory_lamp_type(void)
+{
+	return g_persistance_region.factory_lamp_type;
+}
+
 
 /* Private functions ---------------------------------------------------------*/
 
