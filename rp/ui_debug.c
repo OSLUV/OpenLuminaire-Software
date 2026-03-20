@@ -218,10 +218,7 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
     lamp_update();
     sleep_ms(100);
 
-    // Refresh ADC readings before the type test — stale values from the main
-    // loop may be out of the 12V pre-check range (11.5-12.5V) due to load droop
-    // while the lamp was running, which causes lamp_set_switched_12v(true) to
-    // silently reject and the type test to hang in an infinite loop.
+    // Refresh ADC readings — stale values may cause issues with voltage pre-checks
     sense_update();
 
     lamp_reset_type();

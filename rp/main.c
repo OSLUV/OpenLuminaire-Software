@@ -75,31 +75,62 @@ void main(void)
 	radar_init();
 	fan_init();
 	//radio_init();
-	usbpd_negotiate(true);
+	usbpd_negotiate(true);  // V1.2: Now negotiates 20V/1.5A (was 12V/2.5A) — see usbpd.c
 	fan_set_speed(100);
 	m_cmd_init();
 
 	sleep_ms(250);
 	sense_update();
+	printf("[V1.2] Pre-enable: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
+		   g_sense_vbus, g_sense_12v, g_sense_24v);
+
+	// V1.2: Reverse power-on order — 24V first (boost from VSYS), then 12V (buck from 24V)
+	// V1.1: lamp_set_switched_12v(true);
+	lamp_set_switched_24v(true);
+	sleep_ms(500);
+	sense_update();
+	printf("[V1.2] After 24V: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
+		   g_sense_vbus, g_sense_12v, g_sense_24v);
 
 	lamp_set_switched_12v(true);
 
 	sleep_ms(1000);
 
 	sense_update();
+	printf("[V1.2] After 12V: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
+		   g_sense_vbus, g_sense_12v, g_sense_24v);
 
 	printf("Scripted start...\n");
 
-	if (lamp_is_power_ok()) 
-	{
-		lamp_perform_type_test();
-	}
+	// TEMPORARY: Hardcode dimmable for V1.2 testing — skip type test
+	// TODO: Replace with dimming-response type test
+	printf("[V1.2] TEMPORARY: Hardcoding lamp type as DIMMABLE for testing\n");
+	// if (lamp_is_power_ok())
+	// {
+	// 	lamp_perform_type_test();
+	// }
 
-	if (lamp_get_type() == LAMP_TYPE_NON_DIMMABLE_C)
+	// V1.2: Ensure both rails are on after type test.
+	// Phase A (non-dimmable test) leaves 12V off if it succeeds — re-enable it
+	// so fan, radar (+5V), and voltage monitoring all work.
+	// V1.1: if (lamp_get_type() == LAMP_TYPE_NON_DIMMABLE_C)
+	// V1.1: {
+	// V1.1: 	lamp_set_switched_24v(true);
+	// V1.1: 	sleep_ms(100);
+	// V1.1: }
+	if (!lamp_get_switched_24v())
 	{
 		lamp_set_switched_24v(true);
-		sleep_ms(100);
+		sleep_ms(500);
 	}
+	if (!lamp_get_switched_12v())
+	{
+		lamp_set_switched_12v(true);
+		sleep_ms(1000);
+	}
+	sense_update();
+	printf("[V1.2] Post-test: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
+		   g_sense_vbus, g_sense_12v, g_sense_24v);
 
 	lamp_request_power_level(LAMP_PWR_100PCT_C);
 	

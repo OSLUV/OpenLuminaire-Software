@@ -142,12 +142,13 @@ void usbpd_negotiate(bool up)
 
 	pdo_12v.u32 = 0;
 
-	usbpd_configure_pdo(&pdo_12v, 12000, 2500); 								// Configuration for 12V negotiation
+	// V1.1: usbpd_configure_pdo(&pdo_12v, 12000, 2500); 						// Was: 12V/2.5A
+	usbpd_configure_pdo(&pdo_12v, 20000, 1500); 								// V1.2: 20V/1.5A — higher voltage, lower current for efficiency
 	usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo_12v), (uint8_t*)&pdo_12v);
 
 	if (up)
 	{
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});                      // 12V negotitation
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});                      // V1.2: 20V negotiation (was 12V)
 	}
 	else
 	{
@@ -171,7 +172,8 @@ bool usbpd_get_is_12v(void)
 
 	usbpd_read(0x21, 1, &mv_from_status1);
 
-	return (mv_from_status1 == 120);
+	// V1.1: return (mv_from_status1 == 120);  // 120 = 12.0V
+	return (mv_from_status1 == 200);  // V1.2: 200 = 20.0V
 }
 
 /**
