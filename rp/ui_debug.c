@@ -209,10 +209,20 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
 {
     printf("[V1.2] Retest requested from debug menu\n");
 
+    lv_label_set_text(ui_debug_label, "RETESTING...\n\nLamp will turn off,\nthen board will\nreboot when done.");
+    lv_obj_invalidate(ui_debug_screen);
+    lv_refr_now(NULL);
+
     lamp_request_power_level(LAMP_PWR_OFF_C);
     lamp_update();
     lamp_update();
     sleep_ms(100);
+
+    // Refresh ADC readings before the type test — stale values from the main
+    // loop may be out of the 12V pre-check range (11.5-12.5V) due to load droop
+    // while the lamp was running, which causes lamp_set_switched_12v(true) to
+    // silently reject and the type test to hang in an infinite loop.
+    sense_update();
 
     lamp_reset_type();
     lamp_perform_type_test();
