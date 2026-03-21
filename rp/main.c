@@ -81,33 +81,7 @@ void main(void)
 	fan_set_speed(100);
 	m_cmd_init();
 
-	sleep_ms(250);
-	sense_update();
-	printf("Pre-enable: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
-		   g_sense_vbus, g_sense_12v, g_sense_24v);
-
-	if (board_is_v1_2())
-	{
-		// V1.2: 24V first (boost from VSYS), then 12V (buck from 24V)
-		lamp_set_switched_24v(true);
-		sleep_ms(500);
-		sense_update();
-		printf("After 24V: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
-			   g_sense_vbus, g_sense_12v, g_sense_24v);
-
-		lamp_set_switched_12v(true);
-	}
-	else
-	{
-		// V1.1: 12V first (from barrel/USB), then 24V (boost from 12V)
-		lamp_set_switched_12v(true);
-	}
-
-	sleep_ms(1000);
-
-	sense_update();
-	printf("After rails: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
-		   g_sense_vbus, g_sense_12v, g_sense_24v);
+	lamp_power_up_rails();
 
 	printf("Scripted start...\n");
 
@@ -115,19 +89,6 @@ void main(void)
 	{
 		lamp_perform_type_test();
 	}
-
-	// Ensure both rails are on after type test
-	if (!lamp_get_switched_24v())
-	{
-		lamp_set_switched_24v(true);
-		sleep_ms(500);
-	}
-	if (!lamp_get_switched_12v())
-	{
-		lamp_set_switched_12v(true);
-		sleep_ms(1000);
-	}
-	sense_update();
 
 	lamp_request_power_level(LAMP_PWR_100PCT_C);
 	

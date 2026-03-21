@@ -75,6 +75,7 @@ void lamp_set_switched_12v(bool on);
 void lamp_set_switched_24v(bool on);
 bool lamp_get_switched_12v(void);
 bool lamp_get_switched_24v(void);
+void lamp_power_up_rails(void);
 
 bool lamp_request_power_level(LAMP_PWR_LEVEL_E pwr_level);
 LAMP_PWR_LEVEL_E lamp_get_requested_power_level(void);
