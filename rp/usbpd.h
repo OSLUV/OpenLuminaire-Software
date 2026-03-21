@@ -89,7 +89,7 @@ static_assert(sizeof(usbpd_rdo_t) == 4);
 /* Exported functions prototypes ---------------------------------------------*/
 
 void usbpd_update(void);
-void usbpd_negotiate(bool up);
+void usbpd_negotiate(bool up, int mv, int ma);
 bool usbpd_get_is_12v(void);
 bool usbpd_get_is_trying_for_12v(void);
 int usbpd_get_negotiated_mA(void);

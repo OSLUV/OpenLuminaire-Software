@@ -58,6 +58,7 @@ add_custom_target(splash_images DEPENDS ${SPLASH_C_FILES})
 
 add_executable(app
 	main.c
+	board.c
 	imu.c
 	mag.c
 	usbpd.c

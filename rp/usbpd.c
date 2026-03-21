@@ -126,33 +126,34 @@ void usbpd_update(void)
 
 /**
  * @brief Sets voltage negotiation
- * 
- * @param up Voltage to negotiate (0: 5V, 1: 12V)
+ *
+ * @param up   true: negotiate higher voltage, false: 5V only
+ * @param mv   Voltage to request in millivolts (e.g., 12000 or 20000)
+ * @param ma   Current to request in milliamps (e.g., 2500 or 1500)
  */
-void usbpd_negotiate(bool up)
+void usbpd_negotiate(bool up, int mv, int ma)
 {
-	usbpd_pdo_t pdo_12v;
+	usbpd_pdo_t pdo;
 
-	if (lamp_get_commanded_power_level() != LAMP_PWR_OFF_C) 					// Is lamp on ?
+	if (lamp_get_commanded_power_level() != LAMP_PWR_OFF_C)
 	{
 		return;
 	}
-	
-	printf("Do negotiate...\n");
 
-	pdo_12v.u32 = 0;
+	printf("USB-PD negotiate: %dmV / %dmA\n", mv, ma);
 
-	// V1.1: usbpd_configure_pdo(&pdo_12v, 12000, 2500); 						// Was: 12V/2.5A
-	usbpd_configure_pdo(&pdo_12v, 20000, 1500); 								// V1.2: 20V/1.5A — higher voltage, lower current for efficiency
-	usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo_12v), (uint8_t*)&pdo_12v);
+	pdo.u32 = 0;
+
+	usbpd_configure_pdo(&pdo, mv, ma);
+	usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
 
 	if (up)
 	{
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});                      // V1.2: 20V negotiation (was 12V)
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
 	}
 	else
 	{
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});                      // 5V negotitation
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});
 	}
 
 	usbpd_software_reset();
@@ -172,8 +173,9 @@ bool usbpd_get_is_12v(void)
 
 	usbpd_read(0x21, 1, &mv_from_status1);
 
-	// V1.1: return (mv_from_status1 == 120);  // 120 = 12.0V
-	return (mv_from_status1 == 200);  // V1.2: 200 = 20.0V
+	// Register 0x21 reports voltage in 0.1V units (120 = 12.0V, 200 = 20.0V)
+	// Check if we got at least what we asked for (12V for V1.1, 20V for V1.2)
+	return (mv_from_status1 >= 120);
 }
 
 /**
