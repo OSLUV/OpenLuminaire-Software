@@ -167,11 +167,14 @@ void main(void)
 
 			safety_logic_update();
 		}
-		else 
+		else
 		{
 			ui_loading_show_psu();
+			lv_timer_handler();
 
 			static uint64_t last_retry = 0;
+			if (last_retry == 0) last_retry = time_us_64();
+
 			if ((time_us_64() - last_retry) > 3000000)  // every 3s
 			{
 				ui_loading_show_psu_status("Retrying...");
