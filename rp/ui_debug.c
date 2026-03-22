@@ -21,6 +21,7 @@
 #include "imu.h"
 #include "radar.h"
 #include "ui_main.h"
+#include "board.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -137,11 +138,14 @@ void ui_debug_update(void)
 
     ADD_TEXT("Lamp Type %s\n", type_strs[lamp_get_type()]);
 
+    ADD_TEXT("Board %s\n", board_is_v1_2()?"V1.2":"V1.1");
+
     ADD_TEXT("IMU: %+.2f/%+.2f/%+.2f\n", g_imu_x, g_imu_y, g_imu_z);
 
     ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_mag_x, g_mag_y, g_mag_z);
 
-    ADD_TEXT("12V Switched %s / 24V Reg %s\n",
+    ADD_TEXT("12V %s %s / 24V Reg %s\n",
+             board_is_v1_2()?"Reg":"Switched",
              lamp_get_switched_12v()?"ON ":"off",
              lamp_get_switched_24v()?"ON ":"off");
 
