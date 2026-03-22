@@ -348,6 +348,12 @@ int usbpd_get_negotiated_mA(void)
 
 	usbpd_read(USBPD_REG_RDO_REG_STATUS_0_C, 4, (uint8_t*)&rdo);
 
+	if (rdo.fixed.capability_mismatch)
+	{
+		printf("USB-PD: capability mismatch — source can't meet current request\n");
+		return 0;
+	}
+
 	return rdo.fixed.operating_current * 10;
 
 }
