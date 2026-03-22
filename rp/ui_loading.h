@@ -16,6 +16,7 @@ void ui_loading_open(void);
 void ui_loading_splash_image_init(void);
 void ui_loading_splash_image_open(lv_event_cb_t on_exit_cb);
 void ui_loading_show_psu(void);
+void ui_loading_show_psu_status(const char *status);
 
 
 #endif /* _UI_LOADING_H_ */

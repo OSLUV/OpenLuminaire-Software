@@ -27,6 +27,7 @@ static lv_obj_t *    ui_loading_lv_catch;
 static lv_obj_t*     ui_loading_lv_label;
 static lv_event_cb_t ui_loading_lv_exit_callback = NULL;
 static lv_obj_t *    ui_loading_lv_psu_screen = NULL;
+static lv_obj_t *    ui_loading_lv_psu_label  = NULL;
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -35,6 +36,8 @@ static void ui_loading_splash_event_callback(lv_event_t* p_evt);
 
 
 /* Private function prototypes -----------------------------------------------*/
+
+static const char* ui_loading_get_psu_error_msg(void);
 /* Exported functions --------------------------------------------------------*/
 
 /**
@@ -145,6 +148,8 @@ void ui_loading_show_psu(void)
 {
     if (ui_loading_lv_psu_screen)
     {
+        lv_label_set_text(ui_loading_lv_psu_label, ui_loading_get_psu_error_msg());
+        lv_obj_center(ui_loading_lv_psu_label);
         lv_scr_load(ui_loading_lv_psu_screen);
         return;
     }
@@ -153,31 +158,55 @@ void ui_loading_show_psu(void)
     lv_obj_set_style_bg_color(ui_loading_lv_psu_screen, lv_color_black(), 0);
     lv_obj_clear_flag(ui_loading_lv_psu_screen, LV_OBJ_FLAG_SCROLLABLE);
 
-    const char *msg;
-    if (board_is_v1_2())
-    {
-        msg = "ERROR:\n\nPOWER SUPPLY\n"
-              "INCOMPATIBLE!\n\n"
-              "Needs 9-20V USB-PD\n"
-              "or 12V barrel jack";
-    }
-    else
-    {
-        msg = "ERROR:\n\nPOWER SUPPLY\n"
-              "INCOMPATIBLE!\n\n"
-              "Needs  12 V | 2.5 A";
-    }
-
-    lv_obj_t* p_txt = lv_label_create(ui_loading_lv_psu_screen);
-    lv_label_set_text(p_txt, msg);
-    lv_obj_set_style_text_color(p_txt, lv_color_white(), 0);
-    lv_obj_set_style_text_align(p_txt, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_font(p_txt, &lv_font_montserrat_24, 0);
-    lv_obj_center(p_txt);
+    ui_loading_lv_psu_label = lv_label_create(ui_loading_lv_psu_screen);
+    lv_label_set_text(ui_loading_lv_psu_label, ui_loading_get_psu_error_msg());
+    lv_obj_set_style_text_color(ui_loading_lv_psu_label, lv_color_white(), 0);
+    lv_obj_set_style_text_align(ui_loading_lv_psu_label, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_font(ui_loading_lv_psu_label, &lv_font_montserrat_24, 0);
+    lv_obj_center(ui_loading_lv_psu_label);
 
     lv_scr_load(ui_loading_lv_psu_screen);                                      // Make it active immediately
 	lv_timer_handler();
 }
+
+/**
+ * @brief Update the PSU error screen with a status message
+ *
+ * @param status  Status string to display (e.g., "Retrying USB-PD...")
+ *
+ * @note Flushes display immediately so the message is visible before
+ *       any blocking calls.
+ */
+void ui_loading_show_psu_status(const char *status)
+{
+    if (!ui_loading_lv_psu_label)
+    {
+        return;
+    }
+
+    lv_label_set_text(ui_loading_lv_psu_label, status);
+    lv_obj_center(ui_loading_lv_psu_label);
+    lv_timer_handler();
+}
+
+
+/* Private functions ---------------------------------------------------------*/
+
+static const char* ui_loading_get_psu_error_msg(void)
+{
+    if (board_is_v1_2())
+    {
+        return "ERROR:\n\nPOWER SUPPLY\n"
+               "INCOMPATIBLE!\n\n"
+               "Needs 9-20V USB-PD\n"
+               "or 12V barrel jack";
+    }
+
+    return "ERROR:\n\nPOWER SUPPLY\n"
+           "INCOMPATIBLE!\n\n"
+           "Needs  12 V | 2.5 A";
+}
+
 
 /* Callback functions --------------------------------------------------------*/
 

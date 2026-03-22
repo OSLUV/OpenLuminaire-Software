@@ -88,9 +88,8 @@ void main(void)
 	if (lamp_is_power_ok())
 	{
 		lamp_perform_type_test();
-	}
-
-	lamp_request_power_level(LAMP_PWR_100PCT_C);
+		lamp_request_power_level(LAMP_PWR_100PCT_C);
+	}	
 	
 	printf("Enter mainloop... xx\n");
 	
@@ -171,6 +170,21 @@ void main(void)
 		else 
 		{
 			ui_loading_show_psu();
+
+			static uint64_t last_retry = 0;
+			if ((time_us_64() - last_retry) > 3000000)  // every 3s
+			{
+				ui_loading_show_psu_status("Retrying...");
+				lamp_power_up_rails();
+				last_retry = time_us_64();
+
+				if (lamp_is_power_ok())
+				{
+					lamp_perform_type_test();
+					lamp_request_power_level(LAMP_PWR_100PCT_C);
+					ui_main_open();
+				}
+			}
 		}
 	}
 }
