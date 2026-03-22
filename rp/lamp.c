@@ -125,6 +125,15 @@ void lamp_power_up_rails(void)
 
 	if (board_is_v1_2())
 	{
+		// V1.2 regulators produce valid output from 5V at no load, so voltage
+		// checks alone can't catch inadequate sources. Reject if USB-PD
+		// negotiation failed — the source can't provide enough current.
+		if (usbpd_is_connected() && !usbpd_get_is_trying_for_hv())
+		{
+			printf("FAIL: USB-PD source inadequate for V1.2\n");
+			return;
+		}
+
 		// V1.2: 24V boost from VSYS first, then 12V buck from 24V
 		lamp_set_switched_24v(true);
 		sleep_ms(200);
