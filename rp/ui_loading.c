@@ -27,8 +27,9 @@ static lv_obj_t*     ui_loading_lv_splash_screen;
 static lv_obj_t *    ui_loading_lv_catch;
 static lv_obj_t*     ui_loading_lv_label;
 static lv_event_cb_t ui_loading_lv_exit_callback = NULL;
-static lv_obj_t *    ui_loading_lv_psu_screen = NULL;
-static lv_obj_t *    ui_loading_lv_psu_label  = NULL;
+static lv_obj_t *    ui_loading_lv_psu_screen  = NULL;
+static lv_obj_t *    ui_loading_lv_psu_label   = NULL;
+static lv_obj_t *    ui_loading_lv_psu_status  = NULL;
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -151,11 +152,11 @@ void ui_loading_show_psu(void)
     {
         lv_label_set_text_fmt(ui_loading_lv_psu_label,
                               "%s\n\n"
-                              "VBUS:%.1f 12V:%.1f\n"
-                              "24V:%.1f",
+                              "VBUS: %.1f V\n"
+                              "12V: %.1f  24V: %.1f",
                               ui_loading_get_psu_error_msg(),
                               g_sense_vbus, g_sense_12v, g_sense_24v);
-        lv_obj_center(ui_loading_lv_psu_label);
+        lv_label_set_text(ui_loading_lv_psu_status, "");
         lv_scr_load(ui_loading_lv_psu_screen);
         return;
     }
@@ -164,14 +165,23 @@ void ui_loading_show_psu(void)
     lv_obj_set_style_bg_color(ui_loading_lv_psu_screen, lv_color_black(), 0);
     lv_obj_clear_flag(ui_loading_lv_psu_screen, LV_OBJ_FLAG_SCROLLABLE);
 
+    /* Main error content — centered */
     ui_loading_lv_psu_label = lv_label_create(ui_loading_lv_psu_screen);
     lv_label_set_text(ui_loading_lv_psu_label, ui_loading_get_psu_error_msg());
     lv_obj_set_style_text_color(ui_loading_lv_psu_label, lv_color_white(), 0);
     lv_obj_set_style_text_align(ui_loading_lv_psu_label, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(ui_loading_lv_psu_label, &lv_font_montserrat_24, 0);
-    lv_obj_center(ui_loading_lv_psu_label);
+    lv_obj_align(ui_loading_lv_psu_label, LV_ALIGN_CENTER, 0, -15);
 
-    lv_scr_load(ui_loading_lv_psu_screen);                                      // Make it active immediately
+    /* Status line — bottom of screen */
+    ui_loading_lv_psu_status = lv_label_create(ui_loading_lv_psu_screen);
+    lv_label_set_text(ui_loading_lv_psu_status, "");
+    lv_obj_set_style_text_color(ui_loading_lv_psu_status, lv_color_white(), 0);
+    lv_obj_set_style_text_align(ui_loading_lv_psu_status, LV_TEXT_ALIGN_CENTER, 0);
+    lv_obj_set_style_text_font(ui_loading_lv_psu_status, &lv_font_montserrat_24, 0);
+    lv_obj_align(ui_loading_lv_psu_status, LV_ALIGN_BOTTOM_MID, 0, -10);
+
+    lv_scr_load(ui_loading_lv_psu_screen);
 	lv_timer_handler();
 }
 
@@ -185,13 +195,12 @@ void ui_loading_show_psu(void)
  */
 void ui_loading_show_psu_status(const char *status)
 {
-    if (!ui_loading_lv_psu_label)
+    if (!ui_loading_lv_psu_status)
     {
         return;
     }
 
-    lv_label_set_text(ui_loading_lv_psu_label, status);
-    lv_obj_center(ui_loading_lv_psu_label);
+    lv_label_set_text(ui_loading_lv_psu_status, status);
     lv_timer_handler();
 }
 
@@ -202,14 +211,14 @@ static const char* ui_loading_get_psu_error_msg(void)
 {
     if (board_is_v1_2())
     {
-        return "ERROR:\n\nPOWER SUPPLY\n"
+        return "ERROR:\nPOWER SUPPLY\n"
                "INCOMPATIBLE!\n\n"
                "Needs 5-24V\n"
                "barrel jack or USB-PD";
     }
 
-    return "ERROR:\n\nPOWER SUPPLY\n"
-           "INCOMPATIBLE!\n\n"
+    return "ERROR:\nPOWER SUPPLY\n"
+           "INCOMPATIBLE!\n"
            "Needs  12 V | 2.5 A";
 }
 
