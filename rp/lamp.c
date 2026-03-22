@@ -81,8 +81,8 @@ void lamp_status_gpio_callback(uint gpio, uint32_t events);
 
 static inline void lamp_go_to_state(LAMP_STATE_E state);
 static void lamp_perform_type_test_inner(void);
-static bool lamp_power_is_too_low(void);
-static bool lamp_power_is_too_high(void);
+static bool lamp_12v_in_range(void);
+static bool lamp_24v_in_range(void);
 
 
 /* Board-specific helpers ----------------------------------------------------*/
@@ -473,7 +473,8 @@ void lamp_update(void)
 	pwm_set_gpio_level(PIN_PWM_LAMP, lamp_pwr_settings[lamp_commanded_power_level].pwm);
 	gpio_put(PIN_ENABLE_LAMP, lamp_commanded_power_level != LAMP_PWR_OFF_C);
 
-	if (b_lamp_is_12v_on && ((g_sense_12v < 10.5) || (g_sense_12v > 13.5)))
+	if (b_lamp_is_12v_on && b_lamp_is_24v_on &&
+		(!lamp_12v_in_range() || !lamp_24v_in_range()))
 	{
 		printf("FAULT: VBUS=%.2f 12V=%.2f 24V=%.2f — emergency shutdown\n",
 			   g_sense_vbus, g_sense_12v, g_sense_24v);
@@ -712,7 +713,7 @@ bool lamp_get_reported_power_level(LAMP_PWR_LEVEL_E *p_pwr_level)
 bool lamp_is_power_ok(void)
 {
 	return b_lamp_is_12v_on && b_lamp_is_24v_on &&
-		   !lamp_power_is_too_low() && !lamp_power_is_too_high();
+		   lamp_12v_in_range() && lamp_24v_in_range();
 }
 
 /**
@@ -958,25 +959,19 @@ static void lamp_perform_type_test_inner(void)
 }
 
 /**
- * @brief Returns whether the sensed power is too low
- * 
- * @return true 
- * @return false 
+ * @brief Returns whether the 12V rail is within acceptable range (10.5–13.5V)
  */
-static bool lamp_power_is_too_low(void)
+static bool lamp_12v_in_range(void)
 {
-	return g_sense_12v < 10.5;
+	return (g_sense_12v >= 10.5) && (g_sense_12v <= 13.5);
 }
 
 /**
- * @brief Returns whether the sensed power is too high
- * 
- * @return true 
- * @return false 
+ * @brief Returns whether the 24V rail is within acceptable range (21.0–27.0V)
  */
-static bool lamp_power_is_too_high(void)
+static bool lamp_24v_in_range(void)
 {
-	return g_sense_12v > 13.5;
+	return (g_sense_24v >= 21.0) && (g_sense_24v <= 27.0);
 }
 
 /*** END OF FILE ***/
