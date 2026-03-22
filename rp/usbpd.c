@@ -59,6 +59,7 @@ static const usbpd_candidate_t usbpd_v12_candidates[] = {
 	{ 15000, 1400 },
 	{ 12000, 1700 },
 	{  9000, 2300 },
+	{  5000, 4200 },
 };
 #define USBPD_V12_CANDIDATE_COUNT_C  (sizeof(usbpd_v12_candidates) / sizeof(usbpd_v12_candidates[0]))
 

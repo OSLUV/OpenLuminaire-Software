@@ -198,8 +198,8 @@ static const char* ui_loading_get_psu_error_msg(void)
     {
         return "ERROR:\n\nPOWER SUPPLY\n"
                "INCOMPATIBLE!\n\n"
-               "Needs 9-20V USB-PD\n"
-               "or 12V barrel jack";
+               "Needs 5-24V\n"
+               "barrel jack or USB-PD";
     }
 
     return "ERROR:\n\nPOWER SUPPLY\n"
