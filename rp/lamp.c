@@ -83,10 +83,6 @@ static inline void lamp_go_to_state(LAMP_STATE_E state);
 static void lamp_perform_type_test_inner(void);
 static bool lamp_power_is_too_low(void);
 static bool lamp_power_is_too_high(void);
-static bool lamp_usb_power_is_too_low(void);
-static bool lamp_usb_power_is_too_high(void);
-static bool lamp_jack_power_is_too_high(void);
-static bool lamp_jack_power_is_too_low(void);
 
 
 /* Board-specific helpers ----------------------------------------------------*/
@@ -980,53 +976,6 @@ static bool lamp_power_is_too_low(void)
 static bool lamp_power_is_too_high(void)
 {
 	return g_sense_12v > 13.5;
-}
-
-/**
- * @brief Returns whether the sensed power is too low while USB is trying for 12V
- * 
- * @return true 
- * @return false 
- */
-static bool lamp_usb_power_is_too_low(void)
-{
-	return usbpd_get_is_trying_for_12v() && lamp_power_is_too_low();
-}
-
-/**
- * @brief Returns whether the sensed power is too high while USB is trying for 
- * 12V
- * 
- * @return true 
- * @return false 
- */
-static bool lamp_usb_power_is_too_high(void)
-{
-	return usbpd_get_is_trying_for_12v() && lamp_power_is_too_high();
-}
-
-/**
- * @brief Returns whether the sensed power is too high while USB is not trying 
- * for 12V
- * 
- * @return true 
- * @return false 
- */
-static bool lamp_jack_power_is_too_high(void)
-{
-	return lamp_power_is_too_high() && !usbpd_get_is_trying_for_12v();
-}
-
-/**
- * @brief Returns whether the sensed power is too low while USB is not trying 
- * for 12V
- * 
- * @return true 
- * @return false 
- */
-static bool lamp_jack_power_is_too_low(void)
-{
-	return lamp_power_is_too_low() && !usbpd_get_is_trying_for_12v();
 }
 
 /*** END OF FILE ***/
