@@ -149,7 +149,7 @@ void ui_debug_update(void)
              lamp_get_switched_12v()?"ON ":"off",
              lamp_get_switched_24v()?"ON ":"off");
 
-    ADD_TEXT("VBUS: %.1f/12V: %.1f/12V: %.1f/24V\n",
+    ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
              g_sense_vbus,
              g_sense_12v,
              g_sense_24v);
