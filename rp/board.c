@@ -33,11 +33,6 @@
 #define BOARD_24V_DETECT_THRESHOLD_C	20.0	/* V — if 24V sense reads above this, boost is working */
 #define BOARD_DETECT_SETTLE_MS_C		200		/* ms — time for 24V boost to stabilize */
 
-#define BOARD_V11_PDO_MV_C				12000
-#define BOARD_V11_PDO_MA_C				2500
-#define BOARD_V12_PDO_MV_C				20000
-#define BOARD_V12_PDO_MA_C				1500
-
 
 /* Private variables  --------------------------------------------------------*/
 
@@ -87,26 +82,6 @@ void board_init(void)
 bool board_is_v1_2(void)
 {
 	return b_board_is_v1_2;
-}
-
-/**
- * @brief Returns the USB-PD negotiation voltage for the detected board
- *
- * @return int  Voltage in millivolts (12000 for V1.1, 20000 for V1.2)
- */
-int board_get_pdo_mv(void)
-{
-	return b_board_is_v1_2 ? BOARD_V12_PDO_MV_C : BOARD_V11_PDO_MV_C;
-}
-
-/**
- * @brief Returns the USB-PD negotiation current for the detected board
- *
- * @return int  Current in milliamps (2500 for V1.1, 1500 for V1.2)
- */
-int board_get_pdo_ma(void)
-{
-	return b_board_is_v1_2 ? BOARD_V12_PDO_MA_C : BOARD_V11_PDO_MA_C;
 }
 
 

@@ -9,10 +9,11 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include <lvgl.h>
-#include "ui_loading.h"  
-#include "splash_img.h"  
-#include "lamp.h"    
-#include "display.h"  
+#include "ui_loading.h"
+#include "splash_img.h"
+#include "lamp.h"
+#include "display.h"
+#include "board.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -152,11 +153,23 @@ void ui_loading_show_psu(void)
     lv_obj_set_style_bg_color(ui_loading_lv_psu_screen, lv_color_black(), 0);
     lv_obj_clear_flag(ui_loading_lv_psu_screen, LV_OBJ_FLAG_SCROLLABLE);
 
+    const char *msg;
+    if (board_is_v1_2())
+    {
+        msg = "ERROR:\n\nPOWER SUPPLY\n"
+              "INCOMPATIBLE!\n\n"
+              "Needs 9-20V USB-PD\n"
+              "or 12V barrel jack";
+    }
+    else
+    {
+        msg = "ERROR:\n\nPOWER SUPPLY\n"
+              "INCOMPATIBLE!\n\n"
+              "Needs  12 V | 2.5 A";
+    }
+
     lv_obj_t* p_txt = lv_label_create(ui_loading_lv_psu_screen);
-    lv_label_set_text(p_txt,
-                      "ERROR:\n\nPOWER SUPPLY\n"
-                      "INCOMPATIBLE!\n\n"
-                      "Needs  12 V | 2.5 A");
+    lv_label_set_text(p_txt, msg);
     lv_obj_set_style_text_color(p_txt, lv_color_white(), 0);
     lv_obj_set_style_text_align(p_txt, LV_TEXT_ALIGN_CENTER, 0);
     lv_obj_set_style_text_font(p_txt, &lv_font_montserrat_24, 0);

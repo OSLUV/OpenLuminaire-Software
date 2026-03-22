@@ -21,8 +21,6 @@
 
 void board_init(void);
 bool board_is_v1_2(void);
-int  board_get_pdo_mv(void);
-int  board_get_pdo_ma(void);
 
 
 #endif /* _BOARD_H_ */

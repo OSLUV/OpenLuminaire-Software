@@ -19,6 +19,7 @@
 #include "pins.h"
 #include "usbpd.h"
 #include "lamp.h"
+#include "board.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -38,10 +39,34 @@
 #define USBPD_WRITE_LIT(addr, lit)      {uint8_t arr[] = lit; usbpd_write(addr, sizeof(arr), arr);}
 
 
+/* Private typedef -----------------------------------------------------------*/
+
+typedef struct {
+	int mv;		/* Voltage in millivolts */
+	int ma;		/* Minimum required current in milliamps */
+} usbpd_candidate_t;
+
+
 /* Global variables  ---------------------------------------------------------*/
 /* Private variables  --------------------------------------------------------*/
 
-bool trying_up = false;
+static bool trying_up = false;
+static int  negotiated_mv = 5000;
+
+/* V1.2: worst-case I3 ballast requirements (from controller_pcb_v1.2_software_notes.md) */
+static const usbpd_candidate_t usbpd_v12_candidates[] = {
+	{ 20000, 1000 },
+	{ 15000, 1400 },
+	{ 12000, 1700 },
+	{  9000, 2300 },
+};
+#define USBPD_V12_CANDIDATE_COUNT_C  (sizeof(usbpd_v12_candidates) / sizeof(usbpd_v12_candidates[0]))
+
+/* V1.1: single candidate — never negotiate above 12V (20V on 12V rail is dangerous) */
+static const usbpd_candidate_t usbpd_v11_candidates[] = {
+	{ 12000, 2500 },
+};
+#define USBPD_V11_CANDIDATE_COUNT_C  (sizeof(usbpd_v11_candidates) / sizeof(usbpd_v11_candidates[0]))
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -125,13 +150,18 @@ void usbpd_update(void)
 }
 
 /**
- * @brief Sets voltage negotiation
+ * @brief Sets voltage negotiation with step-down fallback
+ *
+ * When up=true: checks for USB-C connection, then steps through voltage
+ * candidates from highest to lowest until one meets the minimum current
+ * requirement. V1.1 only tries 12V (safety). V1.2 tries 20V→15V→12V→9V.
+ * If no USB-C detected (barrel jack), skips negotiation entirely.
+ *
+ * When up=false: requests 5V only (PDO count = 1).
  *
  * @param up   true: negotiate higher voltage, false: 5V only
- * @param mv   Voltage to request in millivolts (e.g., 12000 or 20000)
- * @param ma   Current to request in milliamps (e.g., 2500 or 1500)
  */
-void usbpd_negotiate(bool up, int mv, int ma)
+void usbpd_negotiate(bool up)
 {
 	usbpd_pdo_t pdo;
 
@@ -140,32 +170,94 @@ void usbpd_negotiate(bool up, int mv, int ma)
 		return;
 	}
 
-	printf("USB-PD negotiate: %dmV / %dmA\n", mv, ma);
-
-	pdo.u32 = 0;
-
-	usbpd_configure_pdo(&pdo, mv, ma);
-	usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
-
-	if (up)
+	if (!up)
 	{
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
+		printf("USB-PD negotiate: 5V only\n");
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});
+		usbpd_software_reset();
+		trying_up = false;
+		negotiated_mv = 5000;
+		return;
+	}
+
+	/* Check if USB-C is connected — if not, assume barrel jack */
+	if (!usbpd_is_connected())
+	{
+		printf("USB-PD: no USB-C detected, assuming barrel jack — skipping negotiation\n");
+		trying_up = false;
+		negotiated_mv = 0;
+		return;
+	}
+
+	/* Select candidate table based on board type */
+	const usbpd_candidate_t *candidates;
+	int count;
+
+	if (board_is_v1_2())
+	{
+		candidates = usbpd_v12_candidates;
+		count = USBPD_V12_CANDIDATE_COUNT_C;
 	}
 	else
 	{
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});
+		candidates = usbpd_v11_candidates;
+		count = USBPD_V11_CANDIDATE_COUNT_C;
 	}
 
-	usbpd_software_reset();
+	/* Step down through candidates — try highest voltage first */
+	for (int i = 0; i < count; i++)
+	{
+		int mv = candidates[i].mv;
+		int ma = candidates[i].ma;
 
-	trying_up = up;
+		printf("USB-PD negotiate: trying %dmV / %dmA min\n", mv, ma);
+
+		pdo.u32 = 0;
+		usbpd_configure_pdo(&pdo, mv, ma);
+		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
+		usbpd_software_reset();
+
+		sleep_ms(1000);
+
+		int got_ma = usbpd_get_negotiated_mA();
+		printf("USB-PD negotiate: source offered %dmA (need %dmA)\n", got_ma, ma);
+
+		if (got_ma >= ma)
+		{
+			printf("USB-PD negotiate: accepted %dmV / %dmA\n", mv, got_ma);
+			trying_up = true;
+			negotiated_mv = mv;
+			return;
+		}
+	}
+
+	/* Nothing worked — fall back to 5V */
+	printf("USB-PD negotiate: no candidate met requirements, falling back to 5V\n");
+	USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});
+	usbpd_software_reset();
+	trying_up = false;
+	negotiated_mv = 5000;
+}
+
+/**
+ * @brief Checks if a USB-C cable is connected by reading TYPEC_STATUS register
+ *
+ * @return true   USB-C cable detected
+ * @return false  No USB-C cable (barrel jack or unplugged)
+ */
+bool usbpd_is_connected(void)
+{
+	uint8_t c_status = 0;
+	usbpd_read(USBPD_REG_TYPEC_STATUS_C, 1, &c_status);
+	return (c_status != 0);
 }
 
 /**
  * @brief Reads PD IC status to get if 12V has been negotiated
- * 
- * @return true 
- * @return false 
+ *
+ * @return true
+ * @return false
  */
 bool usbpd_get_is_12v(void)
 {
@@ -179,20 +271,30 @@ bool usbpd_get_is_12v(void)
 }
 
 /**
- * @brief Returns 12V negotiation setting
- * 
- * @return true
- * @return false
+ * @brief Returns whether we attempted high-voltage negotiation
+ *
+ * @return true   Negotiated above 5V (or attempted to)
+ * @return false  5V only or barrel jack
  */
-bool usbpd_get_is_trying_for_12v(void)
+bool usbpd_get_is_trying_for_hv(void)
 {
 	return trying_up;
 }
 
 /**
- * @brief Checks if PD IC has negotiated 10 mA
- * 
- * @return int (0: false, 1: true)
+ * @brief Returns the voltage that was successfully negotiated (in mV)
+ *
+ * @return int  Negotiated voltage in millivolts (0 = barrel jack, 5000 = fallback)
+ */
+int usbpd_get_negotiated_mV(void)
+{
+	return negotiated_mv;
+}
+
+/**
+ * @brief Returns negotiated operating current from the RDO
+ *
+ * @return int  Current in milliamps (0 if no USB-C connection)
  */
 int usbpd_get_negotiated_mA(void)
 {

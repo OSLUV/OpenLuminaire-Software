@@ -150,9 +150,9 @@ void ui_debug_update(void)
              g_sense_12v,
              g_sense_24v);
 
-    ADD_TEXT("USB %s %s/%.1fA\n",
-             usbpd_get_is_trying_for_12v()?"Req 12V":"Req 5V",
-             usbpd_get_is_12v()?"Got 12V":"Got 5V",
+    ADD_TEXT("USB Req %dV %s/%.1fA\n",
+             usbpd_get_negotiated_mV() / 1000,
+             usbpd_get_is_12v()?"Got HV":"Got 5V",
              ((float)usbpd_get_negotiated_mA())/1000.);
 
     RADAR_REPORT_T* r      = radar_debug_get_report();
