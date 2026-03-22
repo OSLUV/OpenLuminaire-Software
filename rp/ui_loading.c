@@ -14,6 +14,7 @@
 #include "lamp.h"
 #include "display.h"
 #include "board.h"
+#include "sense.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -148,7 +149,12 @@ void ui_loading_show_psu(void)
 {
     if (ui_loading_lv_psu_screen)
     {
-        lv_label_set_text(ui_loading_lv_psu_label, ui_loading_get_psu_error_msg());
+        lv_label_set_text_fmt(ui_loading_lv_psu_label,
+                              "%s\n\n"
+                              "VBUS:%.1f 12V:%.1f\n"
+                              "24V:%.1f",
+                              ui_loading_get_psu_error_msg(),
+                              g_sense_vbus, g_sense_12v, g_sense_24v);
         lv_obj_center(ui_loading_lv_psu_label);
         lv_scr_load(ui_loading_lv_psu_screen);
         return;

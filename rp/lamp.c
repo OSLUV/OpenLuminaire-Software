@@ -475,8 +475,8 @@ void lamp_update(void)
 
 	if (b_lamp_is_12v_on && ((g_sense_12v < 10.5) || (g_sense_12v > 13.5)))
 	{
-		printf("FAULT: 12V=%.2f 24V=%.2f — emergency shutdown\n",
-			   g_sense_12v, g_sense_24v);
+		printf("FAULT: VBUS=%.2f 12V=%.2f 24V=%.2f — emergency shutdown\n",
+			   g_sense_vbus, g_sense_12v, g_sense_24v);
 		gpio_put(PIN_ENABLE_LAMP, true);  // Possible intentional discharge
 		sleep_ms(10);
 		lamp_shutdown_rails();
@@ -711,7 +711,8 @@ bool lamp_get_reported_power_level(LAMP_PWR_LEVEL_E *p_pwr_level)
  */
 bool lamp_is_power_ok(void)
 {
-	return (!lamp_power_is_too_low() && !lamp_power_is_too_high());
+	return b_lamp_is_12v_on && b_lamp_is_24v_on &&
+		   !lamp_power_is_too_low() && !lamp_power_is_too_high();
 }
 
 /**

@@ -89,6 +89,30 @@ static void usbpd_print_rdo(usbpd_rdo_t rdo);
  */
 void usbpd_update(void)
 {
+	static bool was_connected = false;
+	bool is_connected = usbpd_is_connected();
+
+	if (!was_connected && is_connected)
+	{
+		/* USB just hot-plugged — write board-safe PDOs and reset so the
+		 * STUSB4500 renegotiates with our values instead of NVM defaults.
+		 * On V1.1, NVM defaults may request 20V which would damage the
+		 * 12V rail. */
+		printf("USB-PD: hot-plug detected, configuring safe PDOs\n");
+
+		usbpd_pdo_t pdo;
+		pdo.u32 = 0;
+		if (board_is_v1_2())
+			usbpd_configure_pdo(&pdo, 20000, 1000);
+		else
+			usbpd_configure_pdo(&pdo, 12000, 2500);
+		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
+		usbpd_software_reset();
+	}
+
+	was_connected = is_connected;
+
 	// printf("\n\n\n\n\n\n\n");
 
 	// uint8_t c_status = 0;
@@ -184,7 +208,20 @@ void usbpd_negotiate(bool up)
 	/* Check if USB-C is connected — if not, assume barrel jack */
 	if (!usbpd_is_connected())
 	{
-		printf("USB-PD: no USB-C detected, assuming barrel jack — skipping negotiation\n");
+		printf("USB-PD: no USB-C detected, configuring safe PDOs for hot-plug\n");
+
+		/* Write board-appropriate PDOs so any USB hot-plug negotiates a safe
+		 * voltage. Without this, STUSB4500 NVM defaults may request 20V,
+		 * which is dangerous on V1.1 (20V on the 12V rail). */
+		pdo.u32 = 0;
+		if (board_is_v1_2())
+			usbpd_configure_pdo(&pdo, 20000, 1000);
+		else
+			usbpd_configure_pdo(&pdo, 12000, 2500);
+		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
+		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
+		usbpd_software_reset();
+
 		trying_up = false;
 		negotiated_mv = 0;
 		return;
