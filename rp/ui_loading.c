@@ -213,12 +213,12 @@ static const char* ui_loading_get_psu_error_msg(void)
     {
         return "ERROR:\nPOWER SUPPLY\n"
                "INCOMPATIBLE!\n"
-               "Needs 5-24V\n";
+               "Needs 20W at 5-24V";
     }
 
     return "ERROR:\nPOWER SUPPLY\n"
            "INCOMPATIBLE!\n"
-           "Needs  12 V | 2.5 A";
+           "Needs  12V | 2.5A";
 }
 
 
