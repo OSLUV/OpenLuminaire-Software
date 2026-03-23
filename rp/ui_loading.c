@@ -212,9 +212,8 @@ static const char* ui_loading_get_psu_error_msg(void)
     if (board_is_v1_2())
     {
         return "ERROR:\nPOWER SUPPLY\n"
-               "INCOMPATIBLE!\n\n"
-               "Needs 5-24V\n"
-               "barrel jack or USB-PD";
+               "INCOMPATIBLE!\n"
+               "Needs 5-24V\n";
     }
 
     return "ERROR:\nPOWER SUPPLY\n"
