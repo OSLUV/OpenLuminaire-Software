@@ -75,6 +75,7 @@ static uint16_t ui_sw_height;
 static uint16_t ui_sw_length;
 //static uint16_t ui_dbg_pos;
 static bool ui_show_dim_b;
+static bool ui_lamp_known_b;
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -111,17 +112,37 @@ void ui_main_init(void)
     ui_main_styles_init();
 
     ui_main_set_screen();
-	ui_main_set_lamp_ctrl_row();
-    ui_main_set_lamp_power_row();
-    ui_main_set_radar_row();
 
-    if (ui_show_dim_b) 
+    ui_lamp_known_b = (lamp_get_type() != LAMP_TYPE_UNKNOWN_C);
+
+    if (!ui_lamp_known_b)
     {
-        ui_main_set_lamp_dim_slider();
+        lv_obj_t *lbl = lv_label_create(ui_screen);
+        lv_label_set_text(lbl,
+                          "LAMP TYPE COULD\n"
+                          "NOT BE DETERMINED\n\n"
+                          "Check lamp\n"
+                          "connection");
+        lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+        lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
+        lv_obj_set_width(lbl, LV_PCT(100));
+        lv_obj_set_style_pad_top(lbl, 20, 0);
+    }
+    else
+    {
+        ui_main_set_lamp_ctrl_row();
+        ui_main_set_lamp_power_row();
+        ui_main_set_radar_row();
+
+        if (ui_show_dim_b)
+        {
+            ui_main_set_lamp_dim_slider();
+        }
+
+        ui_main_set_tilt_row();
     }
 
-    ui_main_set_tilt_row();
-	
     ui_main_set_debug_tools();
 }
 
@@ -131,6 +152,8 @@ void ui_main_init(void)
  */
 void ui_main_update(void)
 {
+	if (!ui_lamp_known_b) return;
+
 	static char buf[48];
     bool power_on = lv_obj_has_state(ui_sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(ui_sw_radar, LV_STATE_CHECKED);
