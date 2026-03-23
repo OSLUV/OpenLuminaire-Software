@@ -20,6 +20,7 @@
 #include "usbpd.h"
 #include "lamp.h"
 #include "board.h"
+#include "sense.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -52,6 +53,7 @@ typedef struct {
 
 static bool trying_up = false;
 static int  negotiated_mv = 5000;
+static bool usbpd_was_connected = false;
 
 /* V1.2: worst-case I3 ballast requirements (from controller_pcb_v1.2_software_notes.md) */
 static const usbpd_candidate_t usbpd_v12_candidates[] = {
@@ -89,10 +91,9 @@ static void usbpd_print_rdo(usbpd_rdo_t rdo);
  */
 void usbpd_update(void)
 {
-	static bool was_connected = false;
 	bool is_connected = usbpd_is_connected();
 
-	if (!was_connected && is_connected)
+	if (!usbpd_was_connected && is_connected)
 	{
 		/* USB just hot-plugged — write board-safe PDOs and reset so the
 		 * STUSB4500 renegotiates with our values instead of NVM defaults.
@@ -109,9 +110,12 @@ void usbpd_update(void)
 		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
 		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
 		usbpd_software_reset();
+
+		negotiated_mv = board_is_v1_2() ? 20000 : 12000;
+		trying_up = true;
 	}
 
-	was_connected = is_connected;
+	usbpd_was_connected = is_connected;
 
 	// printf("\n\n\n\n\n\n\n");
 
@@ -258,12 +262,16 @@ void usbpd_negotiate(bool up)
 
 		sleep_ms(1000);
 
+		sense_update();
+		int got_mv = (int)(g_sense_vbus * 1000);
 		int got_ma = usbpd_get_negotiated_mA();
-		printf("USB-PD negotiate: source offered %dmA (need %dmA)\n", got_ma, ma);
 
-		if (got_ma >= ma)
+		printf("USB-PD negotiate: got %dmV/%dmA (need %dmV/%dmA)\n",
+			   got_mv, got_ma, mv, ma);
+
+		if (got_mv >= (mv - 1000) && got_ma >= ma)
 		{
-			printf("USB-PD negotiate: accepted %dmV / %dmA\n", mv, got_ma);
+			printf("USB-PD negotiate: accepted %dmV / %dmA\n", got_mv, got_ma);
 			trying_up = true;
 			negotiated_mv = mv;
 			return;
@@ -289,6 +297,16 @@ bool usbpd_is_connected(void)
 	uint8_t c_status = 0;
 	usbpd_read(USBPD_REG_TYPEC_STATUS_C, 1, &c_status);
 	return (c_status != 0);
+}
+
+/**
+ * @brief Sets the baseline USB connection state for hot-plug edge detection.
+ *        Call once after usbpd_negotiate() so that usbpd_update() doesn't
+ *        falsely trigger on the first loop iteration.
+ */
+void usbpd_init_update(void)
+{
+	usbpd_was_connected = usbpd_is_connected();
 }
 
 /**

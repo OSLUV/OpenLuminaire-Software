@@ -78,6 +78,7 @@ void main(void)
 	//radio_init();
 	board_init();
 	usbpd_negotiate(true);
+	usbpd_init_update();
 	fan_set_speed(100);
 	m_cmd_init();
 

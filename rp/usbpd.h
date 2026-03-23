@@ -90,6 +90,7 @@ static_assert(sizeof(usbpd_rdo_t) == 4);
 
 void usbpd_update(void);
 void usbpd_negotiate(bool up);
+void usbpd_init_update(void);
 bool usbpd_is_connected(void);
 bool usbpd_get_is_12v(void);
 bool usbpd_get_is_trying_for_hv(void);
