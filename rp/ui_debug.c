@@ -154,10 +154,17 @@ void ui_debug_update(void)
              g_sense_12v,
              g_sense_24v);
 
-    ADD_TEXT("USB Req %dV %s/%.1fA\n",
-             usbpd_get_negotiated_mV() / 1000,
-             usbpd_get_is_12v()?"Got HV":"Got 5V",
-             ((float)usbpd_get_negotiated_mA())/1000.);
+    if (usbpd_is_connected())
+    {
+        ADD_TEXT("USB Req %dV Got %.1fV/%.1fA\n",
+                 usbpd_get_negotiated_mV() / 1000,
+                 g_sense_vbus,
+                 ((float)usbpd_get_negotiated_mA())/1000.);
+    }
+    else
+    {
+        ADD_TEXT("USB: none (barrel jack)\n");
+    }
 
     RADAR_REPORT_T* r      = radar_debug_get_report();
     int             r_time = radar_debug_get_report_time();
