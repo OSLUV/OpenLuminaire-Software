@@ -125,9 +125,11 @@ void lamp_power_up_rails(void)
 
 	if (board_is_v1_2())
 	{
-		// V1.2 regulators produce valid output from 5V at no load, so voltage
-		// checks alone can't catch inadequate sources. Reject if USB-PD
-		// negotiation failed — the source can't provide enough current.
+		/* V1.2 regulators produce valid output from 5V at no load, so voltage
+		 * checks alone can't catch inadequate sources. Reject if USB-PD
+		 * negotiation failed. Barrel jack + USB serial debugging on V1.2
+		 * requires unplugging USB first. Future boards with VSYS sense
+		 * can remove this limitation. */
 		if (usbpd_is_connected() && !usbpd_get_is_trying_for_hv())
 		{
 			printf("FAIL: USB-PD source inadequate for V1.2\n");
@@ -935,6 +937,9 @@ static void lamp_perform_type_test_inner(void)
 		sleep_ms(10);
 
 		lamp_get_reported_power_level(&reported);
+		printf("Type test: polling freq=%dHz reported=%s\n",
+			   lamp_get_raw_freq(),
+			   lamp_get_power_level_string(reported));
 		if (reported == lamp_get_commanded_power_level())
 		{
 			break;
