@@ -60,7 +60,7 @@ static bool usbpd_was_connected = false;
 static const usbpd_candidate_t usbpd_v12_candidates[] = {
 	{ 20000, 1000 },
 	{ 15000, 1400 },
-	{ 12000, 1700 },
+	{ 12000, 1800 },
 	{  9000, 2300 },
 	{  5000, 4200 },
 };
@@ -68,7 +68,7 @@ static const usbpd_candidate_t usbpd_v12_candidates[] = {
 
 /* V1.1: single candidate — never negotiate above 12V (20V on 12V rail is dangerous) */
 static const usbpd_candidate_t usbpd_v11_candidates[] = {
-	{ 12000, 2500 },
+	{ 12000, 1800 },
 };
 #define USBPD_V11_CANDIDATE_COUNT_C  (sizeof(usbpd_v11_candidates) / sizeof(usbpd_v11_candidates[0]))
 
@@ -107,7 +107,7 @@ void usbpd_update(void)
 		if (board_is_v1_2())
 			usbpd_configure_pdo(&pdo, 20000, 1000);
 		else
-			usbpd_configure_pdo(&pdo, 12000, 2500);
+			usbpd_configure_pdo(&pdo, 12000, 1800);
 		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
 		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
 		usbpd_software_reset();
@@ -222,7 +222,7 @@ void usbpd_negotiate(bool up)
 		if (board_is_v1_2())
 			usbpd_configure_pdo(&pdo, 20000, 1000);
 		else
-			usbpd_configure_pdo(&pdo, 12000, 2500);
+			usbpd_configure_pdo(&pdo, 12000, 1800);
 		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
 		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
 		usbpd_software_reset();

@@ -218,7 +218,7 @@ static const char* ui_loading_get_psu_error_msg(void)
 
     return "ERROR:\nPOWER SUPPLY\n"
            "INCOMPATIBLE!\n"
-           "Needs  12V | 2.5A";
+           "Needs  12V | 1.8A";
 }
 
 
