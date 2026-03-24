@@ -22,6 +22,7 @@
 #include "radar.h"
 #include "persistance.h"
 #include "board.h"
+#include <hardware/watchdog.h>
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -120,6 +121,7 @@ void lamp_power_up_rails(void)
 {
 	sleep_ms(250);
 	sense_update();
+	watchdog_update();
 	printf("Pre-enable: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
 		   g_sense_vbus, g_sense_12v, g_sense_24v);
 
@@ -140,6 +142,7 @@ void lamp_power_up_rails(void)
 		lamp_set_switched_24v(true);
 		sleep_ms(200);
 		sense_update();
+		watchdog_update();
 		printf("24V post-enable: g_sense_24v=%.2f\n", g_sense_24v);
 		if (g_sense_24v < 21.0 || g_sense_24v > 27.0)
 		{
@@ -152,6 +155,7 @@ void lamp_power_up_rails(void)
 		lamp_set_switched_12v(true);
 		sleep_ms(50);
 		sense_update();
+		watchdog_update();
 		printf("12V post-enable: g_sense_12v=%.2f\n", g_sense_12v);
 		if (g_sense_12v < 10.5 || g_sense_12v > 13.5)
 		{
@@ -173,10 +177,12 @@ void lamp_power_up_rails(void)
 		lamp_set_switched_12v(true);
 		sleep_ms(500);
 		sense_update();
+		watchdog_update();
 
 		lamp_set_switched_24v(true);
 		sleep_ms(500);
 		sense_update();
+		watchdog_update();
 	}
 
 	printf("After rails: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
@@ -892,6 +898,7 @@ static void lamp_perform_type_test_inner(void)
 	uint64_t start = time_us_64();
 	while ((time_us_64() - start) < (30ULL * 1000 * 1000))
 	{
+		watchdog_update();
 		lamp_update();
 		sleep_ms(10);
 
@@ -921,6 +928,7 @@ static void lamp_perform_type_test_inner(void)
 	printf("Type test: lamp running, waiting for warmup...\n");
 	while (lamp_is_warming())
 	{
+		watchdog_update();
 		lamp_update();
 		sleep_ms(10);
 	}
@@ -933,6 +941,7 @@ static void lamp_perform_type_test_inner(void)
 
 	while ((time_us_64() - dim_start) < (5ULL * 1000 * 1000))
 	{
+		watchdog_update();
 		lamp_update();
 		sleep_ms(10);
 

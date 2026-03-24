@@ -39,6 +39,7 @@
 
 #include "m_cmd.h"
 #include "board.h"
+#include <hardware/watchdog.h>
 
 #include "font.c"
 
@@ -49,6 +50,12 @@ void main(void)
 {	
 	display_screen_off();
 	stdio_init_all();
+
+	/* Watchdog: 3s timeout. All blocking paths (usbpd_negotiate, type test,
+	 * lamp_power_up_rails) must call watchdog_update() to avoid triggering. */
+	/* Watchdog: 1500ms timeout. All blocking paths (usbpd_negotiate, type test,
+	 * lamp_power_up_rails) must call watchdog_update() to avoid triggering. */
+	watchdog_enable(1500, true);
 
 	gpio_init(4);
 	gpio_init(5);
@@ -116,6 +123,7 @@ void main(void)
 	
 	while (1)
 	{
+		watchdog_update();
 		m_cmd_handler();
 		sense_update();
 		buttons_update();

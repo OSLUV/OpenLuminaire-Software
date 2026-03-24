@@ -21,6 +21,7 @@
 #include "lamp.h"
 #include "board.h"
 #include "sense.h"
+#include <hardware/watchdog.h>
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -261,6 +262,7 @@ void usbpd_negotiate(bool up)
 		usbpd_software_reset();
 
 		sleep_ms(1000);
+		watchdog_update();
 
 		sense_update();
 		int got_mv = (int)(g_sense_vbus * 1000);
