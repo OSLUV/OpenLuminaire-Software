@@ -51,12 +51,6 @@ void main(void)
 	display_screen_off();
 	stdio_init_all();
 
-	/* Watchdog: 3s timeout. All blocking paths (usbpd_negotiate, type test,
-	 * lamp_power_up_rails) must call watchdog_update() to avoid triggering. */
-	/* Watchdog: 1500ms timeout. All blocking paths (usbpd_negotiate, type test,
-	 * lamp_power_up_rails) must call watchdog_update() to avoid triggering. */
-	watchdog_enable(1500, true);
-
 	gpio_init(4);
 	gpio_init(5);
 	gpio_init(6);
@@ -88,6 +82,13 @@ void main(void)
 	usbpd_init_update();
 	fan_set_speed(100);
 	m_cmd_init();
+
+	/* Watchdog: catches runtime hangs (brownout gray zone, stuck loops).
+	 * Enabled after usbpd_negotiate() (long blocking) but before
+	 * lamp_power_up_rails() (lamp could be on after this point).
+	 * Feeds: main loop, type test loops, lamp_power_up_rails sleeps,
+	 * usbpd_negotiate loop (for hot-plug re-negotiation). */
+	watchdog_enable(1500, true);
 
 	lamp_power_up_rails();
 
