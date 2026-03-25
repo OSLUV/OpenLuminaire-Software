@@ -127,17 +127,12 @@ void lamp_power_up_rails(void)
 
 	if (board_is_v1_2())
 	{
-		/* V1.2 regulators produce valid output from 5V at no load, so voltage
-		 * checks alone can't catch inadequate sources. Reject if USB-PD
-		 * negotiation failed. Barrel jack + USB serial debugging on V1.2
-		 * requires unplugging USB first. Future boards with VSYS sense
-		 * can remove this limitation. */
-		if (usbpd_is_connected() && !usbpd_get_is_trying_for_hv())
+		if (g_sense_24v < 7.0 || g_sense_24v > 27.0) 
 		{
-			printf("FAIL: USB-PD source inadequate for V1.2\n");
+			printf("FAIL: 24V pre-check out of range (%.2fV)\n", g_sense_24v);
 			return;
 		}
-
+		
 		// V1.2: 24V boost from VSYS first, then 12V buck from 24V
 		lamp_set_switched_24v(true);
 		sleep_ms(200);
@@ -157,7 +152,7 @@ void lamp_power_up_rails(void)
 		sense_update();
 		watchdog_update();
 		printf("12V post-enable: g_sense_12v=%.2f\n", g_sense_12v);
-		if (g_sense_12v < 10.5 || g_sense_12v > 13.5)
+		if (g_sense_12v < 10.8 || g_sense_12v > 13.8)
 		{
 			printf("FAIL: 12V out of range (%.2fV) after enable\n", g_sense_12v);
 			lamp_set_switched_12v(false);

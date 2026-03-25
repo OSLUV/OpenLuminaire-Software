@@ -1,9 +1,9 @@
 # Changelog: aerolamp-v1.2 (from main)
 
 ## V1.2 Board Support
-- **Board detection** (`board.c`, `board.h`): Detects V1.1 vs V1.2 at startup by probing the 24V boost. V1.2's boost works from VSYS without 12V; V1.1's requires 12V. Fail-safe defaults to V1.1.
+- **Board detection** (`board.c`, `board.h`): Detects V1.1 vs V1.2 at startup by looking for at least 3V on either the 12V rail (V1.1) or the 24V rail (V1.2).
 - **Power sequencing**: V1.2 powers up 24V boost first (from VSYS), then 12V buck (from 24V). V1.1 retains original order (12V first, then 24V boost). Shutdown order is reversed for each board.
-- **Board-aware UI**: Debug screen shows board version. PSU error screen shows board-appropriate requirements (V1.1: "12V | 2.5A", V1.2: "20W at 5-24V").
+- **Board-aware UI**: Debug screen shows board version. PSU error screen shows board-appropriate requirements (V1.1: "12V | 1.8A", V1.2: "20W at 5-24V").
 
 ## USB-PD Step-Down Negotiation
 - **Step-down loop** (`usbpd.c`): Tries voltage candidates from highest to lowest until one meets minimum current. V1.2: 20V→15V→12V→9V→5V. V1.1: 12V only (safety — 20V on V1.1 12V rail is dangerous).
@@ -35,17 +35,11 @@
 - **Board version**: Shows "V1.1" or "V1.2" inline with lamp type.
 - **12V label**: Shows "Switched" (V1.1) or "Reg" (V1.2) based on board type.
 - **USB info**: Shows requested voltage, actual VBUS voltage, and negotiated current when USB is connected. Shows "USB: none (barrel jack)" otherwise.
-- **Voltage label fix**: Corrected copy-paste error where 24V reading was labeled "12V".
-
-## Dead Code Removal
-- Removed `board_get_pdo_mv()`, `board_get_pdo_ma()` — PDO knowledge moved into `usbpd.c`.
 
 ## Known Issues
-- **V1.2 barrel jack + USB serial debugging**: V1.2 cannot detect barrel jack power when USB is connected. Debugging workflow requires unplugging USB first. Future boards with VSYS sense will fix this.
 - **Blocking operations in main loop**: `lamp_power_up_rails()`, `lamp_perform_type_test()`, `usbpd_negotiate()`, and the 12V soft-start ramp block the main loop during retry. Future work: convert to non-blocking state machines for shorter watchdog timeout.
 - **V1.1 barrel jack re-insertion UI desync**: When powered over 5V USB-C, inserting and removing a barrel jack twice leaves the lamp off but the UI showing power ON. Toggling the power switch in the UI corrects it.
 - **V1.1 barrel-to-5V handover, basic vs dimmable**: When removing barrel jack with 5V USB connected, dimmable (I3) lamp transitions smoothly to the incompatible power supply screen. Basic (I2) lamp causes a reboot first.
 - **Barrel-to-USB handover with non-20V sources (V1.2)**: Sources without a 20V PDO (e.g., Pi 27W at 15V max) negotiate only 5.2V/1.5A on handover, then reboot and complain. USB cold start negotiates correctly (e.g., 15.1V/1.4A from the same supply).
-- **Weak USB battery packs on cold boot**: Aohi 14W battery pack causes endless reboot on both V1.1 and V1.2. Anker battery pack boots to splash screen then turns off. Both packs work correctly on barrel-to-USB handover.
-- **V1.2 brownout on barrel removal with basic lamp**: Removing barrel jack while running on insufficient 5V USB causes endless reboot (~1/second) with basic (I2) lamp. Dimmable (I3) lamp reboots once then shows PSU error.
-- **V1.1 basic lamp flicker on barrel removal**: With 5V USB connected, removing barrel jack causes LCD and lamp to flicker rapidly for ~4 seconds before rebooting and showing PSU error. Dimmable lamp shows PSU error immediately.
+- **Lamp retest on barrel power**: When retesting a dimmable lamp on barrel jack power, boots to insufficient power error screen. Unplugging and replugging fixes it.
+- **Board type misdetects v1.1 on reboot**: When rebooting from a lamp test, v1.1 boards incorrectly detect as v1.2 boards
