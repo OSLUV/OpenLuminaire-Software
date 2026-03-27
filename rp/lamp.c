@@ -82,6 +82,7 @@ void lamp_status_gpio_callback(uint gpio, uint32_t events);
 
 static inline void lamp_go_to_state(LAMP_STATE_E state);
 static void lamp_perform_type_test_inner(void);
+static bool lamp_is_test_state_failure(LAMP_STATE_E state);
 static bool lamp_12v_in_range(void);
 static bool lamp_24v_in_range(void);
 
@@ -661,7 +662,10 @@ bool lamp_request_power_level(LAMP_PWR_LEVEL_E pwr_level)
 		}
 	}
 
-	if (pwr_level != LAMP_PWR_OFF_C && (!b_lamp_is_12v_on || !b_lamp_is_24v_on))
+	/* During the type test (type UNKNOWN), allow single-rail operation.
+	 * Once type is known, require both rails for normal operation. */
+	if (lamp_current_type != LAMP_TYPE_UNKNOWN_C &&
+		pwr_level != LAMP_PWR_OFF_C && (!b_lamp_is_12v_on || !b_lamp_is_24v_on))
 	{
 		printf("Reject turn on lamp without both rails\n");
 		return false;
@@ -872,10 +876,14 @@ static inline void lamp_go_to_state(LAMP_STATE_E state)
 }
 
 /**
- * @brief Dimming-response type test (board-agnostic).
- *        Both rails must be on. Request 70% — STARTING forces 100% to strike.
- *        Once RUNNING + warmup, check if ballast responds to dimming:
- *        reported=70% → dimmable, reported=100% → non-dimmable.
+ * @brief Rail-isolation type test.
+ *
+ *        I2 (basic) connects to the 24V rail.
+ *        I3 (dimmable) connects to the 12V rail.
+ *        Enable one rail at a time and see which one makes the lamp strike.
+ *
+ *        V1.2: 24V first (basic), then add 12V (dimmable).
+ *        V1.1: 12V first (dimmable), then add 24V (basic).
  */
 static void lamp_perform_type_test_inner(void)
 {
@@ -884,96 +892,140 @@ static void lamp_perform_type_test_inner(void)
 	lamp_update();
 	lamp_update();
 	sleep_ms(100);
+	watchdog_update();
 
-	printf("Type test (dimming-response)\n");
-	printf("Requesting 70%%, striking at 100%%...\n");
-	lamp_request_power_level(LAMP_PWR_70PCT_C);
+	lamp_shutdown_rails();
+	sleep_ms(100);
+	watchdog_update();
 
-	// Wait for strike (STARTING → RUNNING) with safety timeout
-	uint64_t start = time_us_64();
-	while ((time_us_64() - start) < (30ULL * 1000 * 1000))
+	printf("Type test (rail isolation)\n");
+
+	if (board_is_v1_2())
 	{
+		/* V1.2: try 24V only (basic), then add 12V (dimmable) */
+		printf("Phase 1: 24V only\n");
+		lamp_set_switched_24v(true);
+		sleep_ms(1000);
 		watchdog_update();
-		lamp_update();
-		sleep_ms(10);
-
-		LAMP_STATE_E state = lamp_get_lamp_state();
-		if (state == LAMP_STATE_FAILED_OFF_C ||
-			state == LAMP_STATE_RESTRIKE_COOLDOWN_1_C)
-		{
-			printf("Type test: failed to strike\n");
-			lamp_current_type = LAMP_TYPE_UNKNOWN_C;
-			return;
-		}
-		if (state == LAMP_STATE_RUNNING_C)
-		{
-			break;
-		}
-	}
-
-	if (lamp_get_lamp_state() != LAMP_STATE_RUNNING_C)
-	{
-		printf("Type test: strike timeout\n");
-		lamp_current_type = LAMP_TYPE_UNKNOWN_C;
 		lamp_request_power_level(LAMP_PWR_100PCT_C);
-		return;
-	}
 
-	// Wait for warmup — ballast ignores DIMMING during warmup
-	printf("Type test: lamp running, waiting for warmup...\n");
-	while (lamp_is_warming())
-	{
-		watchdog_update();
-		lamp_update();
-		sleep_ms(10);
-	}
-
-	// Check dimming response — wait for reported == commanded
-	printf("Type test: warmup done, checking dimming response...\n");
-
-	uint64_t dim_start = time_us_64();
-	LAMP_PWR_LEVEL_E reported;
-
-	while ((time_us_64() - dim_start) < (5ULL * 1000 * 1000))
-	{
-		watchdog_update();
-		lamp_update();
-		sleep_ms(10);
-
-		lamp_get_reported_power_level(&reported);
-		printf("Type test: polling freq=%dHz reported=%s\n",
-			   lamp_get_raw_freq(),
-			   lamp_get_power_level_string(reported));
-		if (reported == lamp_get_commanded_power_level())
+		while (true)
 		{
-			break;
+			watchdog_update();
+			lamp_update();
+			sleep_ms(10);
+
+			if (lamp_is_test_state_failure(lamp_get_lamp_state()))
+				break;
+
+			if (lamp_get_lamp_state() == LAMP_STATE_RUNNING_C)
+			{
+				printf("Phase 1: struck — basic (I2)\n");
+				lamp_current_type = LAMP_TYPE_NON_DIMMABLE_C;
+				lamp_set_switched_12v(true);
+				return;
+			}
 		}
-	}
 
-	lamp_get_reported_power_level(&reported);
-	printf("Type test: commanded=%s, reported=%s, freq=%dHz\n",
-		   lamp_get_power_level_string(lamp_get_commanded_power_level()),
-		   lamp_get_power_level_string(reported),
-		   lamp_get_raw_freq());
+		lamp_request_power_level(LAMP_PWR_OFF_C);
+		lamp_update();
+		lamp_update();
+		sleep_ms(100);
+		watchdog_update();
 
-	if (reported == LAMP_PWR_70PCT_C)
-	{
-		printf("Determined dimmable (responded to 70%% dimming)\n");
-		lamp_current_type = LAMP_TYPE_DIMMABLE_C;
-	}
-	else if (reported == LAMP_PWR_100PCT_C)
-	{
-		printf("Determined non-dimmable (ignored dimming)\n");
-		lamp_current_type = LAMP_TYPE_NON_DIMMABLE_C;
+		printf("Phase 2: adding 12V\n");
+		lamp_set_switched_12v(true);
+		watchdog_update();
+		sleep_ms(1000);
+		watchdog_update();
 		lamp_request_power_level(LAMP_PWR_100PCT_C);
+
+		while (true)
+		{
+			watchdog_update();
+			lamp_update();
+			sleep_ms(10);
+
+			if (lamp_is_test_state_failure(lamp_get_lamp_state()))
+				break;
+
+			if (lamp_get_lamp_state() == LAMP_STATE_RUNNING_C)
+			{
+				printf("Phase 2: struck — dimmable (I3)\n");
+				lamp_current_type = LAMP_TYPE_DIMMABLE_C;
+				return;
+			}
+		}
 	}
 	else
 	{
-		printf("Type test inconclusive (reported=%s) — UNKNOWN\n",
-			   lamp_get_power_level_string(reported));
-		lamp_current_type = LAMP_TYPE_UNKNOWN_C;
+		/* V1.1: try 12V only (dimmable), then add 24V (basic) */
+		printf("Phase 1: 12V only\n");
+		lamp_set_switched_12v(true);
+		watchdog_update();
+		sleep_ms(1000);
+		watchdog_update();
 		lamp_request_power_level(LAMP_PWR_100PCT_C);
+
+		while (true)
+		{
+			watchdog_update();
+			lamp_update();
+			sleep_ms(10);
+
+			if (lamp_is_test_state_failure(lamp_get_lamp_state()))
+				break;
+
+			if (lamp_get_lamp_state() == LAMP_STATE_RUNNING_C)
+			{
+				printf("Phase 1: struck — dimmable (I3)\n");
+				lamp_current_type = LAMP_TYPE_DIMMABLE_C;
+				lamp_set_switched_24v(true);
+				return;
+			}
+		}
+
+		lamp_request_power_level(LAMP_PWR_OFF_C);
+		lamp_update();
+		lamp_update();
+		sleep_ms(100);
+		watchdog_update();
+
+		printf("Phase 2: adding 24V\n");
+		lamp_set_switched_24v(true);
+		sleep_ms(1000);
+		watchdog_update();
+		lamp_request_power_level(LAMP_PWR_100PCT_C);
+
+		while (true)
+		{
+			watchdog_update();
+			lamp_update();
+			sleep_ms(10);
+
+			if (lamp_is_test_state_failure(lamp_get_lamp_state()))
+				break;
+
+			if (lamp_get_lamp_state() == LAMP_STATE_RUNNING_C)
+			{
+				printf("Phase 2: struck — basic (I2)\n");
+				lamp_current_type = LAMP_TYPE_NON_DIMMABLE_C;
+				return;
+			}
+		}
 	}
+
+	printf("No strike on either rail — UNKNOWN\n");
+	lamp_current_type = LAMP_TYPE_UNKNOWN_C;
+}
+
+/**
+ * @brief Returns whether a lamp state is considered failure for the type test
+ */
+static bool lamp_is_test_state_failure(LAMP_STATE_E state)
+{
+	return (state == LAMP_STATE_FAILED_OFF_C) ||
+		   (state == LAMP_STATE_RESTRIKE_COOLDOWN_1_C);
 }
 
 /**
