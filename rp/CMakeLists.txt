@@ -58,6 +58,9 @@ add_custom_target(splash_images DEPENDS ${SPLASH_C_FILES})
 
 add_executable(app
 	main.c
+	Modules/mod_comm_mgr.c
+	Modules/mod_ser_cmd.c
+	Drivers/drv_uart_cmd.c
 	board.c
 	imu.c
 	mag.c
@@ -75,8 +78,6 @@ add_executable(app
 	ui_main.c
 	ui_loading.c
 	ui_debug.c
-	d_uart_cmd.c
-	m_cmd.c
 )
 
 add_dependencies(app splash_images)
