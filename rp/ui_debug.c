@@ -15,13 +15,13 @@
 #include "ui_debug.h"
 #include "display.h"
 #include "lamp.h"
-#include "usbpd.h"
-#include "sense.h"
+#include "Drivers/usbpd.h"
+#include "Drivers/sense.h"
 #include "mag.h"
 #include "imu.h"
 #include "radar.h"
 #include "ui_main.h"
-#include "board.h"
+#include "Drivers/board.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

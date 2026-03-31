@@ -17,10 +17,10 @@
 #include <string.h>
 
 #include "pins.h"
-#include "usbpd.h"
+#include "Drivers/usbpd.h"
 #include "lamp.h"
-#include "board.h"
-#include "sense.h"
+#include "Drivers/board.h"
+#include "Drivers/sense.h"
 #include <hardware/watchdog.h>
 
 

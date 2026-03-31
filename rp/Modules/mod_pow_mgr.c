@@ -1,20 +1,26 @@
 /**
- * @file      mod_comm_mgr.c
+ * @file      mod_pow_mgr.c
  * @author    The OSLUV Project
- * @brief     Communications Manager module. This module handles all system 
- *            communications.
+ * @brief     Power Manager module. This module handles system source power.
  */
 
 
 /* Includes ------------------------------------------------------------------*/
 
-#include "Modules/mod_comm_mgr.h"
-#include "Modules/mod_ser_cmd.h"
+#include <stdio.h>
+#include <pico/stdlib.h>
+#include "Modules/mod_pow_mgr.h"
+#include "Drivers/board.h"
+#include "Drivers/sense.h"
+#include "Drivers/usbpd.h"
 
 
 /* Private define ------------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
+
+bool g_mod_pow_is_v1_2_b;
+
 /* Private variables  --------------------------------------------------------*/
 /* Callback prototypes -------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
@@ -22,21 +28,32 @@
 /* Exported functions --------------------------------------------------------*/
 
 /**
- * @brief Communications Manager module initialization procedure
+ * @brief Power Manager module initialization procedure
  * 
  */
-void mod_comm_init(void)
+void mod_pow_init(void)
 {
-    mod_cmd_init();
+    sense_init();
+
+    g_mod_pow_is_v1_2_b = false;
+
+    board_init();
+
+    g_mod_pow_is_v1_2_b = board_is_v1_2();
+
+	usbpd_negotiate(true);
+	usbpd_init_update();
 }
 
 /**
- * @brief Communications Manager module tasks
+ * @brief Power Manager module tasks
  * 
  */
-void mod_comm_manager(void)
+void mod_pow_manager(void)
 {
-    mod_cmd_handler();
+    sense_update();
+
+	usbpd_update();
 }
 
 /* Callback functions --------------------------------------------------------*/

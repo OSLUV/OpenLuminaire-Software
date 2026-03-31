@@ -23,10 +23,8 @@
 #include "pins.h"
 #include "imu.h"
 #include "mag.h"
-#include "usbpd.h"
 #include "lamp.h"
 #include "buttons.h"
-#include "sense.h"
 #include "radar.h"
 #include "fan.h"
 #include "radio.h"
@@ -38,7 +36,7 @@
 #include "ui_debug.h"
 
 #include "Modules/mod_comm_mgr.h"
-#include "board.h"
+#include "Modules/mod_pow_mgr.h"
 #include <hardware/watchdog.h>
 
 #include "font.c"
@@ -58,14 +56,15 @@ void main(void)
 	
 	while (1)
 	{
-		watchdog_update();		
+		mod_pow_manager();
+		
 		mod_comm_manager();
-		sense_update();
+
+		watchdog_update();
 		buttons_update();
 		imu_update();
 		mag_update();
 		radar_update();
-		usbpd_update();
 		lamp_update();
 		
 		if (lamp_is_power_ok())
@@ -136,6 +135,10 @@ void main(void)
 	}
 }
 
+/**
+ * @brief Full system initialization procedure
+ * 
+ */
 static void main_sys_init(void)
 {
 	display_screen_off();
@@ -151,7 +154,7 @@ static void main_sys_init(void)
 	persistance_read_region();
 	printf("g_persistance_region.factory_lamp_type = %d\n", 
 		   g_persistance_region.factory_lamp_type);
-		
+
 	lv_init();
 	display_init();
 
@@ -159,19 +162,17 @@ static void main_sys_init(void)
 	ui_loading_splash_image_init();
 	ui_loading_splash_image_open(NULL);
 
+	mod_pow_init();
+	mod_comm_init();
+
 	buttons_init();
 	imu_init();
 	mag_init();
 	lamp_init();
-	sense_init();
+	
 	radar_init();
 	fan_init();
-	//radio_init();
-	board_init();
-	usbpd_negotiate(true);
-	usbpd_init_update();
 	fan_set_speed(100);
-	mod_comm_init();
 
 	/* Watchdog: catches runtime hangs (brownout gray zone, stuck loops).
 	 * Enabled after usbpd_negotiate() (long blocking) but before

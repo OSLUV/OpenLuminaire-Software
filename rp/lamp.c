@@ -17,11 +17,11 @@
 
 #include "lamp.h"
 #include "pins.h"
-#include "usbpd.h"
-#include "sense.h"
+#include "Drivers/usbpd.h"
+#include "Drivers/sense.h"
 #include "radar.h"
 #include "persistance.h"
-#include "board.h"
+#include "Drivers/board.h"
 #include <hardware/watchdog.h>
 
 

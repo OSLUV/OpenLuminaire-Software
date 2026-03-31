@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 
-#include "board.h"
-#include "sense.h"
+#include "Drivers/board.h"
+#include "Drivers/sense.h"
 
 
 /* Private define ------------------------------------------------------------*/

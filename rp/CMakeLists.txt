@@ -59,15 +59,16 @@ add_custom_target(splash_images DEPENDS ${SPLASH_C_FILES})
 add_executable(app
 	main.c
 	Modules/mod_comm_mgr.c
+	Modules/mod_pow_mgr.c
 	Modules/mod_ser_cmd.c
+	Drivers/board.c
+	Drivers/sense.c
 	Drivers/drv_uart_cmd.c
-	board.c
+	Drivers/usbpd.c
 	imu.c
 	mag.c
-	usbpd.c
 	lamp.c
 	buttons.c
-	sense.c
 	radar.c
 	fan.c
 	radio.c
