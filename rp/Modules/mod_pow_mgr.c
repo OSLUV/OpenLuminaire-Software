@@ -11,7 +11,7 @@
 #include <pico/stdlib.h>
 #include "Modules/mod_pow_mgr.h"
 #include "Drivers/drv_board.h"
-#include "Drivers/drv_volt_adc.h"
+#include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_usb_pd.h"
 
 

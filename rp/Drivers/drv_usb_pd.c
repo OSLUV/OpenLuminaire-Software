@@ -20,7 +20,7 @@
 #include "Drivers/drv_usb_pd.h"
 #include "lamp.h"
 #include "Drivers/drv_board.h"
-#include "Drivers/drv_volt_adc.h"
+#include "Drivers/drv_adc_volt.h"
 #include <hardware/watchdog.h>
 
 

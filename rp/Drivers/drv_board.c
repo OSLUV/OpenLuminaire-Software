@@ -23,7 +23,7 @@
 #include <pico/stdlib.h>
 
 #include "Drivers/drv_board.h"
-#include "Drivers/drv_volt_adc.h"
+#include "Drivers/drv_adc_volt.h"
 
 
 /* Private define ------------------------------------------------------------*/

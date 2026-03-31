@@ -16,7 +16,7 @@
 #include "display.h"
 #include "lamp.h"
 #include "Drivers/drv_usb_pd.h"
-#include "Drivers/drv_volt_adc.h"
+#include "Drivers/drv_adc_volt.h"
 #include "mag.h"
 #include "imu.h"
 #include "radar.h"
