@@ -264,8 +264,8 @@ void usbpd_negotiate(bool up)
 		sleep_ms(1000);
 		watchdog_update();
 
-		sense_update();
-		int got_mv = (int)(g_sense_vbus * 1000);
+		adc_volt_update();
+		int got_mv = (int)(g_adc_v_vbus * 1000);
 		int got_ma = usbpd_get_negotiated_mA();
 
 		printf("USB-PD negotiate: got %dmV/%dmA (need %dmV/%dmA)\n",

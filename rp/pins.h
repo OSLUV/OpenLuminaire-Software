@@ -22,10 +22,6 @@
 #define PIN_STATUS_LAMP 12
 #define PIN_PWM_LAMP 13
 
-#define PIN_VSENSE_VBUS 26
-#define PIN_VSENSE_12V 27
-#define PIN_VSENSE_24V 29
-
 #define PIN_FAN_PWM 10
 
 #define PIN_MMWAVE_TX 0

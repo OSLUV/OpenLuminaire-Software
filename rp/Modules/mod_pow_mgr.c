@@ -33,7 +33,7 @@ bool g_mod_pow_is_v1_2_b;
  */
 void mod_pow_init(void)
 {
-    sense_init();
+    adc_volt_init();
 
     g_mod_pow_is_v1_2_b = false;
 
@@ -51,7 +51,7 @@ void mod_pow_init(void)
  */
 void mod_pow_manager(void)
 {
-    sense_update();
+    adc_volt_update();
 
 	usbpd_update();
 }

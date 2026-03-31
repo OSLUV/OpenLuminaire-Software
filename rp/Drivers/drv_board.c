@@ -44,16 +44,16 @@ static bool b_board_is_v1_2 = false;	/* Fail-safe default: V1.1 */
  * With both rail enables off, VSYS leaks through to the 24V sense on V1.2
  * (~4.6V on 5V USB) but reads ~0V on V1.1. No boost pulse needed.
  *
- * Must be called after sense_init(), but before usbpd_negotiate().
+ * Must be called after adc_volt_init(), but before usbpd_negotiate().
  */
 void board_init(void)
 {
-	sense_update();
+	adc_volt_update();
 
 	printf("Board detection: 24V sense = %.2fV (threshold = %.1fV)\n",
-		   g_sense_24v, (float)BOARD_24V_PASSIVE_THRESHOLD_C);
+		   g_adc_v_24v, (float)BOARD_24V_PASSIVE_THRESHOLD_C);
 
-	if (g_sense_24v > BOARD_24V_PASSIVE_THRESHOLD_C)
+	if (g_adc_v_24v > BOARD_24V_PASSIVE_THRESHOLD_C)
 	{
 		b_board_is_v1_2 = true;
 		printf("Board detected: V1.2 (VSYS on 24V sense)\n");

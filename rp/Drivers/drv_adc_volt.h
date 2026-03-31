@@ -11,13 +11,13 @@
 
 /* Exported variables --------------------------------------------------------*/
 
-extern float g_sense_vbus, g_sense_12v, g_sense_24v;
+extern float g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void sense_init();
-void sense_update();
+void adc_volt_init();
+void adc_volt_update();
 
 
 #endif /* _D_SENSE_H_ */

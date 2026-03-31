@@ -150,15 +150,15 @@ void ui_debug_update(void)
              lamp_get_switched_24v()?"ON ":"off");
 
     ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
-             g_sense_vbus,
-             g_sense_12v,
-             g_sense_24v);
+             g_adc_v_vbus,
+             g_adc_v_12v,
+             g_adc_v_24v);
 
     if (usbpd_is_connected())
     {
         ADD_TEXT("USB Req %dV Got %.1fV/%.1fA\n",
                  usbpd_get_negotiated_mV() / 1000,
-                 g_sense_vbus,
+                 g_adc_v_vbus,
                  ((float)usbpd_get_negotiated_mA())/1000.);
     }
     else
@@ -232,7 +232,7 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
     sleep_ms(100);
 
     // Refresh ADC readings — stale values may cause issues with voltage pre-checks
-    sense_update();
+    adc_volt_update();
 
     lamp_reset_type();
     lamp_perform_type_test();
