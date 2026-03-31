@@ -22,8 +22,8 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 
-#include "Drivers/board.h"
-#include "Drivers/sense.h"
+#include "Drivers/drv_board.h"
+#include "Drivers/drv_volt_adc.h"
 
 
 /* Private define ------------------------------------------------------------*/

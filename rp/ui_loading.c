@@ -13,8 +13,8 @@
 #include "splash_img.h"
 #include "lamp.h"
 #include "display.h"
-#include "Drivers/board.h"
-#include "Drivers/sense.h"
+#include "Drivers/drv_board.h"
+#include "Drivers/drv_volt_adc.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
