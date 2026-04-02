@@ -1,13 +1,13 @@
 /**
- * @file      usbpd.h
+ * @file      drv_usb_pd.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for power negociations IC controller 
  *            (STUSB4500)
  *  
  */
 
-#ifndef _D_USBPD_H_
-#define _D_USBPD_H_
+#ifndef _D_USB_PD_H_
+#define _D_USB_PD_H_
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -88,16 +88,19 @@ static_assert(sizeof(usbpd_rdo_t) == 4);
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void usbpd_update(void);
-void usbpd_negotiate(bool up);
-void usbpd_init_update(void);
-bool usbpd_is_connected(void);
-bool usbpd_get_is_12v(void);
-bool usbpd_get_is_trying_for_hv(void);
-int usbpd_get_negotiated_mA(void);
-int usbpd_get_negotiated_mV(void);
+void drv_usb_pd_init(void);
+void drv_usb_pd_reset(void);
+void drv_usb_pd_set_pdo(uint32_t mv, uint32_t ma);
+
+void drv_usb_pd_negotiate(bool up);
+void drv_usb_pd_init_update(void);
+bool drv_usb_pd_is_connected(void);
+//bool drv_usb_pd_get_is_12v(void);
+//bool drv_usb_pd_get_is_trying_for_hv(void);
+uint32_t drv_usb_pd_get_negotiated_ma(void);
+uint32_t drv_usb_pd_get_negotiated_mv(void);
 
 
-#endif /* _D_USBPD_H_ */
+#endif /* _D_USB_PD_H_ */
 
 /*** END OF FILE ***/

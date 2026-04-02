@@ -16,13 +16,13 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define ADC_V_VBUS_PIN_C 	26 													/* VBUS_VSENSE */
-#define ADC_V_12V_PIN_C 	27 													/* +12V_VSENSE */
-#define ADC_V_24V_PIN_C 	29 													/* +24V_VSENSE */
+#define D_ADC_V_VBUS_PIN_C 	26 													/* VBUS_VSENSE */
+#define D_ADC_V_12V_PIN_C 	27 													/* +12V_VSENSE */
+#define D_ADC_V_24V_PIN_C 	29 													/* +24V_VSENSE */
 
-#define ADC_V_VBUS_ADC_C	0
-#define ADC_V_12V_ADC_C		1
-#define ADC_V_24V_ADC_C		3
+#define D_ADC_V_VBUS_ADC_C	0
+#define D_ADC_V_12V_ADC_C	1
+#define D_ADC_V_24V_ADC_C	3
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -33,7 +33,7 @@ float g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v = 0;
 /* Private variables  --------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
-static float adc_volt_convert_sample(uint16_t sample);
+static float drv_adc_volt_convert_sample(uint16_t sample);
 
 
 /* Exported functions --------------------------------------------------------*/
@@ -44,13 +44,13 @@ static float adc_volt_convert_sample(uint16_t sample);
  * @return 	void  
  * 
  */
-void adc_volt_init(void)
+void drv_adc_volt_init(void)
 {
 	adc_init();
 
-    adc_gpio_init(ADC_V_VBUS_PIN_C);
-    adc_gpio_init(ADC_V_12V_PIN_C);
-    adc_gpio_init(ADC_V_24V_PIN_C);
+    adc_gpio_init(D_ADC_V_VBUS_PIN_C);
+    adc_gpio_init(D_ADC_V_12V_PIN_C);
+    adc_gpio_init(D_ADC_V_24V_PIN_C);
 }
 
 /**
@@ -58,16 +58,16 @@ void adc_volt_init(void)
  * 
  * @return 	void  
  */
-void adc_volt_update(void)
+void drv_adc_volt_update(void)
 {
-	adc_select_input(ADC_V_VBUS_ADC_C);
-	g_adc_v_vbus = adc_volt_convert_sample(adc_read());
+	adc_select_input(D_ADC_V_VBUS_ADC_C);
+	g_adc_v_vbus = drv_adc_volt_convert_sample(adc_read());
 
-	adc_select_input(ADC_V_12V_ADC_C);
-	g_adc_v_12v = adc_volt_convert_sample(adc_read());
+	adc_select_input(D_ADC_V_12V_ADC_C);
+	g_adc_v_12v = drv_adc_volt_convert_sample(adc_read());
 
-	adc_select_input(ADC_V_24V_ADC_C);
-	g_adc_v_24v = adc_volt_convert_sample(adc_read());
+	adc_select_input(D_ADC_V_24V_ADC_C);
+	g_adc_v_24v = drv_adc_volt_convert_sample(adc_read());
 }
 
 
@@ -79,7 +79,7 @@ void adc_volt_update(void)
  * @param adc_sample ADC channel sample
  * @return float 
  */
-static float adc_volt_convert_sample(uint16_t adc_sample)
+static float drv_adc_volt_convert_sample(uint16_t adc_sample)
 {
 	float reading = ((float)adc_sample) * (3.3f / (float)(1 << 12));
 	float r1 = 100000;

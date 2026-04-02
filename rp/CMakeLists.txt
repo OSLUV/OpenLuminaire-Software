@@ -61,7 +61,6 @@ add_executable(app
 	Modules/mod_comm_mgr.c
 	Modules/mod_pow_mgr.c
 	Modules/mod_ser_cmd.c
-	Drivers/drv_board.c
 	Drivers/drv_adc_volt.c
 	Drivers/drv_uart_cmd.c
 	Drivers/drv_usb_pd.c

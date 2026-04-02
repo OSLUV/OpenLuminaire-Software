@@ -21,7 +21,6 @@
 #include "Drivers/drv_adc_volt.h"
 #include "radar.h"
 #include "persistance.h"
-#include "Drivers/drv_board.h"
 #include <hardware/watchdog.h>
 
 
@@ -40,6 +39,8 @@ typedef struct {
 
 
 /* Global variables  ---------------------------------------------------------*/
+
+extern bool g_mod_pow_hw_is_rev1_2_b;
 
 
 /* Private variables  --------------------------------------------------------*/
@@ -93,7 +94,7 @@ static bool lamp_24v_in_range(void);
  */
 static void lamp_shutdown_rails(void)
 {
-	if (board_is_v1_2())
+	if (g_mod_pow_hw_is_rev1_2_b)
 	{
 		// V1.2: 12V off first (depends on 24V), then 24V
 		lamp_set_switched_12v(false);
@@ -110,7 +111,7 @@ static void lamp_shutdown_rails(void)
 /**
  * @brief Power-up both rails in the correct order for this board.
  *
- * V1.1: adc_volt_update, pre-check 12V in range, enable 12V, enable 24V, verify.
+ * V1.1: drv_adc_volt_update, pre-check 12V in range, enable 12V, enable 24V, verify.
  * V1.2: enable 24V, post-check 24V, enable 12V, post-check 12V, verify.
  *
  * On success both rails are on and verified. On failure rails are left off.
@@ -120,14 +121,14 @@ static void lamp_shutdown_rails(void)
 void lamp_power_up_rails(void)
 {
 	sleep_ms(250);
-	adc_volt_update();
+	drv_adc_volt_update();
 	watchdog_update();
 	printf("Pre-enable: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
 		   g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
 
-	if (board_is_v1_2())
+	if (g_mod_pow_hw_is_rev1_2_b)
 	{
-		if (g_adc_v_24v < 7.0 || g_adc_v_24v > 27.0) 
+		if ((g_adc_v_24v < 7.0) || (g_adc_v_24v > 27.0))
 		{
 			printf("FAIL: 24V pre-check out of range (%.2fV)\n", g_adc_v_24v);
 			return;
@@ -136,10 +137,10 @@ void lamp_power_up_rails(void)
 		// V1.2: 24V boost from VSYS first, then 12V buck from 24V
 		lamp_set_switched_24v(true);
 		sleep_ms(200);
-		adc_volt_update();
+		drv_adc_volt_update();
 		watchdog_update();
 		printf("24V post-enable: g_adc_v_24v=%.2f\n", g_adc_v_24v);
-		if (g_adc_v_24v < 21.0 || g_adc_v_24v > 27.0)
+		if ((g_adc_v_24v < 21.0) || (g_adc_v_24v > 27.0))
 		{
 			printf("FAIL: 24V out of range (%.2fV) — incompatible power supply\n",
 				   g_adc_v_24v);
@@ -149,10 +150,10 @@ void lamp_power_up_rails(void)
 
 		lamp_set_switched_12v(true);
 		sleep_ms(50);
-		adc_volt_update();
+		drv_adc_volt_update();
 		watchdog_update();
 		printf("12V post-enable: g_adc_v_12v=%.2f\n", g_adc_v_12v);
-		if (g_adc_v_12v < 10.8 || g_adc_v_12v > 13.8)
+		if ((g_adc_v_12v < 10.8) || (g_adc_v_12v > 13.8))
 		{
 			printf("FAIL: 12V out of range (%.2fV) after enable\n", g_adc_v_12v);
 			lamp_set_switched_12v(false);
@@ -163,7 +164,7 @@ void lamp_power_up_rails(void)
 	else
 	{
 		// V1.1: 12V from barrel/USB, then 24V boost from 12V
-		if (g_adc_v_12v < 11.5 || g_adc_v_12v > 12.5)
+		if ((g_adc_v_12v < 11.5) || (g_adc_v_12v > 12.5))
 		{
 			printf("FAIL: 12V pre-check out of range (%.2fV)\n", g_adc_v_12v);
 			return;
@@ -171,12 +172,12 @@ void lamp_power_up_rails(void)
 
 		lamp_set_switched_12v(true);
 		sleep_ms(500);
-		adc_volt_update();
+		drv_adc_volt_update();
 		watchdog_update();
 
 		lamp_set_switched_24v(true);
 		sleep_ms(500);
-		adc_volt_update();
+		drv_adc_volt_update();
 		watchdog_update();
 	}
 
