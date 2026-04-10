@@ -19,8 +19,8 @@
 #include "pins.h"
 #include "Drivers/drv_usb_pd.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_config.h"
 #include "radar.h"
-#include "persistance.h"
 #include <hardware/watchdog.h>
 
 
@@ -508,7 +508,7 @@ void lamp_load_type_from_flash(void)
 {
 	printf("Determined type from flash\n");
 
-	lamp_current_type = g_persistance_region.factory_lamp_type;
+	lamp_current_type = g_drv_cfg.factory_lamp_type;
 }
 
 /**
@@ -538,8 +538,8 @@ void lamp_perform_type_test(void)
 		if (lamp_get_type() != LAMP_TYPE_UNKNOWN_C)
 		{
 			printf("Writing concluded type\n");
-			persistance_set_factory_lamp_type(lamp_get_type());
-			persistance_write_region();
+			drv_cfg_set_factory_lamp_type(lamp_get_type());
+			drv_cfg_save();
 		}
 		else
 		{
@@ -555,8 +555,8 @@ void lamp_perform_type_test(void)
 void lamp_reset_type(void)
 {
 	lamp_current_type = LAMP_TYPE_UNKNOWN_C;
-	persistance_set_factory_lamp_type(LAMP_TYPE_UNKNOWN_C);
-	persistance_write_region();
+	drv_cfg_set_factory_lamp_type(LAMP_TYPE_UNKNOWN_C);
+	drv_cfg_save();
 	printf("Lamp type reset to UNKNOWN\n");
 }
 

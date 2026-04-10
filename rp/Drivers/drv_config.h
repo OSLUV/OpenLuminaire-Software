@@ -1,12 +1,12 @@
 /**
- * @file      persistence.h
+ * @file      drv_config.h
  * @author    The OSLUV Project
- * @brief     Functions prototypes for 
+ * @brief     Functions prototypes for system configuration driver
  *  
  */
 
-#ifndef _D_PERSISTANCE_H_
-#define _D_PERSISTANCE_H_
+#ifndef _D_CONFIG_H_
+#define _D_CONFIG_H_
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -23,29 +23,30 @@ typedef struct __packed {
     uint8_t  radar_on;       /* 1 = radar enabled */
     uint8_t  dim_index;      /* 0–3  (20/40/70/100 %) */
 	uint8_t  factory_lamp_type;
-} PERSISTANCE_REGION_T;
+} D_CFG_DATA_T;
 
 
 /* Exported variables --------------------------------------------------------*/
 
-extern PERSISTANCE_REGION_T g_persistance_region;
+extern D_CFG_DATA_T g_drv_cfg;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void persistance_read_region(void);
-void persistance_write_region(void);
+void drv_cfg_init(void);
+void drv_cfg_read(void);
+void drv_cfg_save(void);
 
-void persistance_set_power_state(bool b_pwr_on);
-bool persistance_get_power_state(void);
-void persistance_set_radar_state(bool b_radar_on);
-bool persistance_get_radar_state(void);
-void persistance_set_dim_index(uint8_t idx);
-uint8_t persistance_get_dim_index(void);
-void persistance_set_factory_lamp_type(uint8_t type);
-uint8_t persistance_get_factory_lamp_type(void);
+void drv_cfg_set_power_state(bool b_pwr_on);
+bool drv_cfg_get_power_state(void);
+void drv_cfg_set_radar_state(bool b_radar_on);
+bool drv_cfg_get_radar_state(void);
+void drv_cfg_set_dim_index(uint8_t idx);
+uint8_t drv_cfg_get_dim_index(void);
+void drv_cfg_set_factory_lamp_type(uint8_t type);
+uint8_t drv_cfg_get_factory_lamp_type(void);
 
 
-#endif /* _D_PERSISTANCE_H_ */
+#endif /* _D_CONFIG_H_ */
 
 /*** END OF FILE ***/

@@ -29,7 +29,6 @@
 #include "fan.h"
 #include "radio.h"
 #include "safety_logic.h"
-#include "persistance.h"
 #include "display.h"
 #include "ui_main.h"
 #include "ui_loading.h"
@@ -37,7 +36,7 @@
 
 #include "Modules/mod_comm_mgr.h"
 #include "Modules/mod_pow_mgr.h"
-#include <hardware/watchdog.h>
+#include "Modules/mod_system.h"
 
 #include "font.c"
 
@@ -56,11 +55,12 @@ void main(void)
 	
 	while (1)
 	{
+		mod_system_services();
+
 		mod_pow_manager();
 		
 		mod_comm_manager();
-
-		watchdog_update();
+		
 		buttons_update();
 		imu_update();
 		mag_update();
@@ -151,9 +151,7 @@ static void main_sys_init(void)
 	gpio_set_dir(5, GPIO_IN);
 	gpio_set_dir(6, GPIO_IN);
 
-	persistance_read_region();
-	printf("g_persistance_region.factory_lamp_type = %d\n", 
-		   g_persistance_region.factory_lamp_type);
+	mod_sys_init();
 
 	lv_init();
 	display_init();

@@ -1,7 +1,7 @@
 /**
- * @file      persistance.c
+ * @file      drv_config.c
  * @author    The OSLUV Project
- * @brief     Driver for 
+ * @brief     Driver for system configuration storage
  * @schematic lamp_controller.SchDoc
  *  
  */
@@ -13,154 +13,165 @@
 #include <pico/flash.h>
 #include <string.h>
 #include <stdio.h>
-#include "persistance.h"
+#include "Drivers/drv_config.h"
 #include "ui_main.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define PERSISTANCE_MAGIC_VAL_C 	0xb8870200
-#define PERSISTANCE_FLASH_OFFSET_C 	(PICO_FLASH_SIZE_BYTES - 4096) 				/* Stored in the very last 4 kB sector */
+#define DRV_CFG_MAGIC_VAL_C 	0xb8870200
+#define DRV_CFG_FLASH_OFFSET_C 	(PICO_FLASH_SIZE_BYTES - 4096) 					/* Stored in the very last 4 kB sector */
 
-#define PERSISTANCE_DEF_POWER_ON_C	1											/* Lamp on   */
-#define PERSISTANCE_DEF_RADAR_ON_C  0											/* Radar off */
-#define PERSISTANCE_DEF_DIM_IDX_C	3											/* 0–3  (20/40/70/100 %) */
+#define DRV_CFG_DEF_POWER_ON_C	1												/* Lamp on   */
+#define DRV_CFG_DEF_RADAR_ON_C  0												/* Radar off */
+#define DRV_CFG_DEF_DIM_IDX_C	3												/* 0–3  (20/40/70/100 %) */
 
 
 /* Global variables  ---------------------------------------------------------*/
 
-PERSISTANCE_REGION_T g_persistance_region = {0};
+D_CFG_DATA_T g_drv_cfg = {0};
 
 
 /* Private variables  --------------------------------------------------------*/
 
-static bool 				b_persistance_is_dirty = false;
-static const uint8_t*		p_persistance_flash_region = 
-							(const uint8_t *)(XIP_BASE + PERSISTANCE_FLASH_OFFSET_C);
+static bool 				b_drv_cfg_is_modified = false;
+static const uint8_t*		p_drv_cfg_flash_region = 
+							(const uint8_t *)(XIP_BASE + DRV_CFG_FLASH_OFFSET_C);
 
 
 /* Private function prototypes -----------------------------------------------*/
 
-static void write_persistance_region_inner(void*);
+static void drv_cfg_write_data(void*);
 
 
 /* Exported functions --------------------------------------------------------*/
 
 /**
- * @brief Gets persistence data from assigned memory region
+ * @brief Driver initialization procedure
  * 
  * @return 	void  
  * 
  */
-void persistance_read_region(void)
+void drv_cfg_init(void)
 {
-	memcpy(&g_persistance_region, p_persistance_flash_region, sizeof(g_persistance_region));
+	b_drv_cfg_is_modified = false;
 
-	if (g_persistance_region.magic != PERSISTANCE_MAGIC_VAL_C)
-	{
-		memset(&g_persistance_region, 0, sizeof(g_persistance_region));
-
-		g_persistance_region.magic 	  = PERSISTANCE_MAGIC_VAL_C;
-		g_persistance_region.power_on   = PERSISTANCE_DEF_POWER_ON_C;
-        g_persistance_region.radar_on   = PERSISTANCE_DEF_RADAR_ON_C;
-        g_persistance_region.dim_index  = PERSISTANCE_DEF_DIM_IDX_C;
-
-		b_persistance_is_dirty = true;
-	}
+	drv_cfg_read();
 }
 
 /**
- * @brief Stores the persistence data at assigned memory region
+ * @brief Gets system configuration data from assigned memory region
+ * 
+ * @return 	void  
  * 
  */
-void persistance_write_region(void)
+void drv_cfg_read(void)
 {
-	if (!b_persistance_is_dirty) 
+	memcpy(&g_drv_cfg, p_drv_cfg_flash_region, sizeof(g_drv_cfg));
+
+	if (g_drv_cfg.magic != DRV_CFG_MAGIC_VAL_C)
 	{
-		return;
+		memset(&g_drv_cfg, 0, sizeof(g_drv_cfg));
+
+		g_drv_cfg.magic 	 = DRV_CFG_MAGIC_VAL_C;
+		g_drv_cfg.power_on   = DRV_CFG_DEF_POWER_ON_C;
+        g_drv_cfg.radar_on   = DRV_CFG_DEF_RADAR_ON_C;
+        g_drv_cfg.dim_index  = DRV_CFG_DEF_DIM_IDX_C;
+
+		b_drv_cfg_is_modified = true;
 	}
-
-	flash_safe_execute(write_persistance_region_inner, NULL, 100);
-
-	b_persistance_is_dirty = false;
-
-	printf("writing to persistance region");
 }
 
 /**
- * @brief Sets a new persistence lamp power state
+ * @brief Saves system configuration data at assigned memory region
+ * 
+ */
+void drv_cfg_save(void)
+{
+	if (b_drv_cfg_is_modified) 
+	{
+		printf("drv_config saving configuration");
+
+		flash_safe_execute(drv_cfg_write_data, NULL, 100);
+
+		b_drv_cfg_is_modified = false;
+	}
+}
+
+/**
+ * @brief Sets a new lamp power state
  * 
  * @param b_pwr_on The new state to set
  */
-void persistance_set_power_state(bool b_pwr_on)
+void drv_cfg_set_power_state(bool b_pwr_on)
 {
-	b_persistance_is_dirty |= (g_persistance_region.power_on != b_pwr_on);
+	b_drv_cfg_is_modified |= (g_drv_cfg.power_on != b_pwr_on);
 
-    g_persistance_region.power_on = b_pwr_on; 
+    g_drv_cfg.power_on = b_pwr_on; 
 }
 
 /**
- * @brief Gets the current persistence lamp power state
+ * @brief Gets the current lamp power state
  * 
  * @return true 
  * @return false 
  */
-bool persistance_get_power_state(void)
+bool drv_cfg_get_power_state(void)
 {
-	return g_persistance_region.power_on;
+	return g_drv_cfg.power_on;
 }
 
 /**
- * @brief Sets a new persistence radar state
+ * @brief Sets a new radar state
  * 
  * @param b_radar_on The new state to set
  */
-void persistance_set_radar_state(bool b_radar_on)
+void drv_cfg_set_radar_state(bool b_radar_on)
 {
-	b_persistance_is_dirty |= (g_persistance_region.radar_on != b_radar_on);
+	b_drv_cfg_is_modified |= (g_drv_cfg.radar_on != b_radar_on);
 
-	g_persistance_region.radar_on = b_radar_on;
+	g_drv_cfg.radar_on = b_radar_on;
 }
 
 /**
- * @brief Gets the current persistence radar state
+ * @brief Gets the current radar state
  * 
  * @return true 
  * @return false 
  */
-bool persistance_get_radar_state(void)
+bool drv_cfg_get_radar_state(void)
 {
-	return g_persistance_region.radar_on;
+	return g_drv_cfg.radar_on;
 }
 
 /**
- * @brief Sets a new persistence dim level by index 
+ * @brief Sets a new dim level by index 
  * @ref UI_MAIN_MAX_DIM_LEVELS_C
  * 
  * @param idx 
  */
-void persistance_set_dim_index(uint8_t idx)
+void drv_cfg_set_dim_index(uint8_t idx)
 {
 	if (idx > UI_MAIN_MAX_DIM_INDEX_C) 
 	{
 		idx = UI_MAIN_MAX_DIM_INDEX_C;
 	}
 
-	b_persistance_is_dirty |= (g_persistance_region.dim_index != idx);
+	b_drv_cfg_is_modified |= (g_drv_cfg.dim_index != idx);
 
-	g_persistance_region.dim_index = idx;
+	g_drv_cfg.dim_index = idx;
 }
 
 /**
- * @brief Gets the current persistence dim level by index 
+ * @brief Gets the current dim level by index 
  * @ref UI_MAIN_MAX_DIM_LEVELS_C
  * 
  * @return uint8_t 
  */
-uint8_t persistance_get_dim_index(void)
+uint8_t drv_cfg_get_dim_index(void)
 {
-	return g_persistance_region.dim_index;
+	return g_drv_cfg.dim_index;
 }
 
 /**
@@ -168,10 +179,11 @@ uint8_t persistance_get_dim_index(void)
  *
  * @param type @ref LAMP_TYPE_E
  */
-void persistance_set_factory_lamp_type(uint8_t type)
+void drv_cfg_set_factory_lamp_type(uint8_t type)
 {
-	b_persistance_is_dirty |= (g_persistance_region.factory_lamp_type != type);
-	g_persistance_region.factory_lamp_type = type;
+	b_drv_cfg_is_modified |= (g_drv_cfg.factory_lamp_type != type);
+	
+	g_drv_cfg.factory_lamp_type = type;
 }
 
 /**
@@ -179,9 +191,9 @@ void persistance_set_factory_lamp_type(uint8_t type)
  *
  * @return uint8_t @ref LAMP_TYPE_E
  */
-uint8_t persistance_get_factory_lamp_type(void)
+uint8_t drv_cfg_get_factory_lamp_type(void)
 {
-	return g_persistance_region.factory_lamp_type;
+	return g_drv_cfg.factory_lamp_type;
 }
 
 
@@ -191,13 +203,13 @@ uint8_t persistance_get_factory_lamp_type(void)
  * @brief Writes the persistence data at assigned memory region
  * 
  */
-static void write_persistance_region_inner(void*)
+static void drv_cfg_write_data(void*)
 {
-	flash_range_erase(PERSISTANCE_FLASH_OFFSET_C, FLASH_SECTOR_SIZE);
+	flash_range_erase(DRV_CFG_FLASH_OFFSET_C, FLASH_SECTOR_SIZE);
 
-	flash_range_program(PERSISTANCE_FLASH_OFFSET_C, 
-						(const uint8_t*)&g_persistance_region,
-						sizeof(g_persistance_region));
+	flash_range_program(DRV_CFG_FLASH_OFFSET_C, 
+						(const uint8_t*)&g_drv_cfg,
+						sizeof(g_drv_cfg));
 }
 
 /*** END OF FILE ***/

@@ -61,7 +61,9 @@ add_executable(app
 	Modules/mod_comm_mgr.c
 	Modules/mod_pow_mgr.c
 	Modules/mod_ser_cmd.c
+	Modules/mod_system.c
 	Drivers/drv_adc_volt.c
+	Drivers/drv_config.c
 	Drivers/drv_i2c.c
 	Drivers/drv_uart_cmd.c
 	Drivers/drv_usb_pd.c
@@ -73,7 +75,6 @@ add_executable(app
 	fan.c
 	radio.c
 	safety_logic.c
-	persistance.c
 	display.c
 	splash_img.c
 	ui_main.c

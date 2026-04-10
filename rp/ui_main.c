@@ -18,7 +18,7 @@
 #include "ui_loading.h"
 #include "ui_main.h"
 #include "safety_logic.h"
-#include "persistance.h"
+#include "Drivers/drv_config.h"
 #include <string.h>
 
 
@@ -229,7 +229,7 @@ void ui_main_update(void)
     {
         safety_logic_set_radar_enabled_state(false);
         lamp_request_power_level(LAMP_PWR_OFF_C);
-		persistance_set_power_state(power_on);
+		drv_cfg_set_power_state(power_on);
     }
     else
     {
@@ -305,8 +305,8 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
         //if (lamp_pwr_lvl != LAMP_PWR_OFF_C)                                     // Lamp is ON ?
         {
-            persistance_set_power_state(0);
-            persistance_write_region();
+            drv_cfg_set_power_state(0);
+            drv_cfg_save();
 
             lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, false);             // Update function will update lamp's state
         }
@@ -321,8 +321,8 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
         {
             display_screen_on();
 
-            persistance_set_power_state(1);
-            persistance_write_region();
+            drv_cfg_set_power_state(1);
+            drv_cfg_save();
 
             lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, true);              // Update function will update lamp's state
         }
@@ -342,7 +342,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
  */
 int16_t ui_main_lamp_get_stt(uint16_t state)
 {
-    return persistance_get_power_state();
+    return drv_cfg_get_power_state();
 }
 
 /**
@@ -392,7 +392,7 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
 
         lamp_pwr_level -= LAMP_PWR_20PCT_C;
 
-        persistance_set_dim_index(lamp_pwr_level);
+        drv_cfg_set_dim_index(lamp_pwr_level);
 
         lv_slider_set_value(ui_slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
 
@@ -470,22 +470,22 @@ static void ui_main_back_to_menu_callback(lv_event_t * e)
 static void ui_main_sw_power_changed_callback(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    persistance_set_power_state(on);
-    persistance_write_region();                        /* flash only if value changed */
+    drv_cfg_set_power_state(on);
+    drv_cfg_save();                        /* flash only if value changed */
 }
 
 static void ui_main_sw_radar_changed_callback(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-    persistance_set_radar_state(on);
-    persistance_write_region();
+    drv_cfg_set_radar_state(on);
+    drv_cfg_save();
 }
 
 static void ui_main_slider_int_changed_callback(lv_event_t * e)
 {
     uint8_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
-    persistance_set_dim_index(idx);
-    persistance_write_region();
+    drv_cfg_set_dim_index(idx);
+    drv_cfg_save();
 }
 
 /**
@@ -576,7 +576,7 @@ static inline void ui_main_set_lamp_power_row(void)
     lv_obj_set_pos(row, 5,20);
 
     // lv_obj_add_state(ui_sw_power, LV_STATE_CHECKED);
-    if (persistance_get_power_state())
+    if (drv_cfg_get_power_state())
     {
         lv_obj_add_state(ui_sw_power, LV_STATE_CHECKED);
     }
@@ -617,7 +617,7 @@ static inline void ui_main_set_radar_row(void)
     lv_obj_add_style(ui_lbl_radar, &ui_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
     
     ui_sw_radar = lv_switch_create(row);
-    if (persistance_get_radar_state())
+    if (drv_cfg_get_radar_state())
     {
         lv_obj_add_state(ui_sw_radar, LV_STATE_CHECKED);
     }
@@ -682,7 +682,7 @@ static inline void ui_main_set_lamp_dim_slider(void)
     
     lv_slider_set_range(ui_slider_intensity, 0, 3);                             /* 4 ticks */
     //lv_slider_set_value(ui_slider_intensity, 3, LV_ANIM_OFF);                 /* Default level 3 = 100% */
-    lv_slider_set_value(ui_slider_intensity, persistance_get_dim_index(), LV_ANIM_OFF);
+    lv_slider_set_value(ui_slider_intensity, drv_cfg_get_dim_index(), LV_ANIM_OFF);
     lv_obj_add_event_cb(ui_slider_intensity, ui_main_slider_int_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
     lv_group_add_obj(ui_lv_group, ui_slider_intensity);
     lv_obj_add_event_cb(ui_slider_intensity, ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   ui_lbl_slider);
