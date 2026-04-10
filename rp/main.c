@@ -66,7 +66,7 @@ void main(void)
 
 		buttons_update();
 		
-		if (lamp_is_power_ok())
+		if (drv_lamp_is_power_ok())
 		{
 			if (g_buttons_released) 
 			{
@@ -120,13 +120,13 @@ void main(void)
 			if ((time_us_64() - last_retry) > 3000000)  // every 3s
 			{
 				ui_loading_show_psu_status("Retrying...");
-				lamp_power_up_rails();
+				drv_lamp_power_up_rails();
 				last_retry = time_us_64();
 
-				if (lamp_is_power_ok())
+				if (drv_lamp_is_power_ok())
 				{
-					lamp_perform_type_test();
-					lamp_request_power_level(LAMP_PWR_100PCT_C);
+					drv_lamp_perform_type_test();
+					drv_lamp_request_power_level(LAMP_PWR_100PCT_C);
 					ui_main_open();
 				}
 			}
@@ -155,7 +155,7 @@ static void main_sys_init(void)
 	lv_init();
 	display_init();
 
-	lamp_load_type_from_flash();
+	drv_lamp_load_type_from_flash();
 	ui_loading_splash_image_init();
 	ui_loading_splash_image_open(NULL);
 
@@ -174,7 +174,7 @@ static void main_sys_init(void)
 	
     //ui_main_open();  
 	
-	if (lamp_is_power_ok()) 
+	if (drv_lamp_is_power_ok()) 
 	{
 		ui_main_open();
 	} 

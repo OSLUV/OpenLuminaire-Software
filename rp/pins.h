@@ -12,18 +12,6 @@
 #define PIN_BUTTON_RIGHT 20
 #define PIN_BUTTON_CENTER 17
 
-#define PIN_ENABLE_12V 7
-#define PIN_ENABLE_24V 15
-#define PIN_ENABLE_LAMP 14
-#define PIN_STATUS_LAMP 12
-#define PIN_PWM_LAMP 13
-
-#define PIN_FAN_PWM 10
-
-#define PIN_MMWAVE_TX 0
-#define PIN_MMWAVE_RX 1
-#define UART_INST_MMWAVE uart0
-
 #define PIN_RADIO_RX 4
 #define PIN_RADIO_TX 5
 #define PIN_RADIO_ENABLE 6

@@ -11,14 +11,15 @@
 
 #include <hardware/pwm.h>
 #include <hardware/gpio.h>
-#include "pins.h"
 #include "Drivers/drv_fan.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define D_FAN_STEPCOUNT_C	1000
+#define D_FAN_PWM_C 		10
+
+#define D_FAN_STEPCOUNT_C	1000												/* 1KHz */
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -38,19 +39,19 @@ static int fan_curr_speed = 0;
  */
 void drv_fan_init(void)
 {
-	gpio_set_function(PIN_FAN_PWM, GPIO_FUNC_PWM);
-	uint slice_num = pwm_gpio_to_slice_num(PIN_FAN_PWM);
+	gpio_set_function(D_FAN_PWM_C, GPIO_FUNC_PWM);
+	uint slice_num = pwm_gpio_to_slice_num(D_FAN_PWM_C);
 
 	pwm_config config = pwm_get_default_config();
     // Set divider, reduces counter clock to sysclock/this value
     pwm_config_set_clkdiv(&config, 125);
 
-    pwm_config_set_wrap(&config, D_FAN_STEPCOUNT_C); // 1kHz
+    pwm_config_set_wrap(&config, D_FAN_STEPCOUNT_C);
 
     // Load the configuration into our PWM slice, and set it running.
     pwm_init(slice_num, &config, false);
 
-    pwm_set_gpio_level(PIN_FAN_PWM, 0);
+    pwm_set_gpio_level(D_FAN_PWM_C, 0);
 
     pwm_set_enabled(slice_num, true);
 }
@@ -73,7 +74,7 @@ void drv_fan_set_speed(int speed)
 		speed = 0;
 	}
 	
-	pwm_set_gpio_level(PIN_FAN_PWM, speed * D_FAN_STEPCOUNT_C / 100);
+	pwm_set_gpio_level(D_FAN_PWM_C, speed * D_FAN_STEPCOUNT_C / 100);
 
 	fan_curr_speed = speed;
 }

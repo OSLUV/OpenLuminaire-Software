@@ -113,7 +113,7 @@ void ui_main_init(void)
 
     ui_main_set_screen();
 
-    ui_lamp_known_b = (lamp_get_type() != LAMP_TYPE_UNKNOWN_C);
+    ui_lamp_known_b = (drv_lamp_get_type() != LAMP_TYPE_UNKNOWN_C);
 
     if (!ui_lamp_known_b)
     {
@@ -168,7 +168,7 @@ void ui_main_update(void)
 	}
 	
 	/* Update lamp status                           */
-	LAMP_STATE_E s = lamp_get_lamp_state();
+	LAMP_STATE_E s = drv_lamp_get_lamp_state();
     const char * txt = (s == LAMP_STATE_OFF_C)                 ? "Lamp off"      : 
 					   (s == LAMP_STATE_STARTING_C)            ? "Lamp starting..."   :
 					   (s == LAMP_STATE_RESTRIKE_COOLDOWN_1_C) ? "Restrike cooldown 1":
@@ -185,9 +185,9 @@ void ui_main_update(void)
 				  (intensity_setting == LAMP_PWR_40PCT_C) ?  40 :
 				  (intensity_setting == LAMP_PWR_70PCT_C) ?  70 :
 				  (intensity_setting == LAMP_PWR_100PCT_C)? 100 : 0;
-	LAMP_PWR_LEVEL_E  cmd = lamp_get_commanded_power_level();                   // What has been sent to pwm
+	LAMP_PWR_LEVEL_E  cmd = drv_lamp_get_commanded_power_level();                   // What has been sent to pwm
 	int pct_cmd;
-	bool warming = lamp_is_warming();
+	bool warming = drv_lamp_is_warming();
 
 	if (warming)
     {
@@ -202,7 +202,7 @@ void ui_main_update(void)
 				  (cmd == LAMP_PWR_100PCT_C)? 100 : 0;                          // LAMP_PWR_OFF_C or unknown
 	}
     LAMP_PWR_LEVEL_E rep;                                                       // Reported level
-	lamp_get_reported_power_level(&rep);   
+	drv_lamp_get_reported_power_level(&rep);   
     int pct_rep = (rep == LAMP_PWR_20PCT_C) ?  20 :
 				  (rep == LAMP_PWR_40PCT_C) ?  40 :
 				  (rep == LAMP_PWR_70PCT_C) ?  70 :
@@ -228,7 +228,7 @@ void ui_main_update(void)
     if (!power_on)
     {
         safety_logic_set_radar_enabled_state(false);
-        lamp_request_power_level(LAMP_PWR_OFF_C);
+        drv_lamp_request_power_level(LAMP_PWR_OFF_C);
 		drv_cfg_set_power_state(power_on);
     }
     else
@@ -241,7 +241,7 @@ void ui_main_update(void)
         else
         {
             safety_logic_set_radar_enabled_state(false);
-            lamp_request_power_level(intensity_setting);
+            drv_lamp_request_power_level(intensity_setting);
         }
     }
 
@@ -299,7 +299,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
     if (req_state == 0)
     {
-        lamp_get_reported_power_level(&lamp_pwr_lvl);
+        drv_lamp_get_reported_power_level(&lamp_pwr_lvl);
 
         display_screen_on();
 
@@ -315,7 +315,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
     }
     else if (req_state == 1)
     {
-        lamp_get_reported_power_level(&lamp_pwr_lvl);
+        drv_lamp_get_reported_power_level(&lamp_pwr_lvl);
 
         if (lamp_pwr_lvl == LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
         {
@@ -790,7 +790,7 @@ static inline void ui_main_set_debug_tools(void)
  */
 static void ui_main_theme_init(void)
 {
-    if (lamp_get_type() == LAMP_TYPE_DIMMABLE_C)
+    if (drv_lamp_get_type() == LAMP_TYPE_DIMMABLE_C)
     {   
 		ui_row_height     = 23;
 		ui_sw_height = ui_row_height-3;

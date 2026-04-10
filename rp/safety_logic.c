@@ -117,7 +117,7 @@ void safety_logic_update(void)
 	if (distance == -1)
 	{
 		sprintf(safety_logic_action_desc, "Radar failed -- 100%%");
-		lamp_request_power_level(safety_logic_cap);
+		drv_lamp_request_power_level(safety_logic_cap);
 
 		return;
 	}
@@ -130,13 +130,13 @@ void safety_logic_update(void)
 	 * requires dimming doesn't currently matter since we do a binary on/off for 
 	 * the radar
 	 */
-	if ((lamp_get_requested_power_level() == LAMP_PWR_OFF_C) && 
+	if ((drv_lamp_get_requested_power_level() == LAMP_PWR_OFF_C) && 
 		(lamp_pwr != LAMP_PWR_100PCT_C) && 
 		(lamp_pwr != LAMP_PWR_OFF_C))
 	{
 		sprintf(safety_logic_action_desc, 
 				"Tooclose/%s", 
-					lamp_get_power_level_string(lamp_pwr));
+					drv_lamp_get_power_level_string(lamp_pwr));
 
 		return; 																// Can't strike to anything but 100%
 	}
@@ -154,15 +154,15 @@ void safety_logic_update(void)
 	{
 		sprintf(safety_logic_action_desc, 
 				"Req %s", 
-				lamp_get_power_level_string(lamp_pwr));
+				drv_lamp_get_power_level_string(lamp_pwr));
 
-		lamp_request_power_level(safety_logic_cap < lamp_pwr ? safety_logic_cap : lamp_pwr);
+		drv_lamp_request_power_level(safety_logic_cap < lamp_pwr ? safety_logic_cap : lamp_pwr);
 	}
 	else
 	{
 		sprintf(safety_logic_action_desc, 
 				"Debounce for req %s", 
-				lamp_get_power_level_string(lamp_pwr));
+				drv_lamp_get_power_level_string(lamp_pwr));
 	}
 }
 

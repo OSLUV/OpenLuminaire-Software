@@ -18,7 +18,6 @@
 #include "pico/stdlib.h"
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
-#include "pins.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_lamp.h"
 
@@ -30,6 +29,10 @@ static_assert(sizeof(D_RADAR_MESSAGE_T) == (0x0D + 2 + 4 + 4));
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
+#define D_RADAR_UART_TX_PIN_C 		0
+#define D_RADAR_UART_RX_PIN_C 		1
+#define D_RADAR_UART_PORT_C 		uart0
 
 #define D_RADAR_INVALID_CM_C		30      									/* Sensor returns this when idle  */
 #define D_RADAR_STALE_US_C      	(1000 * 1000) 								/* How long a value stays “fresh” */
@@ -102,17 +105,17 @@ void dbgf(const char *fmt, ...);
  */
 void drv_radar_init(void)
 {
-	uart_init(UART_INST_MMWAVE, 9600);
-    gpio_set_function(PIN_MMWAVE_RX, GPIO_FUNC_UART);
-    gpio_set_function(PIN_MMWAVE_TX, GPIO_FUNC_UART);
-    uart_set_format(UART_INST_MMWAVE, 8, 1, UART_PARITY_NONE);
+	uart_init(D_RADAR_UART_PORT_C, 9600);
+    gpio_set_function(D_RADAR_UART_RX_PIN_C, GPIO_FUNC_UART);
+    gpio_set_function(D_RADAR_UART_TX_PIN_C, GPIO_FUNC_UART);
+    uart_set_format(D_RADAR_UART_PORT_C, 8, 1, UART_PARITY_NONE);
 
-    while (uart_is_readable(UART_INST_MMWAVE)) 
+    while (uart_is_readable(D_RADAR_UART_PORT_C)) 
 	{
-		uart_getc(UART_INST_MMWAVE);
+		uart_getc(D_RADAR_UART_PORT_C);
 	}
 
-    int UART_IRQ = UART_INST_MMWAVE == uart0 ? UART0_IRQ : UART1_IRQ;
+    int UART_IRQ = D_RADAR_UART_PORT_C == uart0 ? UART0_IRQ : UART1_IRQ;
 
     irq_set_exclusive_handler(UART_IRQ, radar_uart_rx_callback);
     irq_set_enabled(UART_IRQ, true);
@@ -133,7 +136,7 @@ void drv_radar_update(void)
 
 	if ((time_us_64() - radar_last_report_time) > (1000 * 3000) && 
 	    (time_us_64() - radar_last_reinit_time) > (1000 * 3000) && 
-		lamp_get_switched_12v())
+		drv_lamp_get_switched_12v())
 	{
 		drv_radar_init_comms();
 		radar_last_reinit_time = time_us_64();
@@ -249,7 +252,7 @@ void drv_radar_debug(void)
 	dbgf("Radar: Ty%d dT% 8dms %s\n", radar_last_report.type, dt, (dt>1000 || radar_last_report_time == 0)?"STALE":"OK");
 	dbgf("Radar: M: %dcm %de\n", radar_last_report.report.moving_target_distance_cm, radar_last_report.report.moving_target_energy);
 	dbgf("Radar: S: %dcm %de\n", radar_last_report.report.stationary_target_distance_cm, radar_last_report.report.stationary_target_energy);
-	dbgf("Radar: DD: %dcm PIN:%d/%d / RD:%d\n", radar_last_report.report.detection_distance_cm, gpio_get(PIN_MMWAVE_RX), gpio_get(PIN_MMWAVE_TX), drv_radar_get_distance_cm());
+	dbgf("Radar: DD: %dcm PIN:%d/%d / RD:%d\n", radar_last_report.report.detection_distance_cm, gpio_get(D_RADAR_UART_RX_PIN_C), gpio_get(D_RADAR_UART_TX_PIN_C), drv_radar_get_distance_cm());
 }
 
 /**
@@ -281,9 +284,9 @@ int drv_radar_debug_get_report_time(void)
  */
 void radar_uart_rx_callback(void)
 {
-    while (uart_is_readable(UART_INST_MMWAVE))
+    while (uart_is_readable(D_RADAR_UART_PORT_C))
 	{
-        uint8_t ch = uart_getc(UART_INST_MMWAVE);
+        uint8_t ch = uart_getc(D_RADAR_UART_PORT_C);
         
         radar_uart_rx_buffer[radar_uart_rx_ptr] = ch;
 
@@ -378,11 +381,11 @@ static void radar_uart_txn(uint16_t command_word, uint8_t* p_tx_buf, uint tx_len
 
     uint16_t pkt_len = tx_len + 2; // For command word
 
-	uart_write_blocking(UART_INST_MMWAVE, preamble, sizeof(preamble));
-	uart_write_blocking(UART_INST_MMWAVE, (uint8_t*)&pkt_len, 2);
-	uart_write_blocking(UART_INST_MMWAVE, (uint8_t*)&command_word, 2);
-	uart_write_blocking(UART_INST_MMWAVE, p_tx_buf, tx_len);
-	uart_write_blocking(UART_INST_MMWAVE, postamble, sizeof(postamble));
+	uart_write_blocking(D_RADAR_UART_PORT_C, preamble, sizeof(preamble));
+	uart_write_blocking(D_RADAR_UART_PORT_C, (uint8_t*)&pkt_len, 2);
+	uart_write_blocking(D_RADAR_UART_PORT_C, (uint8_t*)&command_word, 2);
+	uart_write_blocking(D_RADAR_UART_PORT_C, p_tx_buf, tx_len);
+	uart_write_blocking(D_RADAR_UART_PORT_C, postamble, sizeof(postamble));
 }
 
 /**
@@ -446,11 +449,11 @@ static void radar_do_set_baudrate(uint16_t baudrate_val)
  */
 static void radar_reinit(int baudrate)
 {
-	int actual_baudrate = uart_set_baudrate(UART_INST_MMWAVE, baudrate);
+	int actual_baudrate = uart_set_baudrate(D_RADAR_UART_PORT_C, baudrate);
 
     // printf("actual_baudrate: %d\n", actual_baudrate);
 
-    uart_set_irq_enables(UART_INST_MMWAVE, false, false);
+    uart_set_irq_enables(D_RADAR_UART_PORT_C, false, false);
 
     radar_do_enter_config_mode();
     sleep_ms(50);
@@ -459,13 +462,13 @@ static void radar_reinit(int baudrate)
 	radar_do_set_baudrate(D_RADAR_BAUDRATE_9600_C);
 	sleep_ms(50);
 	radar_do_restart();
-	while (uart_is_readable(UART_INST_MMWAVE)) 
+	while (uart_is_readable(D_RADAR_UART_PORT_C)) 
 	{
-		uart_getc(UART_INST_MMWAVE);
+		uart_getc(D_RADAR_UART_PORT_C);
 	}
 	sleep_ms(50);
 
-	uart_set_irq_enables(UART_INST_MMWAVE, true, false);
+	uart_set_irq_enables(D_RADAR_UART_PORT_C, true, false);
 }
 
 /*** END OF FILE ***/

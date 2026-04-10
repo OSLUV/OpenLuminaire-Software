@@ -137,7 +137,7 @@ void drv_usb_pd_negotiate(bool up)
 {
 	usbpd_pdo_t pdo;
 
-	if (lamp_get_commanded_power_level() != LAMP_PWR_OFF_C)
+	if (drv_lamp_get_commanded_power_level() != LAMP_PWR_OFF_C)
 	{
 		return;
 	}

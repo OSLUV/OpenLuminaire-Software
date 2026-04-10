@@ -85,7 +85,7 @@ void ui_loading_splash_image_init(void)
 
     /* 1 ─ Pick the bitmap -------------------------------------------------- */
     const lv_image_dsc_t *p_src = &splash_default_img;                          // Fallback
-    switch (lamp_get_type())
+    switch (drv_lamp_get_type())
     {
         case LAMP_TYPE_DIMMABLE_C:
             p_src = &splash_dimmable_img;

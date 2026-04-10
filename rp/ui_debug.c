@@ -121,20 +121,20 @@ void ui_debug_update(void)
                                (w - ui_debug_label_txt) - 1, __VA_ARGS__)
 
     ADD_TEXT("Lamp State: %s %dms\n",
-             lamp_get_lamp_state_str(lamp_get_lamp_state()),
-             lamp_get_state_elapsed_ms());
+             drv_lamp_get_lamp_state_str(drv_lamp_get_lamp_state()),
+             drv_lamp_get_state_elapsed_ms());
 
     LAMP_PWR_LEVEL_E rep;
 
-    lamp_get_reported_power_level(&rep);
+    drv_lamp_get_reported_power_level(&rep);
 
     ADD_TEXT("Lamp Req %s / Cmd %s\n",
-             lamp_get_power_level_string(lamp_get_requested_power_level()),
-             lamp_get_power_level_string(lamp_get_commanded_power_level()));
+             drv_lamp_get_power_level_string(drv_lamp_get_requested_power_level()),
+             drv_lamp_get_power_level_string(drv_lamp_get_commanded_power_level()));
 
     ADD_TEXT("     Rep %s (%dHz)\n",
-             lamp_get_power_level_string(rep),
-             lamp_get_raw_freq());
+             drv_lamp_get_power_level_string(rep),
+             drv_lamp_get_raw_freq());
 
     char* type_strs[] = {
         [LAMP_TYPE_UNKNOWN_C]      = "UNKNOWN",
@@ -142,7 +142,7 @@ void ui_debug_update(void)
         [LAMP_TYPE_NON_DIMMABLE_C] = "NONDIMMABLE"
     };
 
-    ADD_TEXT("Lamp Type %s\n", type_strs[lamp_get_type()]);
+    ADD_TEXT("Lamp Type %s\n", type_strs[drv_lamp_get_type()]);
 
     ADD_TEXT("Board %s\n", g_mod_pow_hw_is_rev1_2_b?"V1.2":"V1.1");
 
@@ -152,8 +152,8 @@ void ui_debug_update(void)
 
     ADD_TEXT("12V %s %s / 24V Reg %s\n",
              g_mod_pow_hw_is_rev1_2_b?"Reg":"Switched",
-             lamp_get_switched_12v()?"ON ":"off",
-             lamp_get_switched_24v()?"ON ":"off");
+             drv_lamp_get_switched_12v()?"ON ":"off",
+             drv_lamp_get_switched_24v()?"ON ":"off");
 
     ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
              g_adc_v_vbus,
@@ -233,19 +233,19 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
     lv_obj_invalidate(ui_debug_screen);
     lv_refr_now(NULL);
 
-    lamp_request_power_level(LAMP_PWR_OFF_C);
-    lamp_update();
-    lamp_update();
+    drv_lamp_request_power_level(LAMP_PWR_OFF_C);
+    drv_lamp_update();
+    drv_lamp_update();
     sleep_ms(100);
 
     // Refresh ADC readings — stale values may cause issues with voltage pre-checks
     drv_adc_volt_update();
 
-    lamp_reset_type();
-    lamp_perform_type_test();
+    drv_lamp_reset_type();
+    drv_lamp_perform_type_test();
 
     printf("Retest complete, type=%d. Rebooting to apply new UI layout...\n",
-           lamp_get_type());
+           drv_lamp_get_type());
 
     watchdog_reboot(0, 0, 0);
 }

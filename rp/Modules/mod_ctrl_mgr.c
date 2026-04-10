@@ -24,6 +24,9 @@
 /* Callback prototypes -------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
+static void mod_ctrl_lamp_handler(void);
+
+
 /* Exported functions --------------------------------------------------------*/
 
 /**
@@ -34,20 +37,20 @@ void mod_ctrl_init(void)
 {
 	drv_acc_init();
 	drv_mag_init();
-	lamp_init();
+	drv_lamp_init();
 	
 	drv_radar_init();
 	drv_fan_init();
 	drv_fan_set_speed(100);
 
-    lamp_power_up_rails();
+    drv_lamp_power_up_rails();
 
 	printf("Scripted start...\n");
 
-	if (lamp_is_power_ok()) 
+	if (drv_lamp_is_power_ok()) 
 	{
-		lamp_perform_type_test();
-		lamp_request_power_level(LAMP_PWR_100PCT_C);
+		drv_lamp_perform_type_test();
+		drv_lamp_request_power_level(LAMP_PWR_100PCT_C);
 	}
 }
 
@@ -60,11 +63,24 @@ void mod_ctrl_manager(void)
     drv_acc_update();
     drv_mag_update();
     drv_radar_update();
-    lamp_update();
+
+    mod_ctrl_lamp_handler();
 }
 
 /* Callback functions --------------------------------------------------------*/
+
+// Execute drv_lamp_reset_type from UI command
+
 /* Private functions ---------------------------------------------------------*/
+
+/**
+ * @brief Handles lamp control
+ * 
+ */
+static void mod_ctrl_lamp_handler(void)
+{
+    drv_lamp_update();
+}
 
 
 /*** END OF FILE ***/

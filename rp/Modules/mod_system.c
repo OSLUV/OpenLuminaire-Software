@@ -43,8 +43,8 @@ void mod_sys_init(void)
  * @brief   Enables WDT
  * @note    Watchdog: catches runtime hangs (brownout gray zone, stuck loops).
  *          Enabled after drv_usb_pd_negotiate() (long blocking) but before
- *          lamp_power_up_rails() (lamp could be on after this point).
- *          Feeds: main loop, type test loops, lamp_power_up_rails sleeps,
+ *          drv_lamp_power_up_rails() (lamp could be on after this point).
+ *          Feeds: main loop, type test loops, drv_lamp_power_up_rails sleeps,
  *          drv_usb_pd_negotiate loop (for hot-plug re-negotiation).
  * 
  */

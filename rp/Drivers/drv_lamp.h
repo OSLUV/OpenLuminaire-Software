@@ -69,32 +69,32 @@ typedef enum {
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void lamp_init(void);
-void lamp_update(void);
+void drv_lamp_init(void);
+void drv_lamp_update(void);
 
-void lamp_load_type_from_flash(void);
-LAMP_TYPE_E lamp_get_type(void);
-void lamp_perform_type_test(void);
-void lamp_reset_type(void);
+void drv_lamp_load_type_from_flash(void);
+LAMP_TYPE_E drv_lamp_get_type(void);
+void drv_lamp_perform_type_test(void);
+void drv_lamp_reset_type(void);
 
-void lamp_set_switched_12v(bool on);
-void lamp_set_switched_24v(bool on);
-bool lamp_get_switched_12v(void);
-bool lamp_get_switched_24v(void);
-void lamp_power_up_rails(void);
+void drv_lamp_set_switched_12v(bool on);
+void drv_lamp_set_switched_24v(bool on);
+bool drv_lamp_get_switched_12v(void);
+bool drv_lamp_get_switched_24v(void);
+void drv_lamp_power_up_rails(void);
 
-bool lamp_request_power_level(LAMP_PWR_LEVEL_E pwr_level);
-LAMP_PWR_LEVEL_E lamp_get_requested_power_level(void);
-LAMP_PWR_LEVEL_E lamp_get_commanded_power_level(void);
-bool lamp_get_reported_power_level(LAMP_PWR_LEVEL_E *p_pwr_level);
-bool lamp_is_power_ok(void);
-const char* lamp_get_power_level_string(LAMP_PWR_LEVEL_E pwr_level);
+bool drv_lamp_request_power_level(LAMP_PWR_LEVEL_E pwr_level);
+LAMP_PWR_LEVEL_E drv_lamp_get_requested_power_level(void);
+LAMP_PWR_LEVEL_E drv_lamp_get_commanded_power_level(void);
+bool drv_lamp_get_reported_power_level(LAMP_PWR_LEVEL_E *p_pwr_level);
+bool drv_lamp_is_power_ok(void);
+const char* drv_lamp_get_power_level_string(LAMP_PWR_LEVEL_E pwr_level);
 
-int lamp_get_raw_freq(void);
-LAMP_STATE_E lamp_get_lamp_state(void);
-const char* lamp_get_lamp_state_str(LAMP_STATE_E state);
-int lamp_get_state_elapsed_ms(void);
-bool lamp_is_warming(void);
+int drv_lamp_get_raw_freq(void);
+LAMP_STATE_E drv_lamp_get_lamp_state(void);
+const char* drv_lamp_get_lamp_state_str(LAMP_STATE_E state);
+int drv_lamp_get_state_elapsed_ms(void);
+bool drv_lamp_is_warming(void);
 
 
 #endif /* _D_LAMP_H_ */
