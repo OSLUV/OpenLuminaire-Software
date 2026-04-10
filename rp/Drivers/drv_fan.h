@@ -1,5 +1,5 @@
 /**
- * @file      fan.h
+ * @file      drv_fan.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for external fan driver
  *  

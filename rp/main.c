@@ -29,7 +29,7 @@
 #include "ui_debug.h"
 
 #include "buttons.h"
-#include "lamp.h"
+#include "Drivers/drv_lamp.h"
 
 #include "Modules/mod_comm_mgr.h"
 #include "Modules/mod_ctrl_mgr.h"
@@ -63,6 +63,8 @@ void main(void)
 		mod_comm_manager();
 		
 		mod_ctrl_manager();
+
+		buttons_update();
 		
 		if (lamp_is_power_ok())
 		{
@@ -162,6 +164,8 @@ static void main_sys_init(void)
 	mod_comm_init();
 	mod_ctrl_init();
 	
+    buttons_init();
+
 	printf("Enter mainloop... xx\n");
 	
 	// Main UI init

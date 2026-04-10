@@ -1,5 +1,5 @@
 /**
- * @file      mag.h
+ * @file      st7789.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for magnet sensor driver
  *  

@@ -1,5 +1,5 @@
 /**
- * @file      imu.h
+ * @file      drv_accelerometer.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for accelerometer device driver
  *  

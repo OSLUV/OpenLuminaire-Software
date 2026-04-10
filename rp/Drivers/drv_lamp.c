@@ -1,5 +1,5 @@
 /**
- * @file      lamp.c
+ * @file      drv_lamp.c
  * @author    The OSLUV Project
  * @brief     Driver for lamp control
  * @schematic lamp_controller.SchDoc
@@ -15,12 +15,12 @@
 #include <hardware/gpio.h>
 #include <hardware/pwm.h>
 
-#include "lamp.h"
 #include "pins.h"
-#include "Drivers/drv_usb_pd.h"
+#include "Drivers/drv_lamp.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_config.h"
-#include "radar.h"
+#include "Drivers/drv_usb_pd.h"
+#include "Drivers/drv_radar.h"
 #include <hardware/watchdog.h>
 
 

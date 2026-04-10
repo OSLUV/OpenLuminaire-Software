@@ -57,7 +57,7 @@ void mod_sys_startup_wdt(void)
  * @brief System services
  * 
  */
-void mod_system_services(void)
+void mod_sys_services(void)
 {
     watchdog_update();
     drv_cfg_save();

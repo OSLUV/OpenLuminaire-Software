@@ -12,7 +12,7 @@
 /* Exported includes ---------------------------------------------------------*/
 
 #include <stdint.h>
-#include "lamp.h"
+#include "Drivers/drv_lamp.h"
 
 
 /* Exported typedef ----------------------------------------------------------*/

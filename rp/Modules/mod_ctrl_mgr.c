@@ -10,12 +10,11 @@
 
 #include <stdio.h>
 #include "Modules/mod_ctrl_mgr.h"
-#include "imu.h"
-#include "mag.h"
-#include "lamp.h"
-#include "buttons.h"
-#include "radar.h"
-#include "fan.h"
+#include "Drivers/drv_accelerometer.h"
+#include "Drivers/drv_magnetometer.h"
+#include "Drivers/drv_lamp.h"
+#include "Drivers/drv_radar.h"
+#include "Drivers/drv_fan.h"
 
 
 /* Private define ------------------------------------------------------------*/
@@ -33,7 +32,6 @@
  */
 void mod_ctrl_init(void)
 {
-    buttons_init();
 	imu_init();
 	mag_init();
 	lamp_init();
@@ -59,7 +57,6 @@ void mod_ctrl_init(void)
  */
 void mod_ctrl_manager(void)
 {
-    buttons_update();
     imu_update();
     mag_update();
     radar_update();

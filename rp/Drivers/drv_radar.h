@@ -1,5 +1,5 @@
 /**
- * @file      radar.h
+ * @file      drv_radar.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for mmWave Radar driver
  *  

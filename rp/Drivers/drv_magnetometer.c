@@ -1,5 +1,5 @@
 /**
- * @file      mag.c
+ * @file      drv_magnetometer.c
  * @author    The OSLUV Project
  * @brief     Driver for magnet sensor
  * @hwref     U8 (TMAG5273)

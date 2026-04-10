@@ -10,9 +10,9 @@
 
 #include <stdio.h>
 #include <pico/stdlib.h>
-#include "lamp.h"
-#include "radar.h"
-#include "imu.h"
+#include "Drivers/drv_accelerometer.h"
+#include "Drivers/drv_lamp.h"
+#include "Drivers/drv_radar.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

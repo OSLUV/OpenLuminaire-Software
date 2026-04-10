@@ -1,5 +1,5 @@
 /**
- * @file      mag.c
+ * @file      drv_accelerometer.c
  * @author    The OSLUV Project
  * @brief     Driver for accelerometer device
  * @hwref     U7 (LIS3DHTR)

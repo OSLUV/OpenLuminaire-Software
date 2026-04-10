@@ -1,5 +1,5 @@
 /**
- * @file      mag.h
+ * @file      drv_magnetometer.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for magnet sensor driver
  *  

@@ -10,16 +10,16 @@
 
 #include <lvgl.h>
 #include <stdio.h>
+#include <string.h>
 #include "display.h"
-#include "lamp.h"
-#include "imu.h"
+#include "Drivers/drv_accelerometer.h"
+#include "Drivers/drv_config.h"
+#include "Drivers/drv_lamp.h"
 #include "buttons.h"
 #include "ui_debug.h"
 #include "ui_loading.h"
 #include "ui_main.h"
 #include "safety_logic.h"
-#include "Drivers/drv_config.h"
-#include <string.h>
 
 
 /* Private typedef -----------------------------------------------------------*/

@@ -1,5 +1,5 @@
 /**
- * @file      fan.c
+ * @file      drv_fan.c
  * @author    The OSLUV Project
  * @brief     Driver for external fan control
  * @schematic lamp_controller.SchDoc
@@ -12,6 +12,7 @@
 #include <hardware/pwm.h>
 #include <hardware/gpio.h>
 #include "pins.h"
+#include "Drivers/drv_fan.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

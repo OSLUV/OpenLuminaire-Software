@@ -11,9 +11,9 @@
 #include <lvgl.h>
 #include "ui_loading.h"
 #include "splash_img.h"
-#include "lamp.h"
-#include "display.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_lamp.h"
+#include "display.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

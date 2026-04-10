@@ -14,7 +14,7 @@
 #include "pico/time.h"
 #include "Modules/mod_ser_cmd.h"
 #include "Drivers/drv_uart_cmd.h"
-#include "lamp.h"
+#include "Drivers/drv_lamp.h"
 #include "ui_main.h"
 
 

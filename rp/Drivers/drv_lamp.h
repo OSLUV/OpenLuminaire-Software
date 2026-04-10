@@ -1,5 +1,5 @@
 /**
- * @file      lamp.h
+ * @file      drv_lamp.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for lamp state control driver
  *  

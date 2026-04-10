@@ -1,5 +1,5 @@
 /**
- * @file      radar.c
+ * @file      drv_radar.c
  * @author    The OSLUV Project
  * @brief     Driver for external mmWave Radar (human presence motion module)
  * @hwref     HLK-LD2410C
@@ -19,8 +19,8 @@
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 #include "pins.h"
-#include "lamp.h"
-#include "radar.h"
+#include "Drivers/drv_radar.h"
+#include "Drivers/drv_lamp.h"
 
 
 /* Compile-time --------------------------------------------------------------*/
