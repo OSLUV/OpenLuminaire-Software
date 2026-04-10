@@ -33,12 +33,12 @@
 void mod_ctrl_init(void)
 {
 	drv_acc_init();
-	mag_init();
+	drv_mag_init();
 	lamp_init();
 	
 	radar_init();
-	fan_init();
-	fan_set_speed(100);
+	drv_fan_init();
+	drv_fan_set_speed(100);
 
     lamp_power_up_rails();
 
@@ -58,7 +58,7 @@ void mod_ctrl_init(void)
 void mod_ctrl_manager(void)
 {
     drv_acc_update();
-    mag_update();
+    drv_mag_update();
     radar_update();
     lamp_update();
 }

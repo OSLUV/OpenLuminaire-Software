@@ -20,27 +20,27 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define MAG_IC_ADDR_C           0x35
-#define MAG_REG_DEV_CFG_1_C     0x01
-#define MAG_REG_DEV_CFG_2_C     0x02
-#define MAG_REG_X_MSB_RES_C     0x12
-#define MAG_REG_X_LSB_RES_C     0x13
-#define MAG_REG_Y_MSB_RES_C     0x14
-#define MAG_REG_Y_LSB_RES_C     0x15
-#define MAG_REG_Z_MSB_RES_C     0x16
-#define MAG_REG_Z_LSB_RES_C     0x17
+#define D_MAG_IC_ADDR_C           0x35
+#define D_MAG_REG_DEV_CFG_1_C     0x01
+#define D_MAG_REG_DEV_CFG_2_C     0x02
+#define D_MAG_REG_X_MSB_RES_C     0x12
+#define D_MAG_REG_X_LSB_RES_C     0x13
+#define D_MAG_REG_Y_MSB_RES_C     0x14
+#define D_MAG_REG_Y_LSB_RES_C     0x15
+#define D_MAG_REG_Z_MSB_RES_C     0x16
+#define D_MAG_REG_Z_LSB_RES_C     0x17
 
 
 /* Global variables  ---------------------------------------------------------*/
 
-int16_t g_mag_x, g_mag_y, g_mag_z = 0;
+int16_t g_drv_mag_x, g_drv_mag_y, g_drv_mag_z = 0;
 
 
 /* Private variables  --------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
-static inline int mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd);
-static inline int mag_write(uint8_t dev_addr, uint8_t data_wr);
+static inline int drv_mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd);
+static inline int drv_mag_write(uint8_t dev_addr, uint8_t data_wr);
 
 
 /* Exported functions --------------------------------------------------------*/
@@ -51,12 +51,12 @@ static inline int mag_write(uint8_t dev_addr, uint8_t data_wr);
  * @return 	void  
  * 
  */
-void mag_init(void)
+void drv_mag_init(void)
 {
     drv_i2c_init();
 
-    mag_write(MAG_REG_DEV_CFG_1_C, (0x04 << 2) | (0x02 << 0));                  /* CONV_AVG: 16x average, I2C_RD: 1-byte I2C read command for 8 bit sensor MSB data and conversion status */
-    mag_write(MAG_REG_DEV_CFG_2_C, (0x03 << 5) | (0x01 << 4));                  /* THR_HYST: ? , LP_LN: Low noise mode */
+    drv_mag_write(D_MAG_REG_DEV_CFG_1_C, (0x04 << 2) | (0x02 << 0));            /* CONV_AVG: 16x average, I2C_RD: 1-byte I2C read command for 8 bit sensor MSB data and conversion status */
+    drv_mag_write(D_MAG_REG_DEV_CFG_2_C, (0x03 << 5) | (0x01 << 4));            /* THR_HYST: ? , LP_LN: Low noise mode */
 }
 
 /**
@@ -64,18 +64,18 @@ void mag_init(void)
  * 
  * @return 	void  
  */
-void mag_update(void)
+void drv_mag_update(void)
 {
     uint8_t buf[2];
 
-    mag_read(MAG_REG_X_MSB_RES_C, 2, buf);
-    *(uint16_t*)&g_mag_x = (buf[0] << 8) | buf[1];
+    drv_mag_read(D_MAG_REG_X_MSB_RES_C, 2, buf);
+    *(uint16_t*)&g_drv_mag_x = (buf[0] << 8) | buf[1];
 
-    mag_read(MAG_REG_Y_MSB_RES_C, 2, buf);
-    *(uint16_t*)&g_mag_y = (buf[0] << 8) | buf[1];
+    drv_mag_read(D_MAG_REG_Y_MSB_RES_C, 2, buf);
+    *(uint16_t*)&g_drv_mag_y = (buf[0] << 8) | buf[1];
 
-    mag_read(MAG_REG_Z_MSB_RES_C, 2, buf);
-    *(uint16_t*)&g_mag_z = (buf[0] << 8) | buf[1];
+    drv_mag_read(D_MAG_REG_Z_MSB_RES_C, 2, buf);
+    *(uint16_t*)&g_drv_mag_z = (buf[0] << 8) | buf[1];
 }
 
 
@@ -90,17 +90,17 @@ void mag_update(void)
  * @return int 1 - Read operation failed
  * @return int 0 - Read operation succeed
  */
-static inline int mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
+static inline int drv_mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
 {
-    if (drv_i2c_wr_tmout_us(MAG_IC_ADDR_C, &dev_addr, 1, true, 1000) <0)
+    if (drv_i2c_wr_tmout_us(D_MAG_IC_ADDR_C, &dev_addr, 1, true, 1000) <0)
     {
-        printf("mag_read fail: addr\n");
+        printf("drv_mag_read fail: addr\n");
         return 1;
     }
 
-    if (drv_i2c_rd_tmout_us(MAG_IC_ADDR_C, p_data_rd, data_len, false, 1000) <0)
+    if (drv_i2c_rd_tmout_us(D_MAG_IC_ADDR_C, p_data_rd, data_len, false, 1000) <0)
     {
-        printf("mag_read fail: data\n");
+        printf("drv_mag_read fail: data\n");
         return 1;
     }
 
@@ -115,13 +115,13 @@ static inline int mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
  * @return int 1 - Write operation failed
  * @return int 0 - Write operation succeed
  */
-static inline int mag_write(uint8_t dev_addr, uint8_t data_wr)
+static inline int drv_mag_write(uint8_t dev_addr, uint8_t data_wr)
 {
     uint8_t buf[] = {dev_addr, data_wr};
 
-    if (drv_i2c_wr_tmout_us(MAG_IC_ADDR_C, buf, 2, false, 1000) <0)
+    if (drv_i2c_wr_tmout_us(D_MAG_IC_ADDR_C, buf, 2, false, 1000) <0)
     {
-        printf("mag_write fail\n");
+        printf("drv_mag_write fail\n");
         return 1;
     }
 

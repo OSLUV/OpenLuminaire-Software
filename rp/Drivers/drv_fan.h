@@ -11,9 +11,9 @@
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void fan_init(void);
-void fan_set_speed(int speed);
-int fan_get_speed(void);
+void drv_fan_init(void);
+void drv_fan_set_speed(int speed);
+int drv_fan_get_speed(void);
 
 
 #endif /* _D_FAN_H_ */

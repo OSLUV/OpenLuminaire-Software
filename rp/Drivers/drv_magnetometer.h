@@ -16,13 +16,13 @@
 
 /* Exported variables --------------------------------------------------------*/
 
-extern int16_t g_mag_x, g_mag_y, g_mag_z;
+extern int16_t g_drv_mag_x, g_drv_mag_y, g_drv_mag_z;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void mag_init(void);
-void mag_update(void);
+void drv_mag_init(void);
+void drv_mag_update(void);
 
 
 #endif /* _D_MAG_H_ */

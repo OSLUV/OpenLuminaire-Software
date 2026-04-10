@@ -148,7 +148,7 @@ void ui_debug_update(void)
 
     ADD_TEXT("IMU: %+.2f/%+.2f/%+.2f\n", g_drv_acc_x, g_drv_acc_y, g_drv_acc_z);
 
-    ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_mag_x, g_mag_y, g_mag_z);
+    ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_drv_mag_x, g_drv_mag_y, g_drv_mag_z);
 
     ADD_TEXT("12V %s %s / 24V Reg %s\n",
              g_mod_pow_hw_is_rev1_2_b?"Reg":"Switched",
