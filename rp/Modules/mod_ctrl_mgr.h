@@ -1,12 +1,12 @@
 /**
- * @file      mod_system.h
+ * @file      mod_ctrl_mgr.h
  * @author    The OSLUV Project
- * @brief     Functions prototypes for System module
+ * @brief     Functions prototypes for Control Manager module
  *  
  */
 
-#ifndef _M_SYS_H
-#define _M_SYS_H
+#ifndef _M_CTRL_H
+#define _M_CTRL_H
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -17,11 +17,10 @@
 /* Exported variables --------------------------------------------------------*/
 /* Exported functions prototypes ---------------------------------------------*/
 
-void mod_sys_init(void);
-void mod_sys_startup_wdt(void);
-void mod_sys_services(void);
+void mod_ctrl_init(void);
+void mod_ctrl_manager(void);
 
 
-#endif /* _M_SYS_H */
+#endif /* _M_CTRL_H */
 
 /*** END OF FILE ***/

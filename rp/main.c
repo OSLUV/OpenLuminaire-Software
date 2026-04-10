@@ -21,12 +21,6 @@
 
 #include "st7789.h"
 #include "pins.h"
-#include "imu.h"
-#include "mag.h"
-#include "lamp.h"
-#include "buttons.h"
-#include "radar.h"
-#include "fan.h"
 #include "radio.h"
 #include "safety_logic.h"
 #include "display.h"
@@ -34,13 +28,20 @@
 #include "ui_loading.h"
 #include "ui_debug.h"
 
+#include "buttons.h"
+#include "lamp.h"
+
 #include "Modules/mod_comm_mgr.h"
+#include "Modules/mod_ctrl_mgr.h"
 #include "Modules/mod_pow_mgr.h"
 #include "Modules/mod_system.h"
 
 #include "font.c"
 
+/* Private function prototypes -----------------------------------------------*/
+
 static void main_sys_init(void);
+
 
 /* Application main function -------------------------------------------------*/
 
@@ -55,17 +56,13 @@ void main(void)
 	
 	while (1)
 	{
-		mod_system_services();
+		mod_sys_services();
 
 		mod_pow_manager();
 		
 		mod_comm_manager();
 		
-		buttons_update();
-		imu_update();
-		mag_update();
-		radar_update();
-		lamp_update();
+		mod_ctrl_manager();
 		
 		if (lamp_is_power_ok())
 		{
@@ -161,33 +158,9 @@ static void main_sys_init(void)
 	ui_loading_splash_image_open(NULL);
 
 	mod_pow_init();
+	mod_sys_startup_wdt();
 	mod_comm_init();
-
-	buttons_init();
-	imu_init();
-	mag_init();
-	lamp_init();
-	
-	radar_init();
-	fan_init();
-	fan_set_speed(100);
-
-	/* Watchdog: catches runtime hangs (brownout gray zone, stuck loops).
-	 * Enabled after drv_usb_pd_negotiate() (long blocking) but before
-	 * lamp_power_up_rails() (lamp could be on after this point).
-	 * Feeds: main loop, type test loops, lamp_power_up_rails sleeps,
-	 * drv_usb_pd_negotiate loop (for hot-plug re-negotiation). */
-	watchdog_enable(1500, true);
-
-	lamp_power_up_rails();
-
-	printf("Scripted start...\n");
-
-	if (lamp_is_power_ok()) 
-	{
-		lamp_perform_type_test();
-		lamp_request_power_level(LAMP_PWR_100PCT_C);
-	}
+	mod_ctrl_init();
 	
 	printf("Enter mainloop... xx\n");
 	

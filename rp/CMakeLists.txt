@@ -58,6 +58,7 @@ add_custom_target(splash_images DEPENDS ${SPLASH_C_FILES})
 
 add_executable(app
 	main.c
+	Modules/mod_ctrl_mgr.c
 	Modules/mod_comm_mgr.c
 	Modules/mod_pow_mgr.c
 	Modules/mod_ser_cmd.c

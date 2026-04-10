@@ -9,6 +9,12 @@
 #define _D_LAMP_H_
 
 
+/* Exported includes ---------------------------------------------------------*/
+
+#include <stdint.h>
+#include <stdbool.h>
+
+
 /* Exported typedef ----------------------------------------------------------*/
 
 /**
