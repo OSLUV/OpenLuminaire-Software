@@ -172,9 +172,10 @@ void ui_debug_update(void)
         ADD_TEXT("USB: none (barrel jack)\n");
     }
 
-    RADAR_REPORT_T* r      = radar_debug_get_report();
-    int             r_time = radar_debug_get_report_time();
-    int             dt     = (time_us_64() - r_time)/(1000);
+    D_RADAR_REPORT_T* r = drv_radar_debug_get_report();
+
+    int r_time = drv_radar_debug_get_report_time();
+    int dt     = (time_us_64() - r_time)/(1000);
 
     ADD_TEXT("Radar: Ty%d dT% 8dms %s\n",
              r->type, dt, (dt>3000 || r_time == 0)?"STALE":"OK");
@@ -189,7 +190,7 @@ void ui_debug_update(void)
 
     ADD_TEXT("Radar: DD: %dcm / RD:%d\n",
              r->report.detection_distance_cm,
-             radar_get_distance_cm());
+             drv_radar_get_distance_cm());
 
     lv_label_set_text(ui_debug_label, ui_debug_label_txt);
 }

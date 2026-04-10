@@ -112,7 +112,7 @@ void safety_logic_update(void)
 		return;
 	}
 
-	int distance = radar_get_distance_cm();
+	int distance = drv_radar_get_distance_cm();
 
 	if (distance == -1)
 	{

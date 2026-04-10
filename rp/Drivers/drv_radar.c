@@ -25,49 +25,49 @@
 
 /* Compile-time --------------------------------------------------------------*/
 
-static_assert(sizeof(RADAR_MESSAGE_T) == (0x0D + 2 + 4 + 4));
+static_assert(sizeof(D_RADAR_MESSAGE_T) == (0x0D + 2 + 4 + 4));
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define RADAR_INVALID_CM_C			30      									/* Sensor returns this when idle  */
-#define RADAR_STALE_US_C      		(1000 * 1000) 								/* How long a value stays “fresh” */
+#define D_RADAR_INVALID_CM_C		30      									/* Sensor returns this when idle  */
+#define D_RADAR_STALE_US_C      	(1000 * 1000) 								/* How long a value stays “fresh” */
 
-#define RADAR_EN_CFG_CMD_C 			0x00FF
-#define RADAR_END_CFG_CMD_C 		0x00FE
-#define RADAR_SET_BAUDRATE_CMD_C	0x00A1
-#define RADAR_FACTORY_STNS_CMD_C	0x00A2
-#define RADAR_RESTART_CMD_C			0x00A3
+#define D_RADAR_EN_CFG_CMD_C 		0x00FF
+#define D_RADAR_END_CFG_CMD_C 		0x00FE
+#define D_RADAR_SET_BAUDRATE_CMD_C	0x00A1
+#define D_RADAR_FACTORY_STNS_CMD_C	0x00A2
+#define D_RADAR_RESTART_CMD_C		0x00A3
 
-#define RADAR_BAUDRATE_9600_C		0x0001
-#define RADAR_BAUDRATE_19200_C		0x0002
-#define RADAR_BAUDRATE_38400_C		0x0003
-#define RADAR_BAUDRATE_57600_C		0x0004
-#define RADAR_BAUDRATE_115200_C		0x0005
-#define RADAR_BAUDRATE_230400_C		0x0006
-#define RADAR_BAUDRATE_256000_C		0x0007
-#define RADAR_BAUDRATE_460800_C		0x0008
+#define D_RADAR_BAUDRATE_9600_C		0x0001
+#define D_RADAR_BAUDRATE_19200_C	0x0002
+#define D_RADAR_BAUDRATE_38400_C	0x0003
+#define D_RADAR_BAUDRATE_57600_C	0x0004
+#define D_RADAR_BAUDRATE_115200_C	0x0005
+#define D_RADAR_BAUDRATE_230400_C	0x0006
+#define D_RADAR_BAUDRATE_256000_C	0x0007
+#define D_RADAR_BAUDRATE_460800_C	0x0008
 
 
 /* Global variables  ---------------------------------------------------------*/
 /* Private variables  --------------------------------------------------------*/
 
-static int				 radar_errors = 0;
-static int				 radar_distance_cm = -1;
-static int 				 radar_last_good_distance_cm = -1;
-static uint64_t			 radar_last_good_time_us     = 0;
+static int				 	radar_errors = 0;
+static int				 	radar_distance_cm = -1;
+static int 				 	radar_last_good_distance_cm = -1;
+static uint64_t			 	radar_last_good_time_us     = 0;
 
-static RADAR_REPORT_T	 radar_last_report;
-static uint64_t 		 radar_last_report_time = 0;
-static uint64_t 		 radar_last_reinit_time = 0;
+static D_RADAR_REPORT_T	 	radar_last_report;
+static uint64_t 		 	radar_last_report_time = 0;
+static uint64_t 		 	radar_last_reinit_time = 0;
 
-volatile uint8_t 		 radar_uart_rx_buffer[256];
-volatile int			 radar_uart_rx_ptr = 0;
-volatile uint64_t		 radar_uart_last_rx_time = 0;
+volatile uint8_t 		 	radar_uart_rx_buffer[256];
+volatile int			 	radar_uart_rx_ptr = 0;
+volatile uint64_t		 	radar_uart_last_rx_time = 0;
 
-volatile RADAR_MESSAGE_T radar_message;
-volatile bool 			 b_radar_is_message_ok;
+volatile D_RADAR_MESSAGE_T 	radar_message;
+volatile bool 			 	b_radar_is_message_ok;
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -78,7 +78,7 @@ void radar_uart_rx_callback(void);
 /* Private function prototypes -----------------------------------------------*/
 
 static inline int radar_pick_distance(uint16_t det, uint16_t mov, uint16_t stat);
-static void radar_init_comms(void);
+static void drv_radar_init_comms(void);
 static void radar_reset_rx(void);
 static void radar_process_rx_msg(void);
 static void radar_uart_txn(uint16_t command_word, uint8_t* p_tx_buf, uint tx_len);
@@ -100,7 +100,7 @@ void dbgf(const char *fmt, ...);
  * @return 	void  
  * 
  */
-void radar_init(void)
+void drv_radar_init(void)
 {
 	uart_init(UART_INST_MMWAVE, 9600);
     gpio_set_function(PIN_MMWAVE_RX, GPIO_FUNC_UART);
@@ -123,7 +123,7 @@ void radar_init(void)
  * 
  * @return 	void  
  */
-void radar_update(void)
+void drv_radar_update(void)
 {
 	if ((time_us_64() - radar_uart_last_rx_time) > (50 * 1000))
 	{
@@ -135,7 +135,7 @@ void radar_update(void)
 	    (time_us_64() - radar_last_reinit_time) > (1000 * 3000) && 
 		lamp_get_switched_12v())
 	{
-		radar_init_comms();
+		drv_radar_init_comms();
 		radar_last_reinit_time = time_us_64();
 	}
 
@@ -206,24 +206,11 @@ void radar_update(void)
 }
 
 /**
- * @brief Prints output for debug
- * 
- */
-void radar_debug(void)
-{
-	int dt = (time_us_64() - radar_last_report_time) / (1000);
-	dbgf("Radar: Ty%d dT% 8dms %s\n", radar_last_report.type, dt, (dt>1000 || radar_last_report_time == 0)?"STALE":"OK");
-	dbgf("Radar: M: %dcm %de\n", radar_last_report.report.moving_target_distance_cm, radar_last_report.report.moving_target_energy);
-	dbgf("Radar: S: %dcm %de\n", radar_last_report.report.stationary_target_distance_cm, radar_last_report.report.stationary_target_energy);
-	dbgf("Radar: DD: %dcm PIN:%d/%d / RD:%d\n", radar_last_report.report.detection_distance_cm, gpio_get(PIN_MMWAVE_RX), gpio_get(PIN_MMWAVE_TX), radar_get_distance_cm());
-}
-
-/**
  * @brief Returns the sensed distance in centimeters
  * 
  * @return int 
  */
-int radar_get_distance_cm(void)
+int drv_radar_get_distance_cm(void)
 {
 	return radar_distance_cm;
 }
@@ -234,7 +221,7 @@ int radar_get_distance_cm(void)
  * 
  * @return int 
  */
-int radar_get_moving_target_cm(void)
+int drv_radar_get_moving_target_cm(void)
 {
 	return radar_last_report.report.moving_target_distance_cm;
 }
@@ -246,18 +233,31 @@ int radar_get_moving_target_cm(void)
  * 
  * @return int 
  */
-int radar_get_stationary_target_cm(void)
+int drv_radar_get_stationary_target_cm(void)
 {
 	return radar_last_report.report.stationary_target_distance_cm;
 }
 #endif
 
 /**
- * @brief Returns the last report data @ref RADAR_REPORT_T
+ * @brief Prints output for debug
  * 
- * @return RADAR_REPORT_T* 
  */
-RADAR_REPORT_T* radar_debug_get_report(void)
+void drv_radar_debug(void)
+{
+	int dt = (time_us_64() - radar_last_report_time) / (1000);
+	dbgf("Radar: Ty%d dT% 8dms %s\n", radar_last_report.type, dt, (dt>1000 || radar_last_report_time == 0)?"STALE":"OK");
+	dbgf("Radar: M: %dcm %de\n", radar_last_report.report.moving_target_distance_cm, radar_last_report.report.moving_target_energy);
+	dbgf("Radar: S: %dcm %de\n", radar_last_report.report.stationary_target_distance_cm, radar_last_report.report.stationary_target_energy);
+	dbgf("Radar: DD: %dcm PIN:%d/%d / RD:%d\n", radar_last_report.report.detection_distance_cm, gpio_get(PIN_MMWAVE_RX), gpio_get(PIN_MMWAVE_TX), drv_radar_get_distance_cm());
+}
+
+/**
+ * @brief Returns the last report data @ref D_RADAR_REPORT_T
+ * 
+ * @return D_RADAR_REPORT_T* 
+ */
+D_RADAR_REPORT_T* drv_radar_debug_get_report(void)
 {
 	return &radar_last_report;
 }
@@ -267,7 +267,7 @@ RADAR_REPORT_T* radar_debug_get_report(void)
  * 
  * @return int 
  */
-int radar_debug_get_report_time(void)
+int drv_radar_debug_get_report_time(void)
 {
 	return radar_last_report_time;
 }
@@ -289,7 +289,7 @@ void radar_uart_rx_callback(void)
 
         radar_uart_rx_ptr++;
 
-        if (radar_uart_rx_ptr == sizeof(RADAR_MESSAGE_T))
+        if (radar_uart_rx_ptr == sizeof(D_RADAR_MESSAGE_T))
         {
         	radar_process_rx_msg();
         	radar_reset_rx();
@@ -304,7 +304,7 @@ void radar_uart_rx_callback(void)
  * @brief Returns the best distance
  * 
  * Prefer the detection field when it’s valid, otherwise take the nearer of the 
- * two raw fields, but only if it is greather than 30 cm @ref RADAR_INVALID_CM_C
+ * two raw fields, but only if it is greather than 30 cm @ref D_RADAR_INVALID_CM_C
  * 
  * @param det Detection distance
  * @param mov Movement distance
@@ -314,14 +314,14 @@ void radar_uart_rx_callback(void)
 static inline int radar_pick_distance(uint16_t det, uint16_t mov, uint16_t stat)
 {
 #if 0
-    if (det > RADAR_INVALID_CM_C) 
+    if (det > D_RADAR_INVALID_CM_C) 
 	{
 		return det;
 	}
 #endif
 
-    int m = (mov  > RADAR_INVALID_CM_C) ? mov  : INT_MAX;
-    int s = (stat > RADAR_INVALID_CM_C) ? stat : INT_MAX;
+    int m = (mov  > D_RADAR_INVALID_CM_C) ? mov  : INT_MAX;
+    int s = (stat > D_RADAR_INVALID_CM_C) ? stat : INT_MAX;
 
     int best = (m < s) ? m : s;
 	
@@ -332,9 +332,9 @@ static inline int radar_pick_distance(uint16_t det, uint16_t mov, uint16_t stat)
  * @brief Inititialization procedure for Radar's UART communication
  * 
  */
-static void radar_init_comms(void)
+static void drv_radar_init_comms(void)
 {
-	printf("radar_init_comms()\n");
+	printf("drv_radar_init_comms()\n");
 	radar_reinit(256000);
     radar_reinit(9600);
 }
@@ -394,7 +394,7 @@ static void radar_uart_txn(uint16_t command_word, uint8_t* p_tx_buf, uint tx_len
 static void radar_do_enter_config_mode(void)
 {
 	uint8_t buf[] = {0x01, 0x00};
-	radar_uart_txn(RADAR_EN_CFG_CMD_C, buf, sizeof(buf));
+	radar_uart_txn(D_RADAR_EN_CFG_CMD_C, buf, sizeof(buf));
 }
 
 /**
@@ -404,7 +404,7 @@ static void radar_do_enter_config_mode(void)
 static void radar_do_exit_config_mode(void)
 {
 	uint8_t buf[] = {};
-	radar_uart_txn(RADAR_END_CFG_CMD_C, buf, sizeof(buf));
+	radar_uart_txn(D_RADAR_END_CFG_CMD_C, buf, sizeof(buf));
 }
 
 /**
@@ -414,7 +414,7 @@ static void radar_do_exit_config_mode(void)
 static void radar_do_factory_reset(void)
 {
 	uint8_t buf[] = {};
-	radar_uart_txn(RADAR_FACTORY_STNS_CMD_C, buf, sizeof(buf));
+	radar_uart_txn(D_RADAR_FACTORY_STNS_CMD_C, buf, sizeof(buf));
 }
 
 /**
@@ -424,7 +424,7 @@ static void radar_do_factory_reset(void)
 static void radar_do_restart(void)
 {
 	uint8_t buf[] = {};
-	radar_uart_txn(RADAR_RESTART_CMD_C, buf, sizeof(buf));
+	radar_uart_txn(D_RADAR_RESTART_CMD_C, buf, sizeof(buf));
 }
 
 /**
@@ -434,7 +434,7 @@ static void radar_do_restart(void)
  */
 static void radar_do_set_baudrate(uint16_t baudrate_val)
 {
-	radar_uart_txn(RADAR_SET_BAUDRATE_CMD_C, (uint8_t*)&baudrate_val, 2);
+	radar_uart_txn(D_RADAR_SET_BAUDRATE_CMD_C, (uint8_t*)&baudrate_val, 2);
 }
 
 /**
@@ -456,7 +456,7 @@ static void radar_reinit(int baudrate)
     sleep_ms(50);
 	radar_do_factory_reset();
 	sleep_ms(50);
-	radar_do_set_baudrate(RADAR_BAUDRATE_9600_C);
+	radar_do_set_baudrate(D_RADAR_BAUDRATE_9600_C);
 	sleep_ms(50);
 	radar_do_restart();
 	while (uart_is_readable(UART_INST_MMWAVE)) 

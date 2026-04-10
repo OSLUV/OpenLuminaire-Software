@@ -12,7 +12,7 @@
 /* Exported typedef ----------------------------------------------------------*/
 
 /**
- * @struct RADAR_REPORT_T
+ * @struct D_RADAR_REPORT_T
  * @brief 
  * 
  */
@@ -31,33 +31,33 @@ typedef struct __packed
 	} report;
 	uint8_t _end;
 	uint8_t _check;
-} RADAR_REPORT_T;
+} D_RADAR_REPORT_T;
 
 /**
- * @struct RADAR_MESSAGE_T
+ * @struct D_RADAR_MESSAGE_T
  * @brief 
  * 
  */
 typedef struct __packed
 {
-	uint8_t 		preamble[4];
-	uint16_t 		length;
-	RADAR_REPORT_T  inner;
-	uint8_t 		postamble[4];
-} RADAR_MESSAGE_T;
+	uint8_t 		  preamble[4];
+	uint16_t 		  length;
+	D_RADAR_REPORT_T  inner;
+	uint8_t 		  postamble[4];
+} D_RADAR_MESSAGE_T;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void radar_init(void);
-void radar_update(void);
-void radar_debug(void);
-int radar_get_distance_cm(void); // or -1 if stale
-int radar_get_moving_target_cm(void);
-int radar_get_stationary_target_cm(void);
+void drv_radar_init(void);
+void drv_radar_update(void);
+int drv_radar_get_distance_cm(void); // or -1 if stale
+int drv_radar_get_moving_target_cm(void);
+int drv_radar_get_stationary_target_cm(void);
 
-RADAR_REPORT_T* radar_debug_get_report(void);
-int radar_debug_get_report_time(void);
+void drv_radar_debug(void);
+D_RADAR_REPORT_T* drv_radar_debug_get_report(void);
+int drv_radar_debug_get_report_time(void);
 
 
 #endif /* _D_RADAR_H_ */
