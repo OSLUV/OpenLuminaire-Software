@@ -177,7 +177,7 @@ uint8_t drv_cfg_get_dim_index(void)
 /**
  * @brief Sets the factory lamp type in persistence
  *
- * @param type @ref LAMP_TYPE_E
+ * @param type @ref D_LAMP_TYPE_E
  */
 void drv_cfg_set_factory_lamp_type(uint8_t type)
 {
@@ -189,7 +189,7 @@ void drv_cfg_set_factory_lamp_type(uint8_t type)
 /**
  * @brief Gets the factory lamp type from persistence
  *
- * @return uint8_t @ref LAMP_TYPE_E
+ * @return uint8_t @ref D_LAMP_TYPE_E
  */
 uint8_t drv_cfg_get_factory_lamp_type(void)
 {

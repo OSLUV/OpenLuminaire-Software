@@ -124,7 +124,7 @@ void ui_debug_update(void)
              drv_lamp_get_lamp_state_str(drv_lamp_get_lamp_state()),
              drv_lamp_get_state_elapsed_ms());
 
-    LAMP_PWR_LEVEL_E rep;
+    D_LAMP_PWR_LEVEL_E rep;
 
     drv_lamp_get_reported_power_level(&rep);
 
@@ -137,9 +137,9 @@ void ui_debug_update(void)
              drv_lamp_get_raw_freq());
 
     char* type_strs[] = {
-        [LAMP_TYPE_UNKNOWN_C]      = "UNKNOWN",
-        [LAMP_TYPE_DIMMABLE_C]     = "DIMMABLE",
-        [LAMP_TYPE_NON_DIMMABLE_C] = "NONDIMMABLE"
+        [D_LAMP_TYPE_UNKNOWN_C]      = "UNKNOWN",
+        [D_LAMP_TYPE_DIMMABLE_C]     = "DIMMABLE",
+        [D_LAMP_TYPE_NON_DIMMABLE_C] = "NONDIMMABLE"
     };
 
     ADD_TEXT("Lamp Type %s\n", type_strs[drv_lamp_get_type()]);
@@ -233,7 +233,7 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
     lv_obj_invalidate(ui_debug_screen);
     lv_refr_now(NULL);
 
-    drv_lamp_request_power_level(LAMP_PWR_OFF_C);
+    drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
     drv_lamp_update();
     drv_lamp_update();
     sleep_ms(100);

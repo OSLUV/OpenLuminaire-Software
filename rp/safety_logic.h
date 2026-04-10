@@ -22,7 +22,7 @@ char* safety_logic_get_state_desc(void);
 void safety_logic_set_radar_enabled_state(bool b_enable);
 bool safety_logic_get_radar_enabled_state(void);
 void safety_logic_toggle_radar_enabled_state(void);
-void safety_logic_set_cap_power(LAMP_PWR_LEVEL_E pwr_level);
+void safety_logic_set_cap_power(D_LAMP_PWR_LEVEL_E pwr_level);
 
 
 #endif /* _SAFETY_LOGIC_H_ */

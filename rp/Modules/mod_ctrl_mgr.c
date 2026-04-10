@@ -50,7 +50,7 @@ void mod_ctrl_init(void)
 	if (drv_lamp_is_power_ok()) 
 	{
 		drv_lamp_perform_type_test();
-		drv_lamp_request_power_level(LAMP_PWR_100PCT_C);
+		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
 	}
 }
 

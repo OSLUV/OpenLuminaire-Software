@@ -87,11 +87,11 @@ void ui_loading_splash_image_init(void)
     const lv_image_dsc_t *p_src = &splash_default_img;                          // Fallback
     switch (drv_lamp_get_type())
     {
-        case LAMP_TYPE_DIMMABLE_C:
+        case D_LAMP_TYPE_DIMMABLE_C:
             p_src = &splash_dimmable_img;
         break;
 
-        case LAMP_TYPE_NON_DIMMABLE_C:
+        case D_LAMP_TYPE_NON_DIMMABLE_C:
             p_src = &splash_basic_img;
         break;
 

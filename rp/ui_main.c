@@ -26,7 +26,7 @@
 /* Private define ------------------------------------------------------------*/
 
 #define UI_COLOR_ACCENT_C   lv_color_hex(0x5600FF)
-#define UI_MAIN_LAMP_PWR_C  LAMP_PWR_100PCT_C
+#define UI_MAIN_LAMP_PWR_C  D_LAMP_PWR_100PCT_C
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -113,7 +113,7 @@ void ui_main_init(void)
 
     ui_main_set_screen();
 
-    ui_lamp_known_b = (drv_lamp_get_type() != LAMP_TYPE_UNKNOWN_C);
+    ui_lamp_known_b = (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C);
 
     if (!ui_lamp_known_b)
     {
@@ -158,34 +158,34 @@ void ui_main_update(void)
     bool power_on = lv_obj_has_state(ui_sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(ui_sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
-	LAMP_PWR_LEVEL_E intensity_setting = UI_MAIN_LAMP_PWR_C;
+	D_LAMP_PWR_LEVEL_E intensity_setting = UI_MAIN_LAMP_PWR_C;
 
 	/* Get current User set-point lamp power level  */
 	if (ui_show_dim_b)
     {
 		int intensity_setting_int = lv_slider_get_value(ui_slider_intensity);
-        intensity_setting = LAMP_PWR_20PCT_C + intensity_setting_int;
+        intensity_setting = D_LAMP_PWR_20PCT_C + intensity_setting_int;
 	}
 	
 	/* Update lamp status                           */
-	LAMP_STATE_E s = drv_lamp_get_lamp_state();
-    const char * txt = (s == LAMP_STATE_OFF_C)                 ? "Lamp off"      : 
-					   (s == LAMP_STATE_STARTING_C)            ? "Lamp starting..."   :
-					   (s == LAMP_STATE_RESTRIKE_COOLDOWN_1_C) ? "Restrike cooldown 1":
-					   (s == LAMP_STATE_RESTRIKE_ATTEMPT_1_C)  ? "Restrike attempt 1":
-					   (s == LAMP_STATE_RESTRIKE_COOLDOWN_2_C) ? "Restrike cooldown 2":
-					   (s == LAMP_STATE_RESTRIKE_ATTEMPT_2_C)  ? "Restrike attempt 2":
-					   (s == LAMP_STATE_RESTRIKE_COOLDOWN_3_C) ? "Restrike cooldown 3":
-					   (s == LAMP_STATE_RESTRIKE_ATTEMPT_3_C)  ? "Restrike attempt 3":
-					   (s == LAMP_STATE_RUNNING_C)             ? "Lamp running"   :
-					   (s == LAMP_STATE_FAILED_OFF_C)          ? "Lamp off - ERROR" :
-					   (s == LAMP_STATE_FULLPOWER_TEST_C)      ? "Calibrating..." : "STATUS UNKNOWN";
+	D_LAMP_STATE_E s = drv_lamp_get_lamp_state();
+    const char * txt = (s == D_LAMP_STATE_OFF_C)                 ? "Lamp off"      : 
+					   (s == D_LAMP_STATE_STARTING_C)            ? "Lamp starting..."   :
+					   (s == D_LAMP_STATE_RESTRIKE_COOLDOWN_1_C) ? "Restrike cooldown 1":
+					   (s == D_LAMP_STATE_RESTRIKE_ATTEMPT_1_C)  ? "Restrike attempt 1":
+					   (s == D_LAMP_STATE_RESTRIKE_COOLDOWN_2_C) ? "Restrike cooldown 2":
+					   (s == D_LAMP_STATE_RESTRIKE_ATTEMPT_2_C)  ? "Restrike attempt 2":
+					   (s == D_LAMP_STATE_RESTRIKE_COOLDOWN_3_C) ? "Restrike cooldown 3":
+					   (s == D_LAMP_STATE_RESTRIKE_ATTEMPT_3_C)  ? "Restrike attempt 3":
+					   (s == D_LAMP_STATE_RUNNING_C)             ? "Lamp running"   :
+					   (s == D_LAMP_STATE_FAILED_OFF_C)          ? "Lamp off - ERROR" :
+					   (s == D_LAMP_STATE_FULLPOWER_TEST_C)      ? "Calibrating..." : "STATUS UNKNOWN";
     
-	int pct_req = (intensity_setting == LAMP_PWR_20PCT_C) ?  20 :
-				  (intensity_setting == LAMP_PWR_40PCT_C) ?  40 :
-				  (intensity_setting == LAMP_PWR_70PCT_C) ?  70 :
-				  (intensity_setting == LAMP_PWR_100PCT_C)? 100 : 0;
-	LAMP_PWR_LEVEL_E  cmd = drv_lamp_get_commanded_power_level();                   // What has been sent to pwm
+	int pct_req = (intensity_setting == D_LAMP_PWR_20PCT_C) ?  20 :
+				  (intensity_setting == D_LAMP_PWR_40PCT_C) ?  40 :
+				  (intensity_setting == D_LAMP_PWR_70PCT_C) ?  70 :
+				  (intensity_setting == D_LAMP_PWR_100PCT_C)? 100 : 0;
+	D_LAMP_PWR_LEVEL_E  cmd = drv_lamp_get_commanded_power_level();                   // What has been sent to pwm
 	int pct_cmd;
 	bool warming = drv_lamp_is_warming();
 
@@ -196,17 +196,17 @@ void ui_main_update(void)
 	}
     else 
     {
-	    pct_cmd = (cmd == LAMP_PWR_20PCT_C) ?  20 :
-				  (cmd == LAMP_PWR_40PCT_C) ?  40 :
-				  (cmd == LAMP_PWR_70PCT_C) ?  70 :
-				  (cmd == LAMP_PWR_100PCT_C)? 100 : 0;                          // LAMP_PWR_OFF_C or unknown
+	    pct_cmd = (cmd == D_LAMP_PWR_20PCT_C) ?  20 :
+				  (cmd == D_LAMP_PWR_40PCT_C) ?  40 :
+				  (cmd == D_LAMP_PWR_70PCT_C) ?  70 :
+				  (cmd == D_LAMP_PWR_100PCT_C)? 100 : 0;                          // D_LAMP_PWR_OFF_C or unknown
 	}
-    LAMP_PWR_LEVEL_E rep;                                                       // Reported level
+    D_LAMP_PWR_LEVEL_E rep;                                                       // Reported level
 	drv_lamp_get_reported_power_level(&rep);   
-    int pct_rep = (rep == LAMP_PWR_20PCT_C) ?  20 :
-				  (rep == LAMP_PWR_40PCT_C) ?  40 :
-				  (rep == LAMP_PWR_70PCT_C) ?  70 :
-				  (rep == LAMP_PWR_100PCT_C)? 100 : 0;
+    int pct_rep = (rep == D_LAMP_PWR_20PCT_C) ?  20 :
+				  (rep == D_LAMP_PWR_40PCT_C) ?  40 :
+				  (rep == D_LAMP_PWR_70PCT_C) ?  70 :
+				  (rep == D_LAMP_PWR_100PCT_C)? 100 : 0;
 				
 	bool radar_active = radar_on && pct_cmd < pct_req && power_on;
 	if (radar_active)
@@ -228,7 +228,7 @@ void ui_main_update(void)
     if (!power_on)
     {
         safety_logic_set_radar_enabled_state(false);
-        drv_lamp_request_power_level(LAMP_PWR_OFF_C);
+        drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
 		drv_cfg_set_power_state(power_on);
     }
     else
@@ -295,7 +295,7 @@ void ui_main_open(void)
  */
 int16_t ui_main_lamp_set_stt(uint16_t req_state)
 {
-    LAMP_PWR_LEVEL_E lamp_pwr_lvl;
+    D_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
 
     if (req_state == 0)
     {
@@ -303,7 +303,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
         display_screen_on();
 
-        //if (lamp_pwr_lvl != LAMP_PWR_OFF_C)                                     // Lamp is ON ?
+        //if (lamp_pwr_lvl != D_LAMP_PWR_OFF_C)                                     // Lamp is ON ?
         {
             drv_cfg_set_power_state(0);
             drv_cfg_save();
@@ -317,7 +317,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
     {
         drv_lamp_get_reported_power_level(&lamp_pwr_lvl);
 
-        if (lamp_pwr_lvl == LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
+        if (lamp_pwr_lvl == D_LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
         {
             display_screen_on();
 
@@ -355,30 +355,30 @@ int16_t ui_main_lamp_get_stt(uint16_t state)
  */
 int16_t ui_main_lamp_set_dim(uint16_t level)
 {
-    LAMP_PWR_LEVEL_E lamp_pwr_level;
+    D_LAMP_PWR_LEVEL_E lamp_pwr_level;
 
-    lamp_pwr_level = LAMP_PWR_UNKNOWN_C;
+    lamp_pwr_level = D_LAMP_PWR_UNKNOWN_C;
     switch (level)
     {
         case 0:
-            //lamp_pwr_level = LAMP_PWR_OFF_C;
+            //lamp_pwr_level = D_LAMP_PWR_OFF_C;
             return 0;
         break;
 
         case 20:
-            lamp_pwr_level = LAMP_PWR_20PCT_C;
+            lamp_pwr_level = D_LAMP_PWR_20PCT_C;
         break;
         
         case 40:
-            lamp_pwr_level = LAMP_PWR_40PCT_C;
+            lamp_pwr_level = D_LAMP_PWR_40PCT_C;
         break;
         
         case 70:
-            lamp_pwr_level = LAMP_PWR_70PCT_C;
+            lamp_pwr_level = D_LAMP_PWR_70PCT_C;
         break;
         
         case 100:
-            lamp_pwr_level = LAMP_PWR_100PCT_C;
+            lamp_pwr_level = D_LAMP_PWR_100PCT_C;
         break;
 
         default:
@@ -386,11 +386,11 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
         break;
     }
 
-    if (ui_show_dim_b && (lamp_pwr_level < LAMP_PWR_MAX_SETTINGS_C))
+    if (ui_show_dim_b && (lamp_pwr_level < D_LAMP_PWR_MAX_SETTINGS_C))
     {
         display_screen_on();
 
-        lamp_pwr_level -= LAMP_PWR_20PCT_C;
+        lamp_pwr_level -= D_LAMP_PWR_20PCT_C;
 
         drv_cfg_set_dim_index(lamp_pwr_level);
 
@@ -412,7 +412,7 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
 int16_t ui_main_lamp_get_dim(uint16_t level)
 {
     int dim_setting;
-    LAMP_PWR_LEVEL_E lamp_pwr_lvl;
+    D_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
     int16_t dim_level;
 
     dim_level = 100;
@@ -420,27 +420,27 @@ int16_t ui_main_lamp_get_dim(uint16_t level)
 	if (ui_show_dim_b) 
     {
 		dim_setting  = lv_slider_get_value(ui_slider_intensity);
-        lamp_pwr_lvl = LAMP_PWR_20PCT_C + dim_setting;
+        lamp_pwr_lvl = D_LAMP_PWR_20PCT_C + dim_setting;
 	
         switch (lamp_pwr_lvl)
         {
-            case LAMP_PWR_OFF_C:
+            case D_LAMP_PWR_OFF_C:
                 dim_level = 0;
             break;
 
-            case LAMP_PWR_20PCT_C:
+            case D_LAMP_PWR_20PCT_C:
                 dim_level = 20;
             break;
             
-            case LAMP_PWR_40PCT_C:
+            case D_LAMP_PWR_40PCT_C:
                 dim_level = 40;
             break;
             
-            case LAMP_PWR_70PCT_C:
+            case D_LAMP_PWR_70PCT_C:
                 dim_level = 70;
             break;
             
-            case LAMP_PWR_100PCT_C:
+            case D_LAMP_PWR_100PCT_C:
                 dim_level = 100;
             break;
 
@@ -790,7 +790,7 @@ static inline void ui_main_set_debug_tools(void)
  */
 static void ui_main_theme_init(void)
 {
-    if (drv_lamp_get_type() == LAMP_TYPE_DIMMABLE_C)
+    if (drv_lamp_get_type() == D_LAMP_TYPE_DIMMABLE_C)
     {   
 		ui_row_height     = 23;
 		ui_sw_height = ui_row_height-3;
