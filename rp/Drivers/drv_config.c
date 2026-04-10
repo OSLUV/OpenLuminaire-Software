@@ -18,6 +18,16 @@
 
 
 /* Private typedef -----------------------------------------------------------*/
+
+typedef struct __packed {
+    uint32_t magic;          /* guard */
+    uint8_t  power_on;       /* 1 = lamp on */
+    uint8_t  radar_on;       /* 1 = radar enabled */
+    uint8_t  dim_index;      /* 0–3  (20/40/70/100 %) */
+	uint8_t  factory_lamp_type;
+} D_CFG_DATA_T;
+
+
 /* Private define ------------------------------------------------------------*/
 
 #define DRV_CFG_MAGIC_VAL_C 	0xb8870200
@@ -91,7 +101,7 @@ void drv_cfg_save(void)
 {
 	if (b_drv_cfg_is_modified) 
 	{
-		printf("drv_config saving configuration");
+		printf("drv_cfg_save saving configuration");
 
 		flash_safe_execute(drv_cfg_write_data, NULL, 100);
 

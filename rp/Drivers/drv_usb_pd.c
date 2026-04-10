@@ -144,7 +144,7 @@ void drv_usb_pd_negotiate(bool up)
 
 	if (!up)
 	{
-		printf("USB-PD negotiate: 5V only\n");
+		printf("drv_usb_pd_negotiate: 5V only\n");
 		D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x01});
 		drv_usb_pd_software_reset();
 		drv_usb_pd_is_trying_up_b = false;
@@ -155,7 +155,7 @@ void drv_usb_pd_negotiate(bool up)
 	/* Check if USB-C is connected — if not, assume barrel jack */
 	if (!drv_usb_pd_is_connected())
 	{
-		printf("USB-PD: no USB-C detected, configuring safe PDOs for hot-plug\n");
+		printf("drv_usb_pd_negotiate: no USB-C detected, configuring safe PDOs for hot-plug\n");
 
 		/* Write board-appropriate PDOs so any USB hot-plug negotiates a safe
 		 * voltage. Without this, STUSB4500 NVM defaults may request 20V,
@@ -199,7 +199,7 @@ void drv_usb_pd_negotiate(bool up)
 		int mv = candidates[i].mv;
 		int ma = candidates[i].ma;
 
-		printf("USB-PD negotiate: trying %dmV / %dmA min\n", mv, ma);
+		printf("drv_usb_pd_negotiate: trying %dmV / %dmA min\n", mv, ma);
 
 		pdo.u32 = 0;
 		drv_usb_pd_configure_pdo(&pdo, mv, ma);
@@ -214,12 +214,12 @@ void drv_usb_pd_negotiate(bool up)
 		int got_mv = (int)(g_adc_v_vbus * 1000);
 		int got_ma = drv_usb_pd_get_negotiated_ma();
 
-		printf("USB-PD negotiate: got %dmV/%dmA (need %dmV/%dmA)\n",
+		printf("drv_usb_pd_negotiate: got %dmV/%dmA (need %dmV/%dmA)\n",
 			   got_mv, got_ma, mv, ma);
 
 		if (got_mv >= (mv - 1000) && got_ma >= ma)
 		{
-			printf("USB-PD negotiate: accepted %dmV / %dmA\n", got_mv, got_ma);
+			printf("drv_usb_pd_negotiate: accepted %dmV / %dmA\n", got_mv, got_ma);
 			drv_usb_pd_is_trying_up_b = true;
 			drv_drv_usb_pd_negotiated_mv = mv;
 			return;
@@ -227,7 +227,7 @@ void drv_usb_pd_negotiate(bool up)
 	}
 
 	/* Nothing worked — fall back to 5V */
-	printf("USB-PD negotiate: no candidate met requirements, falling back to 5V\n");
+	printf("drv_usb_pd_negotiate: no candidate met requirements, falling back to 5V\n");
 	D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x01});
 	drv_usb_pd_software_reset();
 	drv_usb_pd_is_trying_up_b = false;
@@ -318,7 +318,7 @@ uint32_t drv_usb_pd_get_negotiated_ma(void)
 
 	if (rdo.fixed.capability_mismatch)
 	{
-		printf("USB-PD: capability mismatch — source can't meet current request\n");
+		printf("drv_usb_pd_get_negotiated_ma: capability mismatch — source can't meet current request\n");
 		return 0;
 	}
 

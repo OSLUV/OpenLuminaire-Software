@@ -37,7 +37,7 @@ typedef struct {
 #define PIN_ENABLE_24V 15	/* +24V_ENABLE */
 #define D_LAMP_ENABLE_PIN_C 				14 									/* D_LAMP_ENABLE */
 #define D_LAMP_STATUS_PIN_C 				12 									/* D_LAMP_STATUS */
-#define D_LAMP_PWM_C 						13
+#define D_LAMP_PWM_PIN_C 					13 									/* LAMP_PWM */
 
 #define D_LAMP_RESTRIKE_COOLDOWN_MS_TIME_C 	5000
 #define D_LAMP_START_MS_TIME_C 				10000
@@ -238,8 +238,8 @@ void drv_lamp_init(void)
 	pwm_set_enabled(slice_num, true);
 
 
-	gpio_set_function(D_LAMP_PWM_C, GPIO_FUNC_PWM);
-	slice_num = pwm_gpio_to_slice_num(D_LAMP_PWM_C);
+	gpio_set_function(D_LAMP_PWM_PIN_C, GPIO_FUNC_PWM);
+	slice_num = pwm_gpio_to_slice_num(D_LAMP_PWM_PIN_C);
 
 	pwm_cfg = pwm_get_default_config();
 	// Set divider, reduces counter clock to sysclock/this value
@@ -250,7 +250,7 @@ void drv_lamp_init(void)
 	// Load the configuration into our PWM slice, and set it running.
 	pwm_init(slice_num, &pwm_cfg, false);
 
-	pwm_set_gpio_level(D_LAMP_PWM_C, 0);
+	pwm_set_gpio_level(D_LAMP_PWM_PIN_C, 0);
 
 	pwm_set_enabled(slice_num, true);
 }
@@ -488,7 +488,7 @@ void drv_lamp_update(void)
 		break;
 	}
 
-	pwm_set_gpio_level(D_LAMP_PWM_C, lamp_pwr_settings[lamp_commanded_power_level].pwm);
+	pwm_set_gpio_level(D_LAMP_PWM_PIN_C, lamp_pwr_settings[lamp_commanded_power_level].pwm);
 	gpio_put(D_LAMP_ENABLE_PIN_C, lamp_commanded_power_level != D_LAMP_PWR_OFF_C);
 
 	if (b_lamp_is_12v_on && b_lamp_is_24v_on &&
@@ -513,7 +513,7 @@ void drv_lamp_load_type_from_flash(void)
 {
 	printf("Determined type from flash\n");
 
-	lamp_current_type = g_drv_cfg.factory_lamp_type;
+	lamp_current_type = drv_cfg_get_factory_lamp_type();
 }
 
 /**

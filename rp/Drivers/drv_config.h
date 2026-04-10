@@ -12,25 +12,10 @@
 /* Exported includes ---------------------------------------------------------*/
 
 #include <stdint.h>
-#include "Drivers/drv_lamp.h"
 
 
 /* Exported typedef ----------------------------------------------------------*/
-
-typedef struct __packed {
-    uint32_t magic;          /* guard */
-    uint8_t  power_on;       /* 1 = lamp on */
-    uint8_t  radar_on;       /* 1 = radar enabled */
-    uint8_t  dim_index;      /* 0–3  (20/40/70/100 %) */
-	uint8_t  factory_lamp_type;
-} D_CFG_DATA_T;
-
-
 /* Exported variables --------------------------------------------------------*/
-
-extern D_CFG_DATA_T g_drv_cfg;
-
-
 /* Exported functions prototypes ---------------------------------------------*/
 
 void drv_cfg_init(void);

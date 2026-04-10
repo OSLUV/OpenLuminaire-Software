@@ -36,7 +36,7 @@ void mod_sys_init(void)
 
     drv_cfg_init();
 	printf("g_drv_cfg.factory_lamp_type = %d\n", 
-		   g_drv_cfg.factory_lamp_type);
+		   drv_cfg_get_factory_lamp_type());
 }
 
 /**

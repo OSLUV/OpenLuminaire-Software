@@ -11,7 +11,7 @@
 
 /* Exported includes ---------------------------------------------------------*/
 
-#include "Drivers/drv_lamp.h"
+#include "Drivers/drv_lamp_types.h"
 
 
 /* Exported functions prototypes ---------------------------------------------*/
