@@ -32,7 +32,7 @@
  */
 void mod_ctrl_init(void)
 {
-	imu_init();
+	drv_acc_init();
 	mag_init();
 	lamp_init();
 	
@@ -57,7 +57,7 @@ void mod_ctrl_init(void)
  */
 void mod_ctrl_manager(void)
 {
-    imu_update();
+    drv_acc_update();
     mag_update();
     radar_update();
     lamp_update();

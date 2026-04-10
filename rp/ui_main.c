@@ -270,7 +270,7 @@ void ui_main_update(void)
 	}
 	
 	/* Update tilt data */
-	int16_t a = imu_get_pointing_down_angle(); 
+	int16_t a = drv_acc_get_pointing_down_angle(); 
 	ui_main_set_tilt(a);
 }
 

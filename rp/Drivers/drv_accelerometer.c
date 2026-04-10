@@ -23,46 +23,46 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-//#define _IMU_ENABLE_ADC_
+//#define _D_ACC_ENABLE_ADC_
 
-#define IMU_IC_ADDR_C           0x19
-#define IMU_REG_OUT_ADC1_L_C    0x08
-#define IMU_REG_OUT_ADC1_H_C    0x09
-#define IMU_REG_OUT_ADC2_L_C    0x0A
-#define IMU_REG_OUT_ADC2_H_C    0x0B
-#define IMU_REG_OUT_ADC3_L_C    0x0C
-#define IMU_REG_OUT_ADC3_H_C    0x0D
-#define IMU_REG_CTRL_REG_1_C    0x20
-#define IMU_REG_CTRL_REG_4_C    0x23
-#define IMU_REG_TEMP_CFG_REG_C  0x1F
-#define IMU_REG_OUT_X_L_C       0x28
-#define IMU_REG_OUT_X_H_C       0x29
-#define IMU_REG_OUT_Y_L_C       0x2A
-#define IMU_REG_OUT_Y_H_C       0x2B
-#define IMU_REG_OUT_Z_L_C       0x2C
-#define IMU_REG_OUT_Z_H_C       0x2D
+#define D_ACC_IC_ADDR_C           0x19
+#define D_ACC_REG_OUT_ADC1_L_C    0x08
+#define D_ACC_REG_OUT_ADC1_H_C    0x09
+#define D_ACC_REG_OUT_ADC2_L_C    0x0A
+#define D_ACC_REG_OUT_ADC2_H_C    0x0B
+#define D_ACC_REG_OUT_ADC3_L_C    0x0C
+#define D_ACC_REG_OUT_ADC3_H_C    0x0D
+#define D_ACC_REG_CTRL_REG_1_C    0x20
+#define D_ACC_REG_CTRL_REG_4_C    0x23
+#define D_ACC_REG_TEMP_CFG_REG_C  0x1F
+#define D_ACC_REG_OUT_X_L_C       0x28
+#define D_ACC_REG_OUT_X_H_C       0x29
+#define D_ACC_REG_OUT_Y_L_C       0x2A
+#define D_ACC_REG_OUT_Y_H_C       0x2B
+#define D_ACC_REG_OUT_Z_L_C       0x2C
+#define D_ACC_REG_OUT_Z_H_C       0x2D
 
 
 /* Global variables  ---------------------------------------------------------*/
 
-float g_imu_x, g_imu_y, g_imu_z;
+float g_drv_acc_x, g_drv_acc_y, g_drv_acc_z;
 
 
 /* Private variables  --------------------------------------------------------*/
 
-static float imu_fx = 0.0f, imu_fy = 0.0f, imu_fz = 1.0f;                                   /* Filtered g-vector */
+static float drv_acc_fx = 0.0f, drv_acc_fy = 0.0f, drv_acc_fz = 1.0f;           /* Filtered g-vector */
 
 
 /* Private function prototypes -----------------------------------------------*/
 
-static inline int imu_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd);
-static inline int imu_write(uint8_t dev_addr, uint8_t data_wr);
-#if defined(_IMU_ENABLE_ADC_)
-static inline int16_t imu_adjust_adc(int16_t adc_data);
+static inline int drv_acc_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd);
+static inline int drv_acc_write(uint8_t dev_addr, uint8_t data_wr);
+#if defined(_D_ACC_ENABLE_ADC_)
+static inline int16_t drv_acc_adjust_adc(int16_t adc_data);
 #endif
-static void imu_read_data(uint8_t reg, float *p_data_val, bool b_is_accel);
-static void imu_calc_value(uint16_t raw_value, float *p_calc_value, bool b_is_accel);
-static void imu_read_raw_data(uint8_t reg, int16_t *p_data);
+static void drv_acc_read_data(uint8_t reg, float *p_data_val, bool b_is_accel);
+static void drv_acc_calc_value(uint16_t raw_value, float *p_calc_value, bool b_is_accel);
+static void drv_acc_read_raw_data(uint8_t reg, int16_t *p_data);
 
 
 /* Exported functions --------------------------------------------------------*/
@@ -72,13 +72,13 @@ static void imu_read_raw_data(uint8_t reg, int16_t *p_data);
  * 
  * @return 	void
  */
-void imu_init(void)
+void drv_acc_init(void)
 {
     drv_i2c_init();
 
-    imu_write(IMU_REG_CTRL_REG_1_C, (9 << 4) | (7 << 0));                       /* ODR: HR / normal (1.344 kHz) Low-power mode (5.376 kHz), Zen: Enabled, Yen: Enabled, Xen: Enabled */
-    imu_write(IMU_REG_CTRL_REG_4_C, (1 << 7));                                  /* BDU: output registers not updated until MSB and LSB reading */
-    imu_write(IMU_REG_TEMP_CFG_REG_C, (1 << 7) | (0 << 6));                     /* ADC_EN: Enabled, TEMP_EN: Disabled, */
+    drv_acc_write(D_ACC_REG_CTRL_REG_1_C, (9 << 4) | (7 << 0));                 /* ODR: HR / normal (1.344 kHz) Low-power mode (5.376 kHz), Zen: Enabled, Yen: Enabled, Xen: Enabled */
+    drv_acc_write(D_ACC_REG_CTRL_REG_4_C, (1 << 7));                            /* BDU: output registers not updated until MSB and LSB reading */
+    drv_acc_write(D_ACC_REG_TEMP_CFG_REG_C, (1 << 7) | (0 << 6));               /* ADC_EN: Enabled, TEMP_EN: Disabled, */
 }
 
 /**
@@ -86,29 +86,29 @@ void imu_init(void)
  * 
  * @return 	void  
  */
-void imu_update(void)
+void drv_acc_update(void)
 {
-    imu_read_data(IMU_REG_OUT_X_L_C, &g_imu_x, true);
-    imu_read_data(IMU_REG_OUT_Y_L_C, &g_imu_y, true);
-    imu_read_data(IMU_REG_OUT_Z_L_C, &g_imu_z, true);
+    drv_acc_read_data(D_ACC_REG_OUT_X_L_C, &g_drv_acc_x, true);
+    drv_acc_read_data(D_ACC_REG_OUT_Y_L_C, &g_drv_acc_y, true);
+    drv_acc_read_data(D_ACC_REG_OUT_Z_L_C, &g_drv_acc_z, true);
 	
 	const float alpha = 0.05f;
 
     // one-pole low-pass:  y[n] = y[n-1] + α(x[n] – y[n-1])
-    imu_fx += alpha * (g_imu_x - imu_fx);
-    imu_fy += alpha * (g_imu_y - imu_fy);
-    imu_fz += alpha * (g_imu_z - imu_fz);
+    drv_acc_fx += alpha * (g_drv_acc_x - drv_acc_fx);
+    drv_acc_fy += alpha * (g_drv_acc_y - drv_acc_fy);
+    drv_acc_fz += alpha * (g_drv_acc_z - drv_acc_fz);
 
-#if defined(_IMU_ENABLE_ADC_)
+#if defined(_D_ACC_ENABLE_ADC_)
     int16_t adc1, adc2, adc3;
 
-    imu_read_raw_data(IMU_REG_OUT_ADC1_L_C, &adc1);
-    imu_read_raw_data(IMU_REG_OUT_ADC2_L_C, &adc2);
-    imu_read_raw_data(IMU_REG_OUT_ADC3_L_C, &adc3);
+    drv_acc_read_raw_data(D_ACC_REG_OUT_ADC1_L_C, &adc1);
+    drv_acc_read_raw_data(D_ACC_REG_OUT_ADC2_L_C, &adc2);
+    drv_acc_read_raw_data(D_ACC_REG_OUT_ADC3_L_C, &adc3);
 
-    int adc_r1 = imu_adjust_adc(adc1);
-    int adc_r2 = imu_adjust_adc(adc2);
-    int adc_r3 = imu_adjust_adc(adc3);
+    int adc_r1 = drv_acc_adjust_adc(adc1);
+    int adc_r2 = drv_acc_adjust_adc(adc2);
+    int adc_r3 = drv_acc_adjust_adc(adc3);
 #endif
 }
 
@@ -119,11 +119,11 @@ void imu_update(void)
  * 
  * @return int 
  */
-int imu_get_pointing_down_angle(void)
+int drv_acc_get_pointing_down_angle(void)
 {
-    float x = imu_fx;
-    float y = imu_fy;
-    float z = imu_fz;
+    float x = drv_acc_fx;
+    float y = drv_acc_fy;
+    float z = drv_acc_fz;
 
     float mag = sqrtf((x * x) + (y * y) + (z * z));
 
@@ -148,17 +148,17 @@ int imu_get_pointing_down_angle(void)
  * @return int 1 - Read operation failed
  * @return int 0 - Read operation succeed
  */
-static inline int imu_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
+static inline int drv_acc_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
 {
-    if (drv_i2c_wr_tmout_us(IMU_IC_ADDR_C, &dev_addr, 1, true, 1000) < 0)
+    if (drv_i2c_wr_tmout_us(D_ACC_IC_ADDR_C, &dev_addr, 1, true, 1000) < 0)
     {
-        printf("imu_read fail: addr\n");
+        printf("drv_acc_read fail: addr\n");
         return 1;
     }
 
-    if (drv_i2c_rd_tmout_us(IMU_IC_ADDR_C, p_data_rd, data_len, false, 1000) < 0)
+    if (drv_i2c_rd_tmout_us(D_ACC_IC_ADDR_C, p_data_rd, data_len, false, 1000) < 0)
     {
-        printf("imu_read fail: data\n");
+        printf("drv_acc_read fail: data\n");
         return 1;
     }
 
@@ -173,26 +173,26 @@ static inline int imu_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
  * @return int 1 - Write operation failed
  * @return int 0 - Write operation succeed
  */
-static inline int imu_write(uint8_t dev_addr, uint8_t data_wr)
+static inline int drv_acc_write(uint8_t dev_addr, uint8_t data_wr)
 {
     uint8_t buf[] = {dev_addr, data_wr};
 
-    if (drv_i2c_wr_tmout_us(IMU_IC_ADDR_C, buf, 2, false, 1000) < 0)
+    if (drv_i2c_wr_tmout_us(D_ACC_IC_ADDR_C, buf, 2, false, 1000) < 0)
     {
-        printf("imu_write fail\n");
+        printf("drv_acc_write fail\n");
         return 1;
     }
 
     return 0;
 }
 
-#if defined(_IMU_ENABLE_ADC_)
+#if defined(_D_ACC_ENABLE_ADC_)
 /**
  * @brief Adjusts raw ADC read data from accelerometer device
  * 
  * @return int16_t
  */
-static inline int16_t imu_adjust_adc(int16_t adc_data)
+static inline int16_t drv_acc_adjust_adc(int16_t adc_data)
 {
     return -(adc_data >> 6);
 }
@@ -205,19 +205,19 @@ static inline int16_t imu_adjust_adc(int16_t adc_data)
  * @param p_data_val Pointer to calculated data value
  * @param b_is_accel Flag for accelereometer or temperature reading
  */
-static void imu_read_data(uint8_t reg, float *p_data_val, bool b_is_accel)
+static void drv_acc_read_data(uint8_t reg, float *p_data_val, bool b_is_accel)
 {
     uint8_t lsb;
     uint8_t msb;
     uint16_t raw_accel;
-    imu_read(reg, 1, &lsb);
+    drv_acc_read(reg, 1, &lsb);
 
     reg |= 0x01;
-    imu_read(reg, 1, &msb);
+    drv_acc_read(reg, 1, &msb);
 
     raw_accel = (msb << 8) | lsb;
 
-    imu_calc_value(raw_accel, p_data_val, b_is_accel);
+    drv_acc_calc_value(raw_accel, p_data_val, b_is_accel);
 }
 
 /**
@@ -227,7 +227,7 @@ static void imu_read_data(uint8_t reg, float *p_data_val, bool b_is_accel)
  * @param p_calc_value Pointer to put the calculated value
  * @param b_is_accel Flag for accelereometer or temperature reading
  */
-static void imu_calc_value(uint16_t raw_value, float *p_calc_value, bool b_is_accel)
+static void drv_acc_calc_value(uint16_t raw_value, float *p_calc_value, bool b_is_accel)
 {
     float scaling;
     float senstivity = 0.004f; // g per unit
@@ -245,21 +245,21 @@ static void imu_calc_value(uint16_t raw_value, float *p_calc_value, bool b_is_ac
     *p_calc_value = (float) ((int16_t) raw_value) / scaling;
 }
 
-#if defined(_IMU_ENABLE_ADC_)
+#if defined(_D_ACC_ENABLE_ADC_)
 /**
  * @brief Reads raw data from accelerometer device
  * 
  * @param reg Register address to read from
  * @param p_data Data read
  */
-static void imu_read_raw_data(uint8_t reg, int16_t *p_data)
+static void drv_acc_read_raw_data(uint8_t reg, int16_t *p_data)
 {
     uint8_t lsb;
     uint8_t msb;
-    imu_read(reg, 1, &lsb);
+    drv_acc_read(reg, 1, &lsb);
 
     reg |= 0x01;
-    imu_read(reg, 1, &msb);
+    drv_acc_read(reg, 1, &msb);
 
     *p_data = (msb << 8) | lsb;
 }

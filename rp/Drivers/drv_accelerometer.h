@@ -5,22 +5,22 @@
  *  
  */
 
-#ifndef _D_IMU_H_
-#define _D_IMU_H_
+#ifndef _D_ACC_H_
+#define _D_ACC_H_
 
 
 /* Exported variables --------------------------------------------------------*/
 
-extern float g_imu_x, g_imu_y, g_imu_z;
+extern float g_drv_acc_x, g_drv_acc_y, g_drv_acc_z;
 
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void imu_init(void);
-void imu_update(void);
-int imu_get_pointing_down_angle(void);
+void drv_acc_init(void);
+void drv_acc_update(void);
+int drv_acc_get_pointing_down_angle(void);
 
 
-#endif /* _D_IMU_H_ */
+#endif /* _D_ACC_H_ */
 
 /*** END OF FILE ***/

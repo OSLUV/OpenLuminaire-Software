@@ -97,7 +97,7 @@ static int safety_logic_get_power_for_distance(int distance, bool b_is_diffused,
  */
 bool safety_logic_is_high_tilt(void)
 {
-	return imu_get_pointing_down_angle() > safety_logic_get_tilt_break();
+	return drv_acc_get_pointing_down_angle() > safety_logic_get_tilt_break();
 }
 
 /**
