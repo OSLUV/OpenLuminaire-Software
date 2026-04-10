@@ -143,10 +143,10 @@ static void main_sys_init(void)
 {
 	display_screen_off();
 	stdio_init_all();
-sleep_ms(500);
-	gpio_init(4);
-	gpio_init(5);
-	gpio_init(6);
+
+	gpio_init(4); /* RADIO_RX */
+	gpio_init(5); /* RADIO_TX */
+	gpio_init(6); /* RADIO_ENABLE */
 	gpio_set_dir(4, GPIO_IN);
 	gpio_set_dir(5, GPIO_IN);
 	gpio_set_dir(6, GPIO_IN);
@@ -161,12 +161,12 @@ sleep_ms(500);
 	lamp_load_type_from_flash();
 	ui_loading_splash_image_init();
 	ui_loading_splash_image_open(NULL);
-imu_init();
+
 	mod_pow_init();
 	mod_comm_init();
 
 	buttons_init();
-	//imu_init();
+	imu_init();
 	mag_init();
 	lamp_init();
 	

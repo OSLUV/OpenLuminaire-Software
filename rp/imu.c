@@ -17,7 +17,7 @@
 #include <stdint.h>
 #include <math.h>
 
-#include "pins.h"
+#include "Drivers/drv_i2c.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -26,7 +26,6 @@
 //#define _IMU_ENABLE_ADC_
 
 #define IMU_IC_ADDR_C           0x19
-#define IMU_I2C_PORT_C          I2C_INST
 #define IMU_REG_OUT_ADC1_L_C    0x08
 #define IMU_REG_OUT_ADC1_H_C    0x09
 #define IMU_REG_OUT_ADC2_L_C    0x0A
@@ -75,11 +74,7 @@ static void imu_read_raw_data(uint8_t reg, int16_t *p_data);
  */
 void imu_init(void)
 {
-    i2c_init(I2C_INST, 100*1000);
-    gpio_set_function(PIN_I2C_SDA, GPIO_FUNC_I2C);
-    gpio_set_function(PIN_I2C_SCL, GPIO_FUNC_I2C);
-    gpio_pull_up(PIN_I2C_SDA);
-    gpio_pull_up(PIN_I2C_SCL);
+    drv_i2c_init();
 
     imu_write(IMU_REG_CTRL_REG_1_C, (9 << 4) | (7 << 0));                       /* ODR: HR / normal (1.344 kHz) Low-power mode (5.376 kHz), Zen: Enabled, Yen: Enabled, Xen: Enabled */
     imu_write(IMU_REG_CTRL_REG_4_C, (1 << 7));                                  /* BDU: output registers not updated until MSB and LSB reading */
@@ -155,13 +150,13 @@ int imu_get_pointing_down_angle(void)
  */
 static inline int imu_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
 {
-    if (i2c_write_timeout_us(IMU_I2C_PORT_C, IMU_IC_ADDR_C, &dev_addr, 1, true, 1000) < 0)
+    if (drv_i2c_wr_tmout_us(IMU_IC_ADDR_C, &dev_addr, 1, true, 1000) < 0)
     {
         printf("imu_read fail: addr\n");
         return 1;
     }
 
-    if (i2c_read_timeout_us(IMU_I2C_PORT_C, IMU_IC_ADDR_C, p_data_rd, data_len, false, 1000) < 0)
+    if (drv_i2c_rd_tmout_us(IMU_IC_ADDR_C, p_data_rd, data_len, false, 1000) < 0)
     {
         printf("imu_read fail: data\n");
         return 1;
@@ -182,7 +177,7 @@ static inline int imu_write(uint8_t dev_addr, uint8_t data_wr)
 {
     uint8_t buf[] = {dev_addr, data_wr};
 
-    if (i2c_write_timeout_us(IMU_I2C_PORT_C, IMU_IC_ADDR_C, buf, 2, false, 1000) < 0)
+    if (drv_i2c_wr_tmout_us(IMU_IC_ADDR_C, buf, 2, false, 1000) < 0)
     {
         printf("imu_write fail\n");
         return 1;

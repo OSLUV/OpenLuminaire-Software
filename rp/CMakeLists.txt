@@ -62,6 +62,7 @@ add_executable(app
 	Modules/mod_pow_mgr.c
 	Modules/mod_ser_cmd.c
 	Drivers/drv_adc_volt.c
+	Drivers/drv_i2c.c
 	Drivers/drv_uart_cmd.c
 	Drivers/drv_usb_pd.c
 	imu.c

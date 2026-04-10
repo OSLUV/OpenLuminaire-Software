@@ -55,6 +55,7 @@ static void mod_pow_usb_hot_plug_handler(void);
  */
 void mod_pow_init(void)
 {
+	drv_usb_pd_init();
     drv_adc_volt_init();
 
     g_mod_pow_hw_is_rev1_2_b = false; 											/* Assume hardware revision 1.1 */
@@ -148,6 +149,8 @@ static void mod_pow_usb_hot_plug_handler(void)
 	{
 		if (!drv_usb_pd_is_connected())
 		{
+			printf("MOD POW. USB-C disconnected\n");
+
 			mod_pow_last_usb_conn_stt    = MOD_POW_USB_UNPLUGGED_C;
 			g_mod_pow_is_usb_connected_b = true;
 		}

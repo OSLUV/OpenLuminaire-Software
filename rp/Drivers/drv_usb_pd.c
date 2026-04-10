@@ -9,24 +9,22 @@
 
 /* Includes ------------------------------------------------------------------*/
 
-#include <hardware/i2c.h>
+#include <hardware/watchdog.h>
 #include <pico/stdlib.h>
 
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
-#include "pins.h"
 #include "Drivers/drv_usb_pd.h"
-#include "lamp.h"
 #include "Drivers/drv_adc_volt.h"
-#include <hardware/watchdog.h>
+#include "Drivers/drv_i2c.h"
+#include "lamp.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define D_USB_PD_I2C_PORT_C 		      I2C_INST
 #define D_USB_PD_IC_ADDR_C 			      0x28
 
 #define D_USB_PD_REG_TYPEC_STATUS_C       0x15
@@ -94,7 +92,7 @@ static void drv_usb_pd_print_rdo(usbpd_rdo_t rdo);
 
 void drv_usb_pd_init(void)
 {
-
+	drv_i2c_init();
 }
 
 /**
@@ -106,6 +104,12 @@ void drv_usb_pd_reset(void)
 	drv_usb_pd_software_reset();
 }
 
+/**
+ * @brief Sets a PDO configuration from requested parameters
+ * 
+ * @param mv Millivolts to set
+ * @param ma Milliamps to set
+ */
 void drv_usb_pd_set_pdo(uint32_t mv, uint32_t ma)
 {
 	usbpd_pdo_t pdo;
@@ -337,7 +341,7 @@ static inline int drv_usb_pd_read(uint8_t addr_l, uint32_t len, uint8_t* out)
 {
 	int e = 0;
 
-	e = i2c_write_timeout_us(D_USB_PD_I2C_PORT_C, D_USB_PD_IC_ADDR_C, &addr_l, 1, true, 1000);
+	e = drv_i2c_wr_tmout_us(D_USB_PD_IC_ADDR_C, &addr_l, 1, true, 1000);
     if (e < 0)
     {
         printf("drv_usb_pd_read fail: addr: %d\n", e);
@@ -345,7 +349,7 @@ static inline int drv_usb_pd_read(uint8_t addr_l, uint32_t len, uint8_t* out)
         return 1;
     }
 
-	e = i2c_read_timeout_us(D_USB_PD_I2C_PORT_C, D_USB_PD_IC_ADDR_C, out, len, false, 1000);
+	e = drv_i2c_rd_tmout_us(D_USB_PD_IC_ADDR_C, out, len, false, 1000);
     if (e < 0)
     {
         printf("drv_usb_pd_read fail: data: %d\n", e);
@@ -372,14 +376,14 @@ static inline int drv_usb_pd_write(uint8_t addr_l, uint32_t len, uint8_t* value)
     buf[0] = addr_l;
     memcpy(buf+1, value, len);
 
-	e = i2c_write_timeout_us(D_USB_PD_I2C_PORT_C, D_USB_PD_IC_ADDR_C, buf, len+1, false, 1000);
+	e = drv_i2c_wr_tmout_us(D_USB_PD_IC_ADDR_C, buf, len+1, false, 1000);
     if (e < 0)
     {
         printf("drv_usb_pd_write fail: %d\n", e);
 
         return 1;
     }
-printf("drv_usb_pd_write succeed\n");
+
     return 0;
 }
 
