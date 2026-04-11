@@ -63,6 +63,7 @@ add_executable(app
 	Modules/mod_pow_mgr.c
 	Modules/mod_ser_cmd.c
 	Modules/mod_system.c
+	Modules/mod_ui_mgr.c
 	Drivers/drv_accelerometer.c
 	Drivers/drv_adc_volt.c
 	Drivers/drv_config.c

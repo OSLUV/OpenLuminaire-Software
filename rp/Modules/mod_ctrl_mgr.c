@@ -15,6 +15,7 @@
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_fan.h"
+#include "safety_logic.h"
 
 
 /* Private define ------------------------------------------------------------*/
@@ -65,6 +66,8 @@ void mod_ctrl_manager(void)
     drv_radar_update();
 
     mod_ctrl_lamp_handler();
+
+	safety_logic_update();
 }
 
 /* Callback functions --------------------------------------------------------*/

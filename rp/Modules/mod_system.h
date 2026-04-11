@@ -5,8 +5,8 @@
  *  
  */
 
-#ifndef _M_SYS_H
-#define _M_SYS_H
+#ifndef _M_SYS_H_
+#define _M_SYS_H_
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -22,6 +22,6 @@ void mod_sys_startup_wdt(void);
 void mod_sys_services(void);
 
 
-#endif /* _M_SYS_H */
+#endif /* _M_SYS_H_ */
 
 /*** END OF FILE ***/

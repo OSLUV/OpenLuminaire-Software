@@ -562,7 +562,7 @@ void drv_lamp_reset_type(void)
 	lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 	drv_cfg_set_factory_lamp_type(D_LAMP_TYPE_UNKNOWN_C);
 	drv_cfg_save();
-	printf("Lamp type reset to UNKNOWN\n");
+	printf("drv_lamp_reset_type: Lamp type reset to UNKNOWN\n");
 }
 
 /**
