@@ -12,8 +12,8 @@
 #include "ui_loading.h"
 #include "splash_img.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
-#include "display.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

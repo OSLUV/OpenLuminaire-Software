@@ -66,7 +66,9 @@ add_executable(app
 	Modules/mod_ui_mgr.c
 	Drivers/drv_accelerometer.c
 	Drivers/drv_adc_volt.c
+	Drivers/drv_buttons.c
 	Drivers/drv_config.c
+	Drivers/drv_display.c
 	Drivers/drv_i2c.c
 	Drivers/drv_fan.c
 	Drivers/drv_lamp.c
@@ -74,10 +76,8 @@ add_executable(app
 	Drivers/drv_radar.c
 	Drivers/drv_uart_cmd.c
 	Drivers/drv_usb_pd.c
-	buttons.c
 	radio.c
 	safety_logic.c
-	display.c
 	splash_img.c
 	ui_main.c
 	ui_loading.c

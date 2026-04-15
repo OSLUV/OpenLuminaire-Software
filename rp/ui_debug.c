@@ -13,9 +13,9 @@
 #include "pico/stdlib.h"
 #include <hardware/watchdog.h>
 #include "ui_debug.h"
-#include "display.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_display.h"
 #include "Drivers/drv_magnetometer.h"
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"

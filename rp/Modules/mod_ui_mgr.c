@@ -13,14 +13,12 @@
 #include "pico/time.h"
 
 #include "Modules/mod_ui_mgr.h"
+#include "Drivers/drv_buttons.h"
+#include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
-#include "st7789.h"
-#include "display.h"
 #include "ui_main.h"
 #include "ui_loading.h"
 #include "ui_debug.h"
-
-#include "buttons.h"
 
 
 /* Private define ------------------------------------------------------------*/
