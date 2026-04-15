@@ -1,5 +1,5 @@
 /**
- * @file      display.h
+ * @file      drv_display.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for display driver
  *  
@@ -16,13 +16,13 @@
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void display_init(void);
-void display_set_backlight_brightness(uint8_t brightness);
-uint8_t display_get_backlight_brightness(void);
+void drv_display_init(void);
+void drv_display_set_backlight_brightness(uint8_t brightness);
+uint8_t drv_display_get_backlight_brightness(void);
 
-void display_screen_off(void);
-void display_screen_on(void);
-void display_set_indev_group(lv_group_t* p_group);
+void drv_display_screen_turn_off(void);
+void drv_display_screen_turn_on(void);
+void drv_display_set_indev_group(lv_group_t* p_group);
 
 
 #endif /* _D_DISPLAY_H_ */

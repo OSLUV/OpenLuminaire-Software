@@ -1,17 +1,3 @@
-
-#define PIN_LCD_MOSI 19
-#define PIN_LCD_SCK 18
-#define PIN_LCD_CS 24
-#define PIN_LCD_DC 22
-#define PIN_LCD_RST 21
-#define PIN_LCD_BACKLIGHT 25
-
-#define PIN_BUTTON_UP 28
-#define PIN_BUTTON_DOWN 23
-#define PIN_BUTTON_LEFT 16
-#define PIN_BUTTON_RIGHT 20
-#define PIN_BUTTON_CENTER 17
-
 #define PIN_RADIO_RX 4
 #define PIN_RADIO_TX 5
 #define PIN_RADIO_ENABLE 6

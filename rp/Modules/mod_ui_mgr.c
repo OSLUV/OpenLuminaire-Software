@@ -71,12 +71,12 @@ void mod_ui_init(void)
 	b_mod_ui_is_booting      = true;
 	b_mod_ui_is_backlight_on = false;
 
-    buttons_init();
+    drv_buttons_init();
 
-	display_screen_off();
+	drv_display_screen_turn_off();
 
 	lv_init();
-	display_init();
+	drv_display_init();
 
 	drv_lamp_load_type_from_flash();
 	ui_loading_splash_image_init();
@@ -99,7 +99,7 @@ void mod_ui_init(void)
  */
 void mod_ui_manager(void)
 {
-	buttons_update();
+	drv_buttons_monitor();
 
 	mod_ui_backlight_handler();
 
@@ -131,7 +131,7 @@ void mod_ui_manager(void)
  */
 static inline void mod_ui_backlight_turn_on(void)
 {
-	display_screen_on();  												// Back-light on + one flush
+	drv_display_screen_turn_on();  												// Back-light on + one flush
 	
 	b_mod_ui_is_backlight_on = true;
 }
@@ -142,7 +142,7 @@ static inline void mod_ui_backlight_turn_on(void)
  */
 static inline void mod_ui_backlight_turn_off(void)
 {
-	display_screen_off();
+	drv_display_screen_turn_off();
 	
 	b_mod_ui_is_backlight_on = false;
 }
@@ -161,7 +161,7 @@ static void mod_ui_backlight_handler(void)
 		}
 	}
 
-	if (g_buttons_released)
+	if (g_drv_buttons_released)
 	{
 		if (!b_mod_ui_is_backlight_on)
 		{

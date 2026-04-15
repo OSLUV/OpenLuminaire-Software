@@ -202,7 +202,7 @@ void ui_debug_update(void)
 void ui_debug_open(void)
 {
 	lv_screen_load(ui_debug_screen);
-    display_set_indev_group(ui_debug_group);
+    drv_display_set_indev_group(ui_debug_group);
     lv_group_focus_obj(ui_debug_back_btn);
 }
 

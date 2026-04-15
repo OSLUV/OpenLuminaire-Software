@@ -281,7 +281,7 @@ void ui_main_update(void)
 void ui_main_open(void)
 {
     lv_scr_load(ui_screen);
-    display_set_indev_group(ui_lv_group);
+    drv_display_set_indev_group(ui_lv_group);
     lv_group_focus_obj(ui_sw_power);
     lv_obj_send_event(ui_sw_power, LV_EVENT_FOCUSED, NULL);
 }
@@ -301,7 +301,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
     {
         drv_lamp_get_reported_power_level(&lamp_pwr_lvl);
 
-        display_screen_on();
+        drv_display_screen_turn_on();
 
         //if (lamp_pwr_lvl != D_LAMP_PWR_OFF_C)                                     // Lamp is ON ?
         {
@@ -319,7 +319,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
         if (lamp_pwr_lvl == D_LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
         {
-            display_screen_on();
+            drv_display_screen_turn_on();
 
             drv_cfg_set_power_state(1);
             drv_cfg_save();
@@ -388,7 +388,7 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
 
     if (ui_show_dim_b && (lamp_pwr_level < D_LAMP_PWR_MAX_SETTINGS_C))
     {
-        display_screen_on();
+        drv_display_screen_turn_on();
 
         lamp_pwr_level -= D_LAMP_PWR_20PCT_C;
 
