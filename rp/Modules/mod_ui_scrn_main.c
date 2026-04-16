@@ -12,8 +12,7 @@
 #include <stdio.h>
 #include <string.h>
 #include "Modules/mod_ui_scrn_main.h"
-#include "Modules/mod_ui_scrn_debug.h"
-#include "Modules/mod_ui_scrn_loading.h"
+#include "Modules/mod_ui_screens.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_display.h"
@@ -31,6 +30,7 @@
 
 /* Global variables  ---------------------------------------------------------*/
 
+extern M_UI_SCRN_E  g_mod_ui_new_screen;
 extern const lv_font_t * FONT_MAIN  = NULL; 
 extern const lv_font_t * FONT_BIG   = NULL;
 extern const lv_font_t * FONT_SMALL = NULL;
@@ -41,83 +41,83 @@ extern const lv_font_t * FONT_MED   = NULL;
 
 static const uint8_t ui_dim_levels[UI_MAIN_MAX_DIM_LEVELS_C] = { 20, 40, 70, 100 };
 
-static lv_obj_t *ui_screen;
-static lv_obj_t *ui_sw_power;
-static lv_obj_t *ui_sw_radar;
-static lv_obj_t *ui_slider_intensity;
-static lv_obj_t *ui_lbl_radar;
-static lv_obj_t *ui_lbl_slider;
-static lv_obj_t *ui_lbl_status;
-static lv_obj_t *ui_lbl_percent;
+static lv_obj_t *mod_ui_main_screen;
+static lv_obj_t *mod_ui_main_sw_power;
+static lv_obj_t *mod_ui_main_sw_radar;
+static lv_obj_t *mod_ui_main_slider_intensity;
+static lv_obj_t *mod_ui_main_lbl_radar;
+static lv_obj_t *mod_ui_main_lbl_slider;
+static lv_obj_t *mod_ui_main_lbl_status;
+static lv_obj_t *mod_ui_main_lbl_percent;
 
-static lv_obj_t *ui_lbl_tilt_val;                                               /* Tilt read-out handle (big number) */
+static lv_obj_t *mod_ui_main_lbl_tilt_val;                                      /* Tilt read-out handle (big number) */
 
 // Style helpers
-static lv_style_t ui_style_title;
-static lv_style_t ui_style_status;
-static lv_style_t ui_style_tick;
-static lv_style_t ui_style_big;
-static lv_style_t ui_style_btn;
-static lv_style_t ui_style_slider_main;
-static lv_style_t ui_style_slider_knob;
-static lv_style_t ui_style_switch_on;
-static lv_style_t ui_style_switch_off;
-static lv_style_t ui_style_row;
-static lv_style_t ui_style_focus;
-static lv_style_t ui_style_btn_focus_inv;
-static lv_style_t ui_style_label_inv;
-static lv_style_t ui_style_inactive;
+static lv_style_t mod_ui_main_style_title;
+static lv_style_t mod_ui_main_style_status;
+static lv_style_t mod_ui_main_style_tick;
+static lv_style_t mod_ui_main_style_big;
+static lv_style_t mod_ui_main_style_btn;
+static lv_style_t mod_ui_main_style_slider_main;
+static lv_style_t mod_ui_main_style_slider_knob;
+static lv_style_t mod_ui_main_style_switch_on;
+static lv_style_t mod_ui_main_style_switch_off;
+static lv_style_t mod_ui_main_style_row;
+static lv_style_t mod_ui_main_style_focus;
+static lv_style_t mod_ui_main_style_btn_focus_inv;
+static lv_style_t mod_ui_main_style_label_inv;
+static lv_style_t mod_ui_main_style_inactive;
 
-static lv_group_t* ui_lv_group;
+static lv_group_t* mod_ui_main_lv_group;
 
-static uint16_t ui_row_height;
-static uint16_t ui_sw_height;
-static uint16_t ui_sw_length;
-//static uint16_t ui_dbg_pos;
-static bool ui_show_dim_b;
-static bool ui_lamp_known_b;
+static uint16_t mod_ui_main_row_height;
+static uint16_t mod_ui_main_sw_height;
+static uint16_t mod_ui_main_sw_length;
+//static uint16_t mod_ui_main_dbg_pos;
+static bool mod_ui_main_show_dim_b;
+static bool mod_ui_main_lamp_known_b;
 
 
 /* Callback prototypes -------------------------------------------------------*/
 
-static void ui_main_debug_btn_callback(lv_event_t * e);
-static void ui_main_back_to_menu_callback(lv_event_t * e);
-static void ui_main_sw_power_changed_callback(lv_event_t * e);
-static void ui_main_sw_radar_changed_callback(lv_event_t * e);
-static void ui_main_slider_int_changed_callback(lv_event_t * e);
-static void ui_main_focus_sync_callback(lv_event_t *e);
+static void mod_ui_main_debug_btn_callback(lv_event_t * e);
+static void mod_ui_main_back_to_menu_callback(lv_event_t * e);
+static void mod_ui_main_sw_power_changed_callback(lv_event_t * e);
+static void mod_ui_main_sw_radar_changed_callback(lv_event_t * e);
+static void mod_ui_main_slider_int_changed_callback(lv_event_t * e);
+static void mod_ui_main_focus_sync_callback(lv_event_t *e);
 
 
 /* Private function prototypes -----------------------------------------------*/
 
-static inline void ui_main_set_screen(void);
-static inline void ui_main_set_lamp_ctrl_row(void);
-static inline void ui_main_set_lamp_power_row(void);
-static inline void ui_main_set_radar_row(void);
-static inline void ui_main_set_lamp_dim_slider(void);
-static inline void ui_main_set_tilt_row(void);
-static inline void ui_main_set_debug_tools(void);
-static void ui_main_theme_init(void);
-static void ui_main_set_tilt(uint16_t deg);
-static void ui_main_styles_init(void);
+static inline void mod_ui_main_set_screen(void);
+static inline void mod_ui_main_set_lamp_ctrl_row(void);
+static inline void mod_ui_main_set_lamp_power_row(void);
+static inline void mod_ui_main_set_radar_row(void);
+static inline void mod_ui_main_set_lamp_dim_slider(void);
+static inline void mod_ui_main_set_tilt_row(void);
+static inline void mod_ui_main_set_debug_tools(void);
+static void mod_ui_main_theme_init(void);
+static void mod_ui_main_set_tilt(uint16_t deg);
+static void mod_ui_main_styles_init(void);
 
 
 /* Exported functions --------------------------------------------------------*/
 
-void ui_main_init(void)
+void mod_ui_main_init(void)
 {
     lv_obj_t *row;
 
-	ui_main_theme_init();
-    ui_main_styles_init();
+	mod_ui_main_theme_init();
+    mod_ui_main_styles_init();
 
-    ui_main_set_screen();
+    mod_ui_main_set_screen();
 
-    ui_lamp_known_b = (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C);
+    mod_ui_main_lamp_known_b = (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C);
 
-    if (!ui_lamp_known_b)
+    if (!mod_ui_main_lamp_known_b)
     {
-        lv_obj_t *lbl = lv_label_create(ui_screen);
+        lv_obj_t *lbl = lv_label_create(mod_ui_main_screen);
         lv_label_set_text(lbl,
                           "LAMP TYPE COULD\n"
                           "NOT BE DETERMINED\n\n"
@@ -131,42 +131,42 @@ void ui_main_init(void)
     }
     else
     {
-        ui_main_set_lamp_ctrl_row();
-        ui_main_set_lamp_power_row();
-        ui_main_set_radar_row();
+        mod_ui_main_set_lamp_ctrl_row();
+        mod_ui_main_set_lamp_power_row();
+        mod_ui_main_set_radar_row();
 
-        if (ui_show_dim_b)
+        if (mod_ui_main_show_dim_b)
         {
-            ui_main_set_lamp_dim_slider();
+            mod_ui_main_set_lamp_dim_slider();
         }
 
-        ui_main_set_tilt_row();
+        mod_ui_main_set_tilt_row();
     }
 
-    ui_main_set_debug_tools();
+    mod_ui_main_set_debug_tools();
 }
 
 /**
  * @brief Handles main screen widgets updates
  * 
  */
-void ui_main_update(void)
+void mod_ui_main_update(void)
 {
 	static char buf[48];
-    bool power_on = lv_obj_has_state(ui_sw_power, LV_STATE_CHECKED);
-    bool radar_on = lv_obj_has_state(ui_sw_radar, LV_STATE_CHECKED);
+    bool power_on = lv_obj_has_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
+    bool radar_on = lv_obj_has_state(mod_ui_main_sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
 	D_LAMP_PWR_LEVEL_E intensity_setting = UI_MAIN_LAMP_PWR_C;
     
-	if (!ui_lamp_known_b)
+	if (!mod_ui_main_lamp_known_b)
     {
         return;
     }
 
 	/* Get current User set-point lamp power level  */
-	if (ui_show_dim_b)
+	if (mod_ui_main_show_dim_b)
     {
-		int intensity_setting_int = lv_slider_get_value(ui_slider_intensity);
+		int intensity_setting_int = lv_slider_get_value(mod_ui_main_slider_intensity);
         intensity_setting = D_LAMP_PWR_20PCT_C + intensity_setting_int;
 	}
 	
@@ -188,7 +188,7 @@ void ui_main_update(void)
 				  (intensity_setting == D_LAMP_PWR_40PCT_C) ?  40 :
 				  (intensity_setting == D_LAMP_PWR_70PCT_C) ?  70 :
 				  (intensity_setting == D_LAMP_PWR_100PCT_C)? 100 : 0;
-	D_LAMP_PWR_LEVEL_E  cmd = drv_lamp_get_commanded_power_level();                   // What has been sent to pwm
+	D_LAMP_PWR_LEVEL_E  cmd = drv_lamp_get_commanded_power_level();             // What has been sent to pwm
 	int pct_cmd;
 	bool warming = drv_lamp_is_warming();
 
@@ -202,9 +202,9 @@ void ui_main_update(void)
 	    pct_cmd = (cmd == D_LAMP_PWR_20PCT_C) ?  20 :
 				  (cmd == D_LAMP_PWR_40PCT_C) ?  40 :
 				  (cmd == D_LAMP_PWR_70PCT_C) ?  70 :
-				  (cmd == D_LAMP_PWR_100PCT_C)? 100 : 0;                          // D_LAMP_PWR_OFF_C or unknown
+				  (cmd == D_LAMP_PWR_100PCT_C)? 100 : 0;                        // D_LAMP_PWR_OFF_C or unknown
 	}
-    D_LAMP_PWR_LEVEL_E rep;                                                       // Reported level
+    D_LAMP_PWR_LEVEL_E rep;                                                     // Reported level
 	drv_lamp_get_reported_power_level(&rep);   
     int pct_rep = (rep == D_LAMP_PWR_20PCT_C) ?  20 :
 				  (rep == D_LAMP_PWR_40PCT_C) ?  40 :
@@ -217,7 +217,7 @@ void ui_main_update(void)
 		txt = "Radar triggered";
     }
 
-	if (ui_show_dim_b)
+	if (mod_ui_main_show_dim_b)
     {
 		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
 		
@@ -226,7 +226,7 @@ void ui_main_update(void)
     {
 		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
 	}
-	lv_label_set_text(ui_lbl_status, buf);
+	lv_label_set_text(mod_ui_main_lbl_status, buf);
 
     if (!power_on)
     {
@@ -248,45 +248,45 @@ void ui_main_update(void)
         }
     }
 
-	if (ui_show_dim_b)
+	if (mod_ui_main_show_dim_b)
     {
 		if (inactive || warming)
         {
-			lv_obj_add_state(ui_slider_intensity, LV_STATE_USER_2);             // Grey it
-			lv_obj_add_state(ui_lbl_slider, LV_STATE_USER_2);  
+			lv_obj_add_state(mod_ui_main_slider_intensity, LV_STATE_USER_2);    // Grey it
+			lv_obj_add_state(mod_ui_main_lbl_slider, LV_STATE_USER_2);  
 		}
         else
         {
-			lv_obj_clear_state(ui_slider_intensity, LV_STATE_USER_2);           // Full color
-			lv_obj_clear_state(ui_lbl_slider, LV_STATE_USER_2);
+			lv_obj_clear_state(mod_ui_main_slider_intensity, LV_STATE_USER_2);  // Full color
+			lv_obj_clear_state(mod_ui_main_lbl_slider, LV_STATE_USER_2);
 		}
     }
 	if (inactive)
     {
-        lv_obj_add_state(ui_sw_radar, LV_STATE_USER_2);
-		lv_obj_add_state(ui_lbl_radar, LV_STATE_USER_2);
+        lv_obj_add_state(mod_ui_main_sw_radar, LV_STATE_USER_2);
+		lv_obj_add_state(mod_ui_main_lbl_radar, LV_STATE_USER_2);
     }
     else
     {
-        lv_obj_clear_state(ui_sw_radar, LV_STATE_USER_2);
-		lv_obj_clear_state(ui_lbl_radar,  LV_STATE_USER_2);
+        lv_obj_clear_state(mod_ui_main_sw_radar, LV_STATE_USER_2);
+		lv_obj_clear_state(mod_ui_main_lbl_radar,  LV_STATE_USER_2);
 	}
 	
 	/* Update tilt data */
 	int16_t a = drv_acc_get_pointing_down_angle(); 
-	ui_main_set_tilt(a);
+	mod_ui_main_set_tilt(a);
 }
 
 /**
  * @brief Displays main screen
  * 
  */
-void ui_main_open(void)
+void mod_ui_main_open(void)
 {
-    lv_scr_load(ui_screen);
-    drv_display_set_indev_group(ui_lv_group);
-    lv_group_focus_obj(ui_sw_power);
-    lv_obj_send_event(ui_sw_power, LV_EVENT_FOCUSED, NULL);
+    lv_scr_load(mod_ui_main_screen);
+    drv_display_set_indev_group(mod_ui_main_lv_group);
+    lv_group_focus_obj(mod_ui_main_sw_power);
+    lv_obj_send_event(mod_ui_main_sw_power, LV_EVENT_FOCUSED, NULL);
 }
 
 /**
@@ -296,7 +296,7 @@ void ui_main_open(void)
  * @param req_state State to set (1: On, 0: Off)
  * @return int16_t  (0: failed, 1: suceed)
  */
-int16_t ui_main_lamp_set_stt(uint16_t req_state)
+int16_t mod_ui_main_lamp_set_stt(uint16_t req_state)
 {
     D_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
 
@@ -306,12 +306,12 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
         drv_display_screen_turn_on();
 
-        //if (lamp_pwr_lvl != D_LAMP_PWR_OFF_C)                                     // Lamp is ON ?
+        //if (lamp_pwr_lvl != D_LAMP_PWR_OFF_C)                                 // Lamp is ON ?
         {
             drv_cfg_set_power_state(0);
             drv_cfg_save();
 
-            lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, false);             // Update function will update lamp's state
+            lv_obj_set_state(mod_ui_main_sw_power, LV_STATE_CHECKED, false);    // Update function will update lamp's state
         }
 
         return 1;
@@ -320,14 +320,14 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
     {
         drv_lamp_get_reported_power_level(&lamp_pwr_lvl);
 
-        if (lamp_pwr_lvl == D_LAMP_PWR_OFF_C)                                     // Lamp state is OFF ?
+        if (lamp_pwr_lvl == D_LAMP_PWR_OFF_C)                                   // Lamp state is OFF ?
         {
             drv_display_screen_turn_on();
 
             drv_cfg_set_power_state(1);
             drv_cfg_save();
 
-            lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, true);              // Update function will update lamp's state
+            lv_obj_set_state(mod_ui_main_sw_power, LV_STATE_CHECKED, true);     // Update function will update lamp's state
         }
 
         return 1;
@@ -343,7 +343,7 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
  * @param state No state is required. The function need to comply with format.
  * @return int16_t Lamp Status (On/Off)
  */
-int16_t ui_main_lamp_get_stt(uint16_t state)
+int16_t mod_ui_main_lamp_get_stt(uint16_t state)
 {
     return drv_cfg_get_power_state();
 }
@@ -356,7 +356,7 @@ int16_t ui_main_lamp_get_stt(uint16_t state)
  * @param level Dim level to set to lamp
  * @return int16_t (0: failed, 1: suceed)
  */
-int16_t ui_main_lamp_set_dim(uint16_t level)
+int16_t mod_ui_main_lamp_set_dim(uint16_t level)
 {
     D_LAMP_PWR_LEVEL_E lamp_pwr_level;
 
@@ -389,7 +389,7 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
         break;
     }
 
-    if (ui_show_dim_b && (lamp_pwr_level < D_LAMP_PWR_MAX_SETTINGS_C))
+    if (mod_ui_main_show_dim_b && (lamp_pwr_level < D_LAMP_PWR_MAX_SETTINGS_C))
     {
         drv_display_screen_turn_on();
 
@@ -397,7 +397,7 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
 
         drv_cfg_set_dim_index(lamp_pwr_level);
 
-        lv_slider_set_value(ui_slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
+        lv_slider_set_value(mod_ui_main_slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
 
         return level;
     }
@@ -412,7 +412,7 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
  * @param level No level is required. The function need to comply with format.
  * @return int16_t 
  */
-int16_t ui_main_lamp_get_dim(uint16_t level)
+int16_t mod_ui_main_lamp_get_dim(uint16_t level)
 {
     int dim_setting;
     D_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
@@ -420,9 +420,9 @@ int16_t ui_main_lamp_get_dim(uint16_t level)
 
     dim_level = 100;
 	
-	if (ui_show_dim_b) 
+	if (mod_ui_main_show_dim_b) 
     {
-		dim_setting  = lv_slider_get_value(ui_slider_intensity);
+		dim_setting  = lv_slider_get_value(mod_ui_main_slider_intensity);
         lamp_pwr_lvl = D_LAMP_PWR_20PCT_C + dim_setting;
 	
         switch (lamp_pwr_lvl)
@@ -459,32 +459,32 @@ int16_t ui_main_lamp_get_dim(uint16_t level)
 
 /* Callback functions --------------------------------------------------------*/
 
-static void ui_main_debug_btn_callback(lv_event_t * e)
+static void mod_ui_main_debug_btn_callback(lv_event_t * e)
 {
-    ui_debug_open();
+    g_mod_ui_new_screen = M_UI_SCRN_DEBUG_C;
 }
 
-static void ui_main_back_to_menu_callback(lv_event_t * e)
+static void mod_ui_main_back_to_menu_callback(lv_event_t * e)
 {
-    ui_main_open();    // reopen the main menu ui_screen
+    mod_ui_main_open();                                                         // reopen the main menu mod_ui_main_screen
 }
 
 /* --- persistence write helpers --------------------------------- */
-static void ui_main_sw_power_changed_callback(lv_event_t * e)
+static void mod_ui_main_sw_power_changed_callback(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
     drv_cfg_set_power_state(on);
     drv_cfg_save();                        /* flash only if value changed */
 }
 
-static void ui_main_sw_radar_changed_callback(lv_event_t * e)
+static void mod_ui_main_sw_radar_changed_callback(lv_event_t * e)
 {
     bool on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
     drv_cfg_set_radar_state(on);
     drv_cfg_save();
 }
 
-static void ui_main_slider_int_changed_callback(lv_event_t * e)
+static void mod_ui_main_slider_int_changed_callback(lv_event_t * e)
 {
     uint8_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
     drv_cfg_set_dim_index(idx);
@@ -496,7 +496,7 @@ static void ui_main_slider_int_changed_callback(lv_event_t * e)
  * 
  * @param e 
  */
-static void ui_main_focus_sync_callback(lv_event_t *e)
+static void mod_ui_main_focus_sync_callback(lv_event_t *e)
 {
     lv_obj_t *ctrl  = lv_event_get_target(e);       /* slider / switch / btn */
     lv_obj_t *label = lv_event_get_user_data(e);    /* associated label     */
@@ -517,15 +517,15 @@ static void ui_main_focus_sync_callback(lv_event_t *e)
  * @brief Sets and initializes the main screen object
  * 
  */
-static inline void ui_main_set_screen(void)
+static inline void mod_ui_main_set_screen(void)
 {
-    ui_screen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(ui_screen, lv_color_black(), 0);
-    lv_obj_set_style_pad_all(ui_screen, 0, 0);
-    lv_obj_set_flex_flow(ui_screen, LV_FLEX_FLOW_COLUMN);
-    lv_obj_set_flex_align(ui_screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,  LV_FLEX_ALIGN_CENTER);
-    lv_obj_remove_style(ui_screen, NULL, LV_PART_SCROLLBAR);                    /* kill scrollbar */
-    lv_obj_set_scrollbar_mode(ui_screen, LV_SCROLLBAR_MODE_OFF);
+    mod_ui_main_screen = lv_obj_create(NULL);
+    lv_obj_set_style_bg_color(mod_ui_main_screen, lv_color_black(), 0);
+    lv_obj_set_style_pad_all(mod_ui_main_screen, 0, 0);
+    lv_obj_set_flex_flow(mod_ui_main_screen, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(mod_ui_main_screen, LV_FLEX_ALIGN_START, LV_FLEX_ALIGN_START,  LV_FLEX_ALIGN_CENTER);
+    lv_obj_remove_style(mod_ui_main_screen, NULL, LV_PART_SCROLLBAR);           /* kill scrollbar */
+    lv_obj_set_scrollbar_mode(mod_ui_main_screen, LV_SCROLLBAR_MODE_OFF);
 }
 
 /**
@@ -533,12 +533,12 @@ static inline void ui_main_set_screen(void)
  * @note Screen must be initialized before calling this function
  * 
  */
-static inline void ui_main_set_lamp_ctrl_row(void)
+static inline void mod_ui_main_set_lamp_ctrl_row(void)
 {
     lv_obj_t *row;
 
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
     lv_obj_set_width(row, 239);
     lv_obj_set_height(row, LV_SIZE_CONTENT);
     //lv_obj_set_pos(row, 0, 240);
@@ -546,11 +546,11 @@ static inline void ui_main_set_lamp_ctrl_row(void)
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     
-    ui_lbl_status = lv_label_create(row);
-    lv_label_set_text(ui_lbl_status, "Status: Unknown");
-    lv_obj_set_style_text_align(ui_lbl_status, LV_TEXT_ALIGN_CENTER, 0);  
-    lv_obj_remove_style_all(ui_lbl_status);
-    lv_obj_add_style(ui_lbl_status, &ui_style_status, 0);
+    mod_ui_main_lbl_status = lv_label_create(row);
+    lv_label_set_text(mod_ui_main_lbl_status, "Status: Unknown");
+    lv_obj_set_style_text_align(mod_ui_main_lbl_status, LV_TEXT_ALIGN_CENTER, 0);  
+    lv_obj_remove_style_all(mod_ui_main_lbl_status);
+    lv_obj_add_style(mod_ui_main_lbl_status, &mod_ui_main_style_status, 0);
 }
 
 /**
@@ -558,41 +558,41 @@ static inline void ui_main_set_lamp_ctrl_row(void)
  * @note Screen must be initialized before calling this function
  * 
  */
-static inline void ui_main_set_lamp_power_row(void)
+static inline void mod_ui_main_set_lamp_power_row(void)
 {
     lv_obj_t *row;
 
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
-    lv_obj_set_size(row, 230, ui_row_height);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
+    lv_obj_set_size(row, 230, mod_ui_main_row_height);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 
     lv_obj_t *lbl = lv_label_create(row);
     lv_label_set_text(lbl, "POWER");
-    lv_obj_add_style(lbl, &ui_style_title, 0);
-    lv_obj_add_style(lbl, &ui_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+    lv_obj_add_style(lbl, &mod_ui_main_style_title, 0);
+    lv_obj_add_style(lbl, &mod_ui_main_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
 
-    ui_sw_power = lv_switch_create(row);
-    lv_obj_set_size(ui_sw_power, ui_sw_length, ui_sw_height);
+    mod_ui_main_sw_power = lv_switch_create(row);
+    lv_obj_set_size(mod_ui_main_sw_power, mod_ui_main_sw_length, mod_ui_main_sw_height);
     lv_obj_set_pos(row, 5,20);
 
-    // lv_obj_add_state(ui_sw_power, LV_STATE_CHECKED);
+    // lv_obj_add_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
     if (drv_cfg_get_power_state())
     {
-        lv_obj_add_state(ui_sw_power, LV_STATE_CHECKED);
+        lv_obj_add_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
     }
-    lv_obj_set_style_bg_color(ui_sw_power, UI_COLOR_ACCENT_C, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    lv_obj_add_style(ui_sw_power, &ui_style_switch_off, LV_PART_MAIN);
-    lv_obj_add_style(ui_sw_power, &ui_style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
-    lv_obj_add_style(ui_sw_power, &ui_style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_color(mod_ui_main_sw_power, UI_COLOR_ACCENT_C, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_add_style(mod_ui_main_sw_power, &mod_ui_main_style_switch_off, LV_PART_MAIN);
+    lv_obj_add_style(mod_ui_main_sw_power, &mod_ui_main_style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(mod_ui_main_sw_power, &mod_ui_main_style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
     
-    lv_obj_add_event_cb(ui_sw_power, ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   lbl);
-    lv_obj_add_event_cb(ui_sw_power, ui_main_focus_sync_callback, LV_EVENT_DEFOCUSED, lbl);
-    lv_obj_add_event_cb(ui_sw_power, ui_main_sw_power_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_group_add_obj(ui_lv_group, ui_sw_power);
-    //lv_obj_add_event_cb(sw, ui_main_focus_sync_callback, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
+    lv_obj_add_event_cb(mod_ui_main_sw_power, mod_ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   lbl);
+    lv_obj_add_event_cb(mod_ui_main_sw_power, mod_ui_main_focus_sync_callback, LV_EVENT_DEFOCUSED, lbl);
+    lv_obj_add_event_cb(mod_ui_main_sw_power, mod_ui_main_sw_power_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_group_add_obj(mod_ui_main_lv_group, mod_ui_main_sw_power);
+    //lv_obj_add_event_cb(sw, mod_ui_main_focus_sync_callback, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
 }
 
 /**
@@ -600,43 +600,43 @@ static inline void ui_main_set_lamp_power_row(void)
  * @note Screen must be initialized before calling this function
  * 
  */
-static inline void ui_main_set_radar_row(void)
+static inline void mod_ui_main_set_radar_row(void)
 {
     lv_obj_t *row;
 
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
-    lv_obj_set_size(row, 230, ui_row_height);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
+    lv_obj_set_size(row, 230, mod_ui_main_row_height);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     //lv_obj_set_style_bg_opa(row, LV_OPA_TRANSP, 0);
 
-    ui_lbl_radar = lv_label_create(row);
-    lv_label_set_text(ui_lbl_radar, "RADAR");
-    lv_obj_add_style(ui_lbl_radar, &ui_style_title, 0);
-    lv_obj_add_style(ui_lbl_radar, &ui_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(ui_lbl_radar, &ui_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
-    lv_obj_add_style(ui_lbl_radar, &ui_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
+    mod_ui_main_lbl_radar = lv_label_create(row);
+    lv_label_set_text(mod_ui_main_lbl_radar, "RADAR");
+    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_title, 0);
+    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
+    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
     
-    ui_sw_radar = lv_switch_create(row);
+    mod_ui_main_sw_radar = lv_switch_create(row);
     if (drv_cfg_get_radar_state())
     {
-        lv_obj_add_state(ui_sw_radar, LV_STATE_CHECKED);
+        lv_obj_add_state(mod_ui_main_sw_radar, LV_STATE_CHECKED);
     }
-    lv_obj_set_size(ui_sw_radar, ui_sw_length, ui_sw_height);
-    lv_obj_set_style_bg_color(ui_sw_radar, UI_COLOR_ACCENT_C, LV_PART_INDICATOR | LV_STATE_CHECKED);
-    lv_obj_add_style(ui_sw_radar, &ui_style_switch_off, LV_PART_MAIN);
-    lv_obj_add_style(ui_sw_radar, &ui_style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
-    lv_obj_add_style(ui_sw_radar, &ui_style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_add_style(ui_sw_radar, &ui_style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
-    lv_obj_add_style(ui_sw_radar, &ui_style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
-    lv_obj_add_event_cb(ui_sw_radar, ui_main_sw_radar_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_group_add_obj(ui_lv_group, ui_sw_radar);
+    lv_obj_set_size(mod_ui_main_sw_radar, mod_ui_main_sw_length, mod_ui_main_sw_height);
+    lv_obj_set_style_bg_color(mod_ui_main_sw_radar, UI_COLOR_ACCENT_C, LV_PART_INDICATOR | LV_STATE_CHECKED);
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_switch_off, LV_PART_MAIN);
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
+    lv_obj_add_event_cb(mod_ui_main_sw_radar, mod_ui_main_sw_radar_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_group_add_obj(mod_ui_main_lv_group, mod_ui_main_sw_radar);
 
-    //lv_obj_add_event_cb(sw, ui_main_focus_sync_callback, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
-    lv_obj_add_event_cb(ui_sw_radar, ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   ui_lbl_radar);
-    lv_obj_add_event_cb(ui_sw_radar, ui_main_focus_sync_callback, LV_EVENT_DEFOCUSED, ui_lbl_radar);
+    //lv_obj_add_event_cb(sw, mod_ui_main_focus_sync_callback, LV_EVENT_FOCUSED | LV_EVENT_DEFOCUSED, lbl);
+    lv_obj_add_event_cb(mod_ui_main_sw_radar, mod_ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   mod_ui_main_lbl_radar);
+    lv_obj_add_event_cb(mod_ui_main_sw_radar, mod_ui_main_focus_sync_callback, LV_EVENT_DEFOCUSED, mod_ui_main_lbl_radar);
 }
 
 /**
@@ -644,25 +644,25 @@ static inline void ui_main_set_radar_row(void)
  * @note Screen must be initialized before calling this function
  * 
  */
-static inline void ui_main_set_lamp_dim_slider(void)
+static inline void mod_ui_main_set_lamp_dim_slider(void)
 {
     lv_obj_t *row;
     static const char *ticks[4] = { "20% ", "40%", " 70%", "100%" };
     
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
-    lv_obj_set_size(row, 230, ui_row_height);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
+    lv_obj_set_size(row, 230, mod_ui_main_row_height);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_START);
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
-    ui_lbl_slider = lv_label_create(row);
-    lv_label_set_text(ui_lbl_slider, "INTENSITY");
-    lv_obj_add_style(ui_lbl_slider, &ui_style_title, 0);
-    lv_obj_add_style(ui_lbl_slider, &ui_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(ui_lbl_slider, &ui_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
+    mod_ui_main_lbl_slider = lv_label_create(row);
+    lv_label_set_text(mod_ui_main_lbl_slider, "INTENSITY");
+    lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_title, 0);
+    lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
+    lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
 
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
     lv_obj_set_size(row, 230, 18);
 
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
@@ -674,26 +674,26 @@ static inline void ui_main_set_lamp_dim_slider(void)
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
     lv_obj_add_flag(row, LV_OBJ_FLAG_OVERFLOW_VISIBLE);
 
-    ui_slider_intensity = lv_slider_create(row);
-    lv_obj_set_size(ui_slider_intensity, 180, 8);
-    lv_obj_add_style(ui_slider_intensity, &ui_style_slider_main, LV_PART_INDICATOR);
-    lv_obj_add_style(ui_slider_intensity, &ui_style_slider_knob, LV_PART_KNOB);
+    mod_ui_main_slider_intensity = lv_slider_create(row);
+    lv_obj_set_size(mod_ui_main_slider_intensity, 180, 8);
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_slider_main, LV_PART_INDICATOR);
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_slider_knob, LV_PART_KNOB);
     
-    lv_obj_add_style(ui_slider_intensity, &ui_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);  // rail
-    lv_obj_add_style(ui_slider_intensity, &ui_style_inactive, LV_PART_KNOB | LV_STATE_USER_2);  // knob
-    lv_obj_add_style(ui_slider_intensity, &ui_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);  // filled part
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);  // rail
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_KNOB | LV_STATE_USER_2);  // knob
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);  // filled part
     
-    lv_slider_set_range(ui_slider_intensity, 0, 3);                             /* 4 ticks */
-    //lv_slider_set_value(ui_slider_intensity, 3, LV_ANIM_OFF);                 /* Default level 3 = 100% */
-    lv_slider_set_value(ui_slider_intensity, drv_cfg_get_dim_index(), LV_ANIM_OFF);
-    lv_obj_add_event_cb(ui_slider_intensity, ui_main_slider_int_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
-    lv_group_add_obj(ui_lv_group, ui_slider_intensity);
-    lv_obj_add_event_cb(ui_slider_intensity, ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   ui_lbl_slider);
-    lv_obj_add_event_cb(ui_slider_intensity, ui_main_focus_sync_callback, LV_EVENT_DEFOCUSED, ui_lbl_slider);
+    lv_slider_set_range(mod_ui_main_slider_intensity, 0, 3);                             /* 4 ticks */
+    //lv_slider_set_value(mod_ui_main_slider_intensity, 3, LV_ANIM_OFF);                 /* Default level 3 = 100% */
+    lv_slider_set_value(mod_ui_main_slider_intensity, drv_cfg_get_dim_index(), LV_ANIM_OFF);
+    lv_obj_add_event_cb(mod_ui_main_slider_intensity, mod_ui_main_slider_int_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
+    lv_group_add_obj(mod_ui_main_lv_group, mod_ui_main_slider_intensity);
+    lv_obj_add_event_cb(mod_ui_main_slider_intensity, mod_ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   mod_ui_main_lbl_slider);
+    lv_obj_add_event_cb(mod_ui_main_slider_intensity, mod_ui_main_focus_sync_callback, LV_EVENT_DEFOCUSED, mod_ui_main_lbl_slider);
 
 
     /* Tick-labels under the dim slider */
-    lv_obj_t *tick_row = lv_obj_create(ui_screen);
+    lv_obj_t *tick_row = lv_obj_create(mod_ui_main_screen);
     lv_obj_remove_style_all(tick_row);                                          /* no border/bg */
     lv_obj_set_size(tick_row, 240, 12);
     lv_obj_set_x(tick_row, 5);
@@ -709,7 +709,7 @@ static inline void ui_main_set_lamp_dim_slider(void)
     {
         lv_obj_t *tl = lv_label_create(tick_row);
         lv_label_set_text(tl, ticks[i]);
-        lv_obj_add_style(tl, &ui_style_tick, 0);                                /* white mono 12-pt */
+        lv_obj_add_style(tl, &mod_ui_main_style_tick, 0);                                /* white mono 12-pt */
     }
 }
 
@@ -718,12 +718,12 @@ static inline void ui_main_set_lamp_dim_slider(void)
  * @note Screen must be initialized before calling this function
  * 
  */
-static inline void ui_main_set_tilt_row(void)
+static inline void mod_ui_main_set_tilt_row(void)
 {
     lv_obj_t *row;
 
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
     lv_obj_set_size(row, 230, LV_SIZE_CONTENT);
     lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
     lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
@@ -732,15 +732,15 @@ static inline void ui_main_set_tilt_row(void)
     /* Caption “TILT” */
     lv_obj_t *lbl_tilt = lv_label_create(row);
     lv_label_set_text(lbl_tilt, "TILT     ");
-    lv_obj_add_style(lbl_tilt, &ui_style_title, 0); 
+    lv_obj_add_style(lbl_tilt, &mod_ui_main_style_title, 0); 
     lv_obj_set_x(lbl_tilt, 8);
 
     /* Big value */
-    ui_lbl_tilt_val = lv_label_create(row);
-    lv_label_set_text(ui_lbl_tilt_val, "--°");                                  /* default */
-    lv_obj_add_style(ui_lbl_tilt_val, &ui_style_big, 0);
+    mod_ui_main_lbl_tilt_val = lv_label_create(row);
+    lv_label_set_text(mod_ui_main_lbl_tilt_val, "--°");                                  /* default */
+    lv_obj_add_style(mod_ui_main_lbl_tilt_val, &mod_ui_main_style_big, 0);
     lv_obj_set_x(lbl_tilt, 150);
-    lv_obj_set_style_text_align(ui_lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);
+    lv_obj_set_style_text_align(mod_ui_main_lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);
 }
 
 /**
@@ -748,12 +748,12 @@ static inline void ui_main_set_tilt_row(void)
  * @note Screen must be initialized before calling this function
  * 
  */
-static inline void ui_main_set_debug_tools(void)
+static inline void mod_ui_main_set_debug_tools(void)
 {
     lv_obj_t *row;
 
-    row = lv_obj_create(ui_screen);
-    lv_obj_add_style(row, &ui_style_row, 0);
+    row = lv_obj_create(mod_ui_main_screen);
+    lv_obj_add_style(row, &mod_ui_main_style_row, 0);
     lv_obj_set_width(row, LV_PCT(100));
     lv_obj_set_height(row, LV_SIZE_CONTENT);
     //lv_obj_set_pos(row,0, 240);
@@ -763,43 +763,43 @@ static inline void ui_main_set_debug_tools(void)
     //lv_obj_set_flex_grow(row, 0);                                             // IMPORTANT LINE
     //lv_obj_align(row, LV_ALIGN_BOTTOM_MID, 0, 0);                             // always 27 px from bottom
     
-    //ui_lbl_percent = lv_label_create(row);
-    //lv_label_set_text(ui_lbl_percent, "          : --%");
-    //lv_obj_remove_style_all(ui_lbl_percent);
-    //lv_obj_add_style(ui_lbl_percent, &ui_style_btn, 0);
-    //lv_obj_set_pos(ui_lbl_percent,10,0);
+    //mod_ui_main_lbl_percent = lv_label_create(row);
+    //lv_label_set_text(mod_ui_main_lbl_percent, "          : --%");
+    //lv_obj_remove_style_all(mod_ui_main_lbl_percent);
+    //lv_obj_add_style(mod_ui_main_lbl_percent, &mod_ui_main_style_btn, 0);
+    //lv_obj_set_pos(mod_ui_main_lbl_percent,10,0);
     //lv_obj_remove_style_all(btn);
-    //lv_obj_add_style(btn, &ui_style_btn, 0);
-    //lv_obj_add_style(btn, &ui_style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
+    //lv_obj_add_style(btn, &mod_ui_main_style_btn, 0);
+    //lv_obj_add_style(btn, &mod_ui_main_style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
     //lv_obj_set_pos(btn,10,0);
     //lv_label_set_text(lv_label_create(btn), "< BACK");
 
     //lv_obj_add_event_cb(btn, back_btn_cb, LV_EVENT_CLICKED, NULL);
-    //lv_group_add_obj(ui_lv_group, btn);
+    //lv_group_add_obj(mod_ui_main_lv_group, btn);
 
     lv_obj_t *btn = lv_btn_create(row);
     lv_obj_remove_style_all(btn);
-    lv_obj_add_style(btn, &ui_style_btn, 0);
-    lv_obj_add_style(btn, &ui_style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
-    //lv_obj_set_pos(btn, ui_dbg_pos,0);
+    lv_obj_add_style(btn, &mod_ui_main_style_btn, 0);
+    lv_obj_add_style(btn, &mod_ui_main_style_btn_focus_inv, LV_PART_MAIN | LV_STATE_FOCUSED);
+    //lv_obj_set_pos(btn, mod_ui_main_dbg_pos,0);
     lv_label_set_text(lv_label_create(btn), "DEBUG");
-    lv_obj_add_event_cb(btn, ui_main_debug_btn_callback, LV_EVENT_CLICKED, NULL);
-    lv_group_add_obj(ui_lv_group, btn);
+    lv_obj_add_event_cb(btn, mod_ui_main_debug_btn_callback, LV_EVENT_CLICKED, NULL);
+    lv_group_add_obj(mod_ui_main_lv_group, btn);
 }
 
 /**
  * @brief Sets screen theme
  * 
  */
-static void ui_main_theme_init(void)
+static void mod_ui_main_theme_init(void)
 {
     if (drv_lamp_get_type() == D_LAMP_TYPE_DIMMABLE_C)
     {   
-		ui_row_height     = 23;
-		ui_sw_height = ui_row_height-3;
-		ui_sw_length = ui_sw_height * 2;
-		//ui_dbg_pos = 165;
-		ui_show_dim_b = true;
+		mod_ui_main_row_height     = 23;
+		mod_ui_main_sw_height = mod_ui_main_row_height-3;
+		mod_ui_main_sw_length = mod_ui_main_sw_height * 2;
+		//mod_ui_main_dbg_pos = 165;
+		mod_ui_main_show_dim_b = true;
 		FONT_MAIN = &lv_font_montserrat_20;  
 		FONT_MED = &lv_font_montserrat_16;
 		FONT_SMALL = &lv_font_montserrat_14;
@@ -807,11 +807,11 @@ static void ui_main_theme_init(void)
     }
     else
     {
-        ui_row_height     = 32;
-		ui_sw_height = ui_row_height-2;
-		ui_sw_length = ui_sw_height * 2;
-		//ui_dbg_pos = 125;
-		ui_show_dim_b = false;
+        mod_ui_main_row_height     = 32;
+		mod_ui_main_sw_height = mod_ui_main_row_height-2;
+		mod_ui_main_sw_length = mod_ui_main_sw_height * 2;
+		//mod_ui_main_dbg_pos = 125;
+		mod_ui_main_show_dim_b = false;
 		FONT_MAIN = &lv_font_montserrat_32;  
 		FONT_MED = &lv_font_montserrat_22;
 		FONT_SMALL = &lv_font_montserrat_22;
@@ -824,122 +824,122 @@ static void ui_main_theme_init(void)
  * 
  * @param deg 
  */
-static void ui_main_set_tilt(uint16_t deg)
+static void mod_ui_main_set_tilt(uint16_t deg)
 {
     static char buf[8];                                                         // Enough for "-123°\0"  
     
     lv_snprintf(buf, sizeof(buf), "%d°", deg);
-    lv_label_set_text(ui_lbl_tilt_val, buf);
+    lv_label_set_text(mod_ui_main_lbl_tilt_val, buf);
 }
 
 /**
  * @brief Screen styles initialization
  * 
  */
-static void ui_main_styles_init(void)
+static void mod_ui_main_styles_init(void)
 {
-    ui_lv_group = lv_group_create();
+    mod_ui_main_lv_group = lv_group_create();
 
     /* White titles like “RADAR”, “INTENSITY” */
-    lv_style_init(&ui_style_title);
-    lv_style_set_text_color(&ui_style_title, lv_color_white());
-    lv_style_set_text_font(&ui_style_title, FONT_MAIN);
+    lv_style_init(&mod_ui_main_style_title);
+    lv_style_set_text_color(&mod_ui_main_style_title, lv_color_white());
+    lv_style_set_text_font(&mod_ui_main_style_title, FONT_MAIN);
 
 	/* Status                                 */
-	lv_style_init(&ui_style_status);
-    lv_style_set_text_color(&ui_style_status, lv_color_white());
-    lv_style_set_text_font(&ui_style_status, FONT_MED);
+	lv_style_init(&mod_ui_main_style_status);
+    lv_style_set_text_color(&mod_ui_main_style_status, lv_color_white());
+    lv_style_set_text_font(&mod_ui_main_style_status, FONT_MED);
 
     /* Small tick labels                      */
-    lv_style_init(&ui_style_tick);
-    lv_style_set_text_color(&ui_style_tick, lv_color_white());
-    lv_style_set_text_font(&ui_style_tick, FONT_SMALL);
+    lv_style_init(&mod_ui_main_style_tick);
+    lv_style_set_text_color(&mod_ui_main_style_tick, lv_color_white());
+    lv_style_set_text_font(&mod_ui_main_style_tick, FONT_SMALL);
 
     /* Big 180°                               */
-    lv_style_init(&ui_style_big);
-    lv_style_set_text_color(&ui_style_big, lv_color_white());
-    lv_style_set_text_font(&ui_style_big, FONT_BIG);
+    lv_style_init(&mod_ui_main_style_big);
+    lv_style_set_text_color(&mod_ui_main_style_big, lv_color_white());
+    lv_style_set_text_font(&mod_ui_main_style_big, FONT_BIG);
 
     /* Bottom nav buttons as plain text       */
-    lv_style_init(&ui_style_btn);
-    lv_style_set_bg_opa(&ui_style_btn, LV_OPA_TRANSP);
-    lv_style_set_border_opa(&ui_style_btn, LV_OPA_TRANSP);
-    lv_style_set_text_color(&ui_style_btn, lv_color_white());
-    lv_style_set_text_font(&ui_style_btn, FONT_SMALL);
+    lv_style_init(&mod_ui_main_style_btn);
+    lv_style_set_bg_opa(&mod_ui_main_style_btn, LV_OPA_TRANSP);
+    lv_style_set_border_opa(&mod_ui_main_style_btn, LV_OPA_TRANSP);
+    lv_style_set_text_color(&mod_ui_main_style_btn, lv_color_white());
+    lv_style_set_text_font(&mod_ui_main_style_btn, FONT_SMALL);
 
 	/* Label highlighting                     */
-	lv_style_init(&ui_style_label_inv);
-	lv_style_set_bg_color(&ui_style_label_inv, lv_color_white());
-	lv_style_set_bg_opa(&ui_style_label_inv, LV_OPA_COVER);
-	lv_style_set_text_color(&ui_style_label_inv, lv_color_black());
+	lv_style_init(&mod_ui_main_style_label_inv);
+	lv_style_set_bg_color(&mod_ui_main_style_label_inv, lv_color_white());
+	lv_style_set_bg_opa(&mod_ui_main_style_label_inv, LV_OPA_COVER);
+	lv_style_set_text_color(&mod_ui_main_style_label_inv, lv_color_black());
 	// Put a little breathing-room around the text
-    lv_style_set_pad_left(&ui_style_label_inv, 2);
-    lv_style_set_pad_right(&ui_style_label_inv, 2);
-    lv_style_set_pad_top(&ui_style_label_inv, 1);
-    lv_style_set_pad_bottom(&ui_style_label_inv,1);
+    lv_style_set_pad_left(&mod_ui_main_style_label_inv, 2);
+    lv_style_set_pad_right(&mod_ui_main_style_label_inv, 2);
+    lv_style_set_pad_top(&mod_ui_main_style_label_inv, 1);
+    lv_style_set_pad_bottom(&mod_ui_main_style_label_inv,1);
     // Softly rounded corners ; LV_RADIUS_CIRCLE for a pill
-    lv_style_set_radius(&ui_style_label_inv, 4);
+    lv_style_set_radius(&mod_ui_main_style_label_inv, 4);
 
-    lv_style_init(&ui_style_btn_focus_inv);
-    lv_style_set_bg_color(&ui_style_btn_focus_inv, lv_color_white());
-    lv_style_set_bg_opa(&ui_style_btn_focus_inv, LV_OPA_COVER);
-    lv_style_set_text_color(&ui_style_btn_focus_inv, lv_color_black());
-    lv_style_set_outline_width(&ui_style_btn_focus_inv, 1);                     /* No ring */
+    lv_style_init(&mod_ui_main_style_btn_focus_inv);
+    lv_style_set_bg_color(&mod_ui_main_style_btn_focus_inv, lv_color_white());
+    lv_style_set_bg_opa(&mod_ui_main_style_btn_focus_inv, LV_OPA_COVER);
+    lv_style_set_text_color(&mod_ui_main_style_btn_focus_inv, lv_color_black());
+    lv_style_set_outline_width(&mod_ui_main_style_btn_focus_inv, 1);                     /* No ring */
     // Put a little breathing-room around the text
-    lv_style_set_pad_left(&ui_style_btn_focus_inv, 2);
-    lv_style_set_pad_right(&ui_style_btn_focus_inv, 2);
-    lv_style_set_pad_top(&ui_style_btn_focus_inv, 1);
-    lv_style_set_pad_bottom(&ui_style_btn_focus_inv,1);
+    lv_style_set_pad_left(&mod_ui_main_style_btn_focus_inv, 2);
+    lv_style_set_pad_right(&mod_ui_main_style_btn_focus_inv, 2);
+    lv_style_set_pad_top(&mod_ui_main_style_btn_focus_inv, 1);
+    lv_style_set_pad_bottom(&mod_ui_main_style_btn_focus_inv,1);
     // Softly rounded corners ; LV_RADIUS_CIRCLE for a pill
-    lv_style_set_radius(&ui_style_btn_focus_inv, 4);
+    lv_style_set_radius(&mod_ui_main_style_btn_focus_inv, 4);
 
     /* Slider track                           */
-    lv_style_init(&ui_style_slider_main);
-    lv_style_set_bg_color(&ui_style_slider_main, UI_COLOR_ACCENT_C);
-    lv_style_set_bg_opa(&ui_style_slider_main, LV_OPA_COVER);
+    lv_style_init(&mod_ui_main_style_slider_main);
+    lv_style_set_bg_color(&mod_ui_main_style_slider_main, UI_COLOR_ACCENT_C);
+    lv_style_set_bg_opa(&mod_ui_main_style_slider_main, LV_OPA_COVER);
 
     /* Slider knob                            */
-    lv_style_init(&ui_style_slider_knob);
-    lv_style_set_bg_color(&ui_style_slider_knob, lv_color_white());
-    lv_style_set_radius(&ui_style_slider_knob, LV_RADIUS_CIRCLE);
+    lv_style_init(&mod_ui_main_style_slider_knob);
+    lv_style_set_bg_color(&mod_ui_main_style_slider_knob, lv_color_white());
+    lv_style_set_radius(&mod_ui_main_style_slider_knob, LV_RADIUS_CIRCLE);
 
     /* Switch ON                              */
-    lv_style_init(&ui_style_switch_on);
-    lv_style_set_bg_color(&ui_style_switch_on, UI_COLOR_ACCENT_C);
-	lv_style_set_border_width(&ui_style_switch_on, 2);
-	lv_style_set_border_color(&ui_style_switch_on, UI_COLOR_ACCENT_C);
-    lv_style_set_border_opa(&ui_style_switch_on, LV_OPA_100);
+    lv_style_init(&mod_ui_main_style_switch_on);
+    lv_style_set_bg_color(&mod_ui_main_style_switch_on, UI_COLOR_ACCENT_C);
+	lv_style_set_border_width(&mod_ui_main_style_switch_on, 2);
+	lv_style_set_border_color(&mod_ui_main_style_switch_on, UI_COLOR_ACCENT_C);
+    lv_style_set_border_opa(&mod_ui_main_style_switch_on, LV_OPA_100);
 
     /* Switch OFF (outline white)             */
-    lv_style_init(&ui_style_switch_off);
-    lv_style_set_bg_color(&ui_style_switch_off, lv_color_black());
-	lv_style_set_border_width(&ui_style_switch_off, 2);
-    lv_style_set_border_opa(&ui_style_switch_off, LV_OPA_100);
-    lv_style_set_border_color(&ui_style_switch_off, lv_color_white());
-    //lv_style_set_border_width(&ui_style_switch_off, 2);
+    lv_style_init(&mod_ui_main_style_switch_off);
+    lv_style_set_bg_color(&mod_ui_main_style_switch_off, lv_color_black());
+	lv_style_set_border_width(&mod_ui_main_style_switch_off, 2);
+    lv_style_set_border_opa(&mod_ui_main_style_switch_off, LV_OPA_100);
+    lv_style_set_border_color(&mod_ui_main_style_switch_off, lv_color_white());
+    //lv_style_set_border_width(&mod_ui_main_style_switch_off, 2);
 
     /* Row container: fully transparent, no border, no padding */
-    lv_style_init(&ui_style_row);
-    lv_style_set_bg_opa(&ui_style_row, LV_OPA_TRANSP);
-    lv_style_set_border_opa(&ui_style_row, LV_OPA_0);
-    lv_style_set_border_width(&ui_style_row, 0);
-    lv_style_set_pad_all(&ui_style_row, 0);
+    lv_style_init(&mod_ui_main_style_row);
+    lv_style_set_bg_opa(&mod_ui_main_style_row, LV_OPA_TRANSP);
+    lv_style_set_border_opa(&mod_ui_main_style_row, LV_OPA_0);
+    lv_style_set_border_width(&mod_ui_main_style_row, 0);
+    lv_style_set_pad_all(&mod_ui_main_style_row, 0);
 
-    lv_style_init(&ui_style_focus);
-    lv_style_set_outline_width(&ui_style_focus, 3);                             // Set thickness
-    lv_style_set_outline_pad(&ui_style_focus, 0);                               // Snug
-    lv_style_set_outline_color(&ui_style_focus, lv_color_white());  
-    lv_style_set_outline_opa(&ui_style_focus, LV_OPA_COVER);    
-    lv_style_set_radius(&ui_style_focus, LV_RADIUS_CIRCLE); 
+    lv_style_init(&mod_ui_main_style_focus);
+    lv_style_set_outline_width(&mod_ui_main_style_focus, 3);                             // Set thickness
+    lv_style_set_outline_pad(&mod_ui_main_style_focus, 0);                               // Snug
+    lv_style_set_outline_color(&mod_ui_main_style_focus, lv_color_white());  
+    lv_style_set_outline_opa(&mod_ui_main_style_focus, LV_OPA_COVER);    
+    lv_style_set_radius(&mod_ui_main_style_focus, LV_RADIUS_CIRCLE); 
 	
 	/* Inactive/disabled switches/sliders     */
-	lv_style_init(&ui_style_inactive);
-	lv_style_set_opa(&ui_style_inactive, LV_OPA_40);                            // Fade everything a bit
-	lv_style_set_bg_color(&ui_style_inactive, lv_color_hex(0x808080));
-	lv_style_set_outline_color(&ui_style_inactive, lv_color_hex(0x808080));  
-	lv_style_set_border_color(&ui_style_inactive, lv_color_hex(0x808080));
+	lv_style_init(&mod_ui_main_style_inactive);
+	lv_style_set_opa(&mod_ui_main_style_inactive, LV_OPA_40);                            // Fade everything a bit
+	lv_style_set_bg_color(&mod_ui_main_style_inactive, lv_color_hex(0x808080));
+	lv_style_set_outline_color(&mod_ui_main_style_inactive, lv_color_hex(0x808080));  
+	lv_style_set_border_color(&mod_ui_main_style_inactive, lv_color_hex(0x808080));
 	//grey text for labels that live inside the widget(slider value, etc.)
-	lv_style_set_text_color(&ui_style_inactive, lv_color_hex(0xc0c0c0));
+	lv_style_set_text_color(&mod_ui_main_style_inactive, lv_color_hex(0xc0c0c0));
 }
 
 

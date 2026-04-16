@@ -17,6 +17,7 @@
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
 #include "Modules/mod_ui_scrn_main.h"
+#include "Modules/mod_ui_screens.h"
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_scrn_debug.h"
 
@@ -24,28 +25,23 @@
 /* Private define ------------------------------------------------------------*/
 
 #define M_UI_SPLASH_SCRN_TM_MS_C	1000										/* Time (in ms) Splash Screen will remain on screen */
-#define M_UI_STANDBY_TM_MS_C		(1 * 30 * 1000)								/* Maximum time (in ms) for the UI to remain unused */
+#define M_UI_LOADING_RETRY_TM_MS_C	3000										/* Time (in ms) for loading to retry */
+#define M_UI_STANDBY_TM_MS_C		(5 * 60 * 1000)								/* Maximum time (in ms) for the UI to remain unused */
 
 
 /* Private typedef -----------------------------------------------------------*/
-
-typedef enum {
-	M_UI_SCRN_NONE_C = 0,
-	M_UI_SCRN_SPLASH_C,
-	M_UI_SCRN_LOADING_C,
-	M_UI_SCRN_MAIN_C,
-	M_UI_SCRN_DEBUG_C,
-	M_UI_LAST_SCRN_C
-} M_UI_SCRN_E;
-
-
 /* Global variables  ---------------------------------------------------------*/
+
+M_UI_SCRN_E 			g_mod_ui_new_screen;
+
+
 /* Private variables  --------------------------------------------------------*/
 
 static bool 			b_mod_ui_is_booting;
 static bool 			b_mod_ui_is_backlight_on;
 static M_UI_SCRN_E		mod_ui_screen;
 static absolute_time_t  mod_ui_splash_tmout;
+static absolute_time_t  mod_ui_loading_retry_tmout;
 static absolute_time_t  mod_ui_stanby_tmout;
 
 
@@ -80,10 +76,13 @@ void mod_ui_init(void)
 	lv_init();
 	drv_display_init();
 
+	mod_ui_screen		= M_UI_SCRN_NONE_C;
+	g_mod_ui_new_screen = M_UI_SCRN_SPLASH_C;
+
 	drv_lamp_load_type_from_flash();
 	ui_loading_splash_image_init();
 
-	/* TODO: This next block can be ggone after fixing usb-pd negotiation to 
+	/* TODO: This next block can be deleted after fixing usb-pd negotiation to 
 	   non-blocking
 	*/
 	ui_loading_splash_image_open(NULL);
@@ -91,7 +90,7 @@ void mod_ui_init(void)
 	mod_ui_stanby_tmout = make_timeout_time_ms (M_UI_STANDBY_TM_MS_C);
 	/**/
 
-	ui_main_init();
+	mod_ui_main_init();
     ui_debug_init();
 }
 
@@ -141,9 +140,14 @@ static inline void mod_ui_backlight_turn_off(void)
  */
 static void mod_ui_backlight_handler(void)
 {
+	uint8_t turn_on;
+
+	turn_on = 0;
+
 	if (b_mod_ui_is_backlight_on)
 	{
-		if (get_absolute_time() > mod_ui_stanby_tmout)
+		if ((get_absolute_time() > mod_ui_stanby_tmout) &&
+			(mod_ui_screen != M_UI_SCRN_LOADING_C))
 		{
 			mod_ui_backlight_turn_off();
 		}
@@ -153,10 +157,20 @@ static void mod_ui_backlight_handler(void)
 	{
 		if (!b_mod_ui_is_backlight_on)
 		{
-			mod_ui_backlight_turn_on();
+			turn_on = 1;
 		}
 
 		mod_ui_stanby_tmout =  make_timeout_time_ms (M_UI_STANDBY_TM_MS_C);
+	}
+
+	if ((mod_ui_screen == M_UI_SCRN_LOADING_C) && !b_mod_ui_is_backlight_on)
+	{
+		turn_on = 1;
+	}
+
+	if (turn_on)
+	{
+		mod_ui_backlight_turn_on();
 	}
 }
 
@@ -166,20 +180,57 @@ static void mod_ui_backlight_handler(void)
  */
 static void mod_ui_screen_handler(void)
 {
-	if (b_mod_ui_is_booting)
+	if (mod_ui_screen != g_mod_ui_new_screen) 									/* New screen is required? */
 	{
-		mod_ui_splash_screen_handler();
-	}
-	else 
-	{
-		if (drv_lamp_is_power_ok()) 
+		switch (g_mod_ui_new_screen)
 		{
-			mod_ui_main_screen_handler();
-		} 
-		else 
-		{
-			mod_ui_psu_screen_handler();
+			case M_UI_SCRN_NONE_C:
+			break;
+
+			case M_UI_SCRN_SPLASH_C:
+				ui_loading_splash_image_open(NULL);
+			break;
+			
+			case M_UI_SCRN_LOADING_C:
+				mod_ui_loading_retry_tmout = 0;
+			break;
+			
+			case M_UI_SCRN_MAIN_C:
+			default:
+				mod_ui_main_open();
+			break;
+			
+			case M_UI_SCRN_DEBUG_C:
+				ui_debug_open();
+			break;
 		}
+		mod_ui_screen = g_mod_ui_new_screen;
+	}
+	
+	switch (mod_ui_screen)
+	{
+		case M_UI_SCRN_NONE_C:
+		break;
+
+		case M_UI_SCRN_SPLASH_C:
+			mod_ui_splash_screen_handler();
+		break;
+		
+		case M_UI_SCRN_LOADING_C:
+			mod_ui_psu_screen_handler();
+		break;
+		
+		case M_UI_SCRN_MAIN_C:
+			mod_ui_main_screen_handler();
+		break;
+		
+		case M_UI_SCRN_DEBUG_C:
+			mod_ui_debug_screen_handler();
+		break;
+		
+		default:
+			g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
+		break;
 	}
 }
 
@@ -196,9 +247,6 @@ static void mod_ui_splash_screen_handler(void)
 		case 0:
 			if (b_mod_ui_is_booting)
 			{
-				ui_loading_splash_image_open(NULL);
-				mod_ui_screen = M_UI_SCRN_SPLASH_C;
-
 				mod_ui_splash_tmout = make_timeout_time_ms (M_UI_SPLASH_SCRN_TM_MS_C);
 
 				splash_scrn_stt++;
@@ -209,6 +257,8 @@ static void mod_ui_splash_screen_handler(void)
 			if (get_absolute_time() > mod_ui_splash_tmout)
 			{
 				b_mod_ui_is_booting = false;
+
+				g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
 			
 				splash_scrn_stt = 0;
 			}
@@ -226,14 +276,14 @@ static void mod_ui_splash_screen_handler(void)
  */
 static void mod_ui_main_screen_handler(void)
 {
-	if (mod_ui_screen != M_UI_SCRN_MAIN_C)
+	if (drv_lamp_is_power_ok()) 
 	{
-		ui_main_open();
-
-		mod_ui_screen = M_UI_SCRN_MAIN_C;
+		mod_ui_main_update();
 	}
-	ui_main_update();
-	//ui_debug_update();
+	else
+	{
+		g_mod_ui_new_screen = M_UI_SCRN_LOADING_C;
+	}
 }
 
 /**
@@ -242,13 +292,14 @@ static void mod_ui_main_screen_handler(void)
  */
 static void mod_ui_debug_screen_handler(void)
 {
-	if (mod_ui_screen != M_UI_SCRN_DEBUG_C)
+	if (drv_lamp_is_power_ok()) 
 	{
-		ui_debug_open();
-
-		mod_ui_screen = M_UI_SCRN_DEBUG_C;
+		ui_debug_update();
 	}
-	ui_debug_update();
+	else
+	{
+		g_mod_ui_new_screen = M_UI_SCRN_LOADING_C;
+	}
 }
 
 /**
@@ -257,32 +308,27 @@ static void mod_ui_debug_screen_handler(void)
  */
 static void mod_ui_psu_screen_handler(void)
 {
-	static uint64_t last_retry = 0;
+	ui_loading_show_psu();
 
-	if (mod_ui_screen != M_UI_SCRN_LOADING_C)
-	{
-		ui_loading_show_psu();
-		
-		mod_ui_screen = M_UI_SCRN_LOADING_C;
-	}
-
-	if (last_retry == 0) 
-	{
-		last_retry = time_us_64();
-	}
-
-	if ((time_us_64() - last_retry) > 3000000)  // every 3s
+	if (get_absolute_time() > mod_ui_loading_retry_tmout)
 	{
 		ui_loading_show_psu_status("Retrying...");
 		drv_lamp_power_up_rails();
-		last_retry = time_us_64();
 
 		if (drv_lamp_is_power_ok())
 		{
 			drv_lamp_perform_type_test();
 			drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-			ui_main_open();
+			
+			g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
 		}
+
+		mod_ui_loading_retry_tmout = 0;
+	}
+
+	if (mod_ui_loading_retry_tmout == 0) 
+	{
+		mod_ui_loading_retry_tmout = make_timeout_time_ms(M_UI_LOADING_RETRY_TM_MS_C);
 	}
 }
 

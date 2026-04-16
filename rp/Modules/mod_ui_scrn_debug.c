@@ -13,7 +13,7 @@
 #include "pico/stdlib.h"
 #include <hardware/watchdog.h>
 #include "Modules/mod_ui_scrn_debug.h"
-#include "Modules/mod_ui_scrn_main.h"
+#include "Modules/mod_ui_screens.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_display.h"
@@ -27,10 +27,12 @@
 /* Private define ------------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
 
-extern bool     g_mod_pow_hw_is_rev1_2_b;
-extern bool     g_mod_pow_is_usb_connected_b;
-extern uint32_t g_mod_pow_usb_negotiated_ma;
-extern uint32_t g_mod_pow_usb_negotiated_mv;
+extern M_UI_SCRN_E  g_mod_ui_new_screen;
+extern bool         g_mod_pow_hw_is_rev1_2_b;
+extern bool         g_mod_pow_is_usb_connected_b;
+extern uint32_t     g_mod_pow_usb_negotiated_ma;
+extern uint32_t     g_mod_pow_usb_negotiated_ma;
+extern uint32_t     g_mod_pow_usb_negotiated_mv;
 
 
 /* Private variables  --------------------------------------------------------*/
@@ -215,7 +217,7 @@ void ui_debug_open(void)
  */
 static void ui_debug_back_btn_callback(lv_event_t* p_evt)
 {
-    ui_main_open();
+    g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
 }
 
 /**

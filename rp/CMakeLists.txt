@@ -85,6 +85,13 @@ add_executable(app
 
 add_dependencies(app splash_images)
 
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+    target_compile_options(app PRIVATE -O0 -g3)
+    target_compile_definitions(app PRIVATE DEBUG_BUILD)
+else()
+    target_compile_definitions(app PRIVATE RELEASE_BUILD)
+endif()
+
 pico_enable_stdio_usb(app 1)
 pico_enable_stdio_uart(app 0)
 

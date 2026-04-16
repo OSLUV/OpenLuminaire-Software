@@ -10,6 +10,7 @@
 
 #include <lvgl.h>
 #include "Modules/mod_ui_scrn_loading.h"
+#include "Modules/mod_ui_screens.h"
 #include "splash_img.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_display.h"
@@ -20,6 +21,7 @@
 /* Private define ------------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
 
+extern M_UI_SCRN_E  g_mod_ui_new_screen;
 extern bool g_mod_pow_hw_is_rev1_2_b;
 
 

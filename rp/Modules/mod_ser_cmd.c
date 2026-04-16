@@ -59,10 +59,10 @@ typedef struct {
 
 static const M_CMD_CTL_T  mod_cmd_list[] = 
 {
-    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_CTL_ID_S, ui_main_lamp_set_stt },
-    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_CTL_ID_S, ui_main_lamp_get_stt },
-    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_DIM_ID_S, ui_main_lamp_set_dim },
-    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_DIM_ID_S, ui_main_lamp_get_dim },
+    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_CTL_ID_S, mod_ui_main_lamp_set_stt },
+    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_CTL_ID_S, mod_ui_main_lamp_get_stt },
+    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_DIM_ID_S, mod_ui_main_lamp_set_dim },
+    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_DIM_ID_S, mod_ui_main_lamp_get_dim },
     {0,              0,                       0                 }
 };
 
