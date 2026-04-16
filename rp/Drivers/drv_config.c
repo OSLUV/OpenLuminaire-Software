@@ -14,7 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "Drivers/drv_config.h"
-#include "ui_main.h"
+#include "Modules/mod_ui_scrn_main.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

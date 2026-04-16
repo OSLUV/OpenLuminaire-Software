@@ -1,5 +1,5 @@
 /**
- * @file      ui_loading.h
+ * @file      Modules/mod_ui_scrn_loading.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for UI loading module
  *  

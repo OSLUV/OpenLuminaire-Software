@@ -18,7 +18,6 @@
 #include <drivers/display/st7796/lv_st7796.h>
 #include <lvgl.h>
 #include "Drivers/drv_buttons.h"
-#include "pins.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

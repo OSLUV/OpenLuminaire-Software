@@ -1,5 +1,5 @@
 /**
- * @file      ui_debug.h
+ * @file      mod_ui_scrn_debug.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for UI debugging tools
  *  

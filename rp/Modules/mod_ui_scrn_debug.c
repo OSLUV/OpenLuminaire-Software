@@ -1,5 +1,5 @@
 /**
- * @file      ui_debug.c
+ * @file      mod_ui_scrn_debug.c
  * @author    The OSLUV Project
  * @brief     UI debugging tools
  *
@@ -12,7 +12,8 @@
 #include <lvgl.h>
 #include "pico/stdlib.h"
 #include <hardware/watchdog.h>
-#include "ui_debug.h"
+#include "Modules/mod_ui_scrn_debug.h"
+#include "Modules/mod_ui_scrn_main.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_display.h"
@@ -20,7 +21,6 @@
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_usb_pd.h"
-#include "ui_main.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

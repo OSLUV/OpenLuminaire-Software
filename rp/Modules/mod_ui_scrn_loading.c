@@ -1,5 +1,5 @@
 /**
- * @file      ui_loading.c
+ * @file      mod_ui_scrn_loading.c
  * @author    The OSLUV Project
  * @brief     UI loading module using LVGL library
  *  
@@ -9,7 +9,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include <lvgl.h>
-#include "ui_loading.h"
+#include "Modules/mod_ui_scrn_loading.h"
 #include "splash_img.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_display.h"

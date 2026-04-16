@@ -64,6 +64,9 @@ add_executable(app
 	Modules/mod_ser_cmd.c
 	Modules/mod_system.c
 	Modules/mod_ui_mgr.c
+	Modules/mod_ui_scrn_debug.c
+	Modules/mod_ui_scrn_main.c
+	Modules/mod_ui_scrn_loading.c
 	Drivers/drv_accelerometer.c
 	Drivers/drv_adc_volt.c
 	Drivers/drv_buttons.c
@@ -76,12 +79,8 @@ add_executable(app
 	Drivers/drv_radar.c
 	Drivers/drv_uart_cmd.c
 	Drivers/drv_usb_pd.c
-	radio.c
 	safety_logic.c
 	splash_img.c
-	ui_main.c
-	ui_loading.c
-	ui_debug.c
 )
 
 add_dependencies(app splash_images)

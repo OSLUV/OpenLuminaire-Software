@@ -16,9 +16,9 @@
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
-#include "ui_main.h"
-#include "ui_loading.h"
-#include "ui_debug.h"
+#include "Modules/mod_ui_scrn_main.h"
+#include "Modules/mod_ui_scrn_loading.h"
+#include "Modules/mod_ui_scrn_debug.h"
 
 
 /* Private define ------------------------------------------------------------*/
@@ -55,8 +55,10 @@ static absolute_time_t  mod_ui_stanby_tmout;
 static inline void mod_ui_backlight_turn_on(void);
 static inline void mod_ui_backlight_turn_off(void);
 static void mod_ui_backlight_handler(void);
+static void mod_ui_screen_handler(void);
 static void mod_ui_splash_screen_handler(void);
 static void mod_ui_main_screen_handler(void);
+static void mod_ui_debug_screen_handler(void);
 static void mod_ui_psu_screen_handler(void);
 
 
@@ -105,21 +107,7 @@ void mod_ui_manager(void)
 
 	lv_timer_handler();
 
-	if (b_mod_ui_is_booting)
-	{
-		mod_ui_splash_screen_handler();
-	}
-	else 
-	{
-		if (drv_lamp_is_power_ok()) 
-		{
-			mod_ui_main_screen_handler();
-		} 
-		else 
-		{
-			mod_ui_psu_screen_handler();
-		}
-	}
+	mod_ui_screen_handler();
 }
 
 /* Callback functions --------------------------------------------------------*/
@@ -176,6 +164,29 @@ static void mod_ui_backlight_handler(void)
  * @brief Handles splash screen at system bootup
  * 
  */
+static void mod_ui_screen_handler(void)
+{
+	if (b_mod_ui_is_booting)
+	{
+		mod_ui_splash_screen_handler();
+	}
+	else 
+	{
+		if (drv_lamp_is_power_ok()) 
+		{
+			mod_ui_main_screen_handler();
+		} 
+		else 
+		{
+			mod_ui_psu_screen_handler();
+		}
+	}
+}
+
+/**
+ * @brief Handles splash screen at system bootup
+ * 
+ */
 static void mod_ui_splash_screen_handler(void)
 {
 	static uint8_t splash_scrn_stt  = 0;
@@ -222,6 +233,21 @@ static void mod_ui_main_screen_handler(void)
 		mod_ui_screen = M_UI_SCRN_MAIN_C;
 	}
 	ui_main_update();
+	//ui_debug_update();
+}
+
+/**
+ * @brief Handles main screen displaying
+ * 
+ */
+static void mod_ui_debug_screen_handler(void)
+{
+	if (mod_ui_screen != M_UI_SCRN_DEBUG_C)
+	{
+		ui_debug_open();
+
+		mod_ui_screen = M_UI_SCRN_DEBUG_C;
+	}
 	ui_debug_update();
 }
 

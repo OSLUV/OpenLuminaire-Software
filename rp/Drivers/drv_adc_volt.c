@@ -10,7 +10,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include <hardware/adc.h>
-#include "pins.h"
+#include "Drivers/drv_adc_volt.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

@@ -15,7 +15,6 @@
 #include <hardware/gpio.h>
 #include <pico/stdlib.h>
 #include "Drivers/drv_buttons.h"
-#include "pins.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

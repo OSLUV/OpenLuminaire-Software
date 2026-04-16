@@ -1,5 +1,5 @@
 /**
- * @file      ui_main.h
+ * @file      mod_ui_scrn_main.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for UI main screen handling module
  *  

@@ -24,7 +24,7 @@
 #include "Modules/mod_system.h"
 #include "Modules/mod_ui_mgr.h"
 
-#include "font.c"
+//#include "font.c"
 
 /* Private function prototypes -----------------------------------------------*/
 

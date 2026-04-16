@@ -1,5 +1,5 @@
 /**
- * @file      ui_main.h
+ * @file      mod_ui_scrn_main.c
  * @author    The OSLUV Project
  * @brief     UI main screen handling module
  *  
@@ -11,14 +11,14 @@
 #include <lvgl.h>
 #include <stdio.h>
 #include <string.h>
+#include "Modules/mod_ui_scrn_main.h"
+#include "Modules/mod_ui_scrn_debug.h"
+#include "Modules/mod_ui_scrn_loading.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_config.h"
 #include "Drivers/drv_lamp.h"
-#include "ui_debug.h"
-#include "ui_loading.h"
-#include "ui_main.h"
 #include "safety_logic.h"
 
 
@@ -152,13 +152,16 @@ void ui_main_init(void)
  */
 void ui_main_update(void)
 {
-	if (!ui_lamp_known_b) return;
-
 	static char buf[48];
     bool power_on = lv_obj_has_state(ui_sw_power, LV_STATE_CHECKED);
     bool radar_on = lv_obj_has_state(ui_sw_radar, LV_STATE_CHECKED);
 	bool inactive = !power_on;
 	D_LAMP_PWR_LEVEL_E intensity_setting = UI_MAIN_LAMP_PWR_C;
+    
+	if (!ui_lamp_known_b)
+    {
+        return;
+    }
 
 	/* Get current User set-point lamp power level  */
 	if (ui_show_dim_b)
