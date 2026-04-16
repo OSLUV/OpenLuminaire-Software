@@ -14,10 +14,9 @@
 #include <hardware/watchdog.h>
 #include "Modules/mod_ui_scrn_debug.h"
 #include "Modules/mod_ui_screens.h"
-#include "Drivers/drv_accelerometer.h"
+#include "Modules/system.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_display.h"
-#include "Drivers/drv_magnetometer.h"
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_usb_pd.h"
@@ -148,9 +147,9 @@ void ui_debug_update(void)
 
     ADD_TEXT("Board %s\n", g_mod_pow_hw_is_rev1_2_b?"V1.2":"V1.1");
 
-    ADD_TEXT("IMU: %+.2f/%+.2f/%+.2f\n", g_drv_acc_x, g_drv_acc_y, g_drv_acc_z);
+    ADD_TEXT("Acc: %+.2f/%+.2f/%+.2f\n", g_sys.acc_x, g_sys.acc_y, g_sys.acc_z);
 
-    ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_drv_mag_x, g_drv_mag_y, g_drv_mag_z);
+    ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_sys.mag_x, g_sys.mag_y, g_sys.mag_z);
 
     ADD_TEXT("12V %s %s / 24V Reg %s\n",
              g_mod_pow_hw_is_rev1_2_b?"Reg":"Switched",

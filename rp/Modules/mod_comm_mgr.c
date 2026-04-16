@@ -10,6 +10,7 @@
 
 #include "Modules/mod_comm_mgr.h"
 #include "Modules/mod_ser_cmd.h"
+#include "Modules/system.h"
 
 
 /* Private define ------------------------------------------------------------*/

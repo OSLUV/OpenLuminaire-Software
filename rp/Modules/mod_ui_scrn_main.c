@@ -13,7 +13,7 @@
 #include <string.h>
 #include "Modules/mod_ui_scrn_main.h"
 #include "Modules/mod_ui_screens.h"
-#include "Drivers/drv_accelerometer.h"
+#include "Modules/system.h"
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_config.h"
@@ -30,7 +30,7 @@
 
 /* Global variables  ---------------------------------------------------------*/
 
-extern M_UI_SCRN_E  g_mod_ui_new_screen;
+extern M_UI_SCRN_E       g_mod_ui_new_screen;
 extern const lv_font_t * FONT_MAIN  = NULL; 
 extern const lv_font_t * FONT_BIG   = NULL;
 extern const lv_font_t * FONT_SMALL = NULL;
@@ -273,8 +273,7 @@ void mod_ui_main_update(void)
 	}
 	
 	/* Update tilt data */
-	int16_t a = drv_acc_get_pointing_down_angle(); 
-	mod_ui_main_set_tilt(a);
+	mod_ui_main_set_tilt(g_sys.acc_pointing_down_angle);
 }
 
 /**

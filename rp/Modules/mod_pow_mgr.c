@@ -10,6 +10,7 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include "Modules/mod_pow_mgr.h"
+#include "Modules/system.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_usb_pd.h"
 

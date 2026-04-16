@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <pico/stdlib.h>
+#include "Modules/system.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
@@ -34,6 +35,10 @@ typedef struct {
 
 
 /* Global variables  ---------------------------------------------------------*/
+
+extern int16_t g_mod_ctrl_pointing_down_angle;
+
+
 /* Private variables  --------------------------------------------------------*/
 
 #if 1
@@ -97,7 +102,7 @@ static int safety_logic_get_power_for_distance(int distance, bool b_is_diffused,
  */
 bool safety_logic_is_high_tilt(void)
 {
-	return drv_acc_get_pointing_down_angle() > safety_logic_get_tilt_break();
+	return g_sys.acc_pointing_down_angle > safety_logic_get_tilt_break();
 }
 
 /**

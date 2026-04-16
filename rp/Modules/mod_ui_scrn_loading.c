@@ -11,10 +11,10 @@
 #include <lvgl.h>
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_screens.h"
-#include "splash_img.h"
-#include "Drivers/drv_adc_volt.h"
+#include "Modules/system.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
+#include "splash_img.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

@@ -13,6 +13,7 @@
 #include "pico/time.h"
 
 #include "Modules/mod_ui_mgr.h"
+#include "Modules/system.h"
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"

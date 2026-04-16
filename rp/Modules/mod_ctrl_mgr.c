@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include "Modules/mod_ctrl_mgr.h"
+#include "Modules/system.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_magnetometer.h"
 #include "Drivers/drv_lamp.h"
@@ -62,7 +63,16 @@ void mod_ctrl_init(void)
 void mod_ctrl_manager(void)
 {
     drv_acc_update();
+	g_sys.acc_x = g_drv_acc_x;
+	g_sys.acc_y = g_drv_acc_y;
+	g_sys.acc_z = g_drv_acc_z;
+	g_sys.acc_pointing_down_angle = drv_acc_get_pointing_down_angle();
+
     drv_mag_update();
+	g_sys.mag_x = g_drv_mag_x;
+	g_sys.mag_y = g_drv_mag_y;
+	g_sys.mag_z = g_drv_mag_z;
+
     drv_radar_update();
 
     mod_ctrl_lamp_handler();

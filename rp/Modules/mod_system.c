@@ -11,12 +11,17 @@
 #include <stdio.h>
 #include <hardware/watchdog.h>
 #include "Modules/mod_system.h"
+#include "Modules/system.h"
 #include "Drivers/drv_config.h"
 
 
 /* Private define ------------------------------------------------------------*/
 /* Private typedef -----------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
+
+SYS_STATUS_T g_sys;
+
+
 /* Private variables  --------------------------------------------------------*/
 /* Callback prototypes -------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
