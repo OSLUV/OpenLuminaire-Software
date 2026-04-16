@@ -19,6 +19,9 @@
 
 typedef struct {
 
+    float v_vbus;
+    float v_12v;
+    float v_24v;
     float acc_x;
     float acc_y;
     float acc_z;

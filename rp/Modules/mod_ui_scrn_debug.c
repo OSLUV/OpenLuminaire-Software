@@ -157,15 +157,15 @@ void ui_debug_update(void)
              drv_lamp_get_switched_24v()?"ON ":"off");
 
     ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
-             g_adc_v_vbus,
-             g_adc_v_12v,
-             g_adc_v_24v);
+             g_sys.v_vbus,
+             g_sys.v_12v,
+             g_sys.v_24v);
 
     if (g_mod_pow_is_usb_connected_b)
     {
         ADD_TEXT("USB Req %dV Got %.1fV/%.1fA\n",
                  g_mod_pow_usb_negotiated_mv / 1000,
-                 g_adc_v_vbus,
+                 g_sys.v_vbus,
                  ((float)drv_usb_pd_get_negotiated_ma())/1000.);
     }
     else
