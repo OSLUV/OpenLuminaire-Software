@@ -1,7 +1,7 @@
 /**
- * @file      sense.c
+ * @file      drv_adc_volt.c
  * @author    The OSLUV Project
- * @brief     Driver for voltages sensing
+ * @brief     Driver for ADC voltages sensing
  * @schematic lamp_controller.SchDoc
  *  
  */
@@ -16,35 +16,41 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define SENSE_PIN_ADC0_C	26
+#define D_ADC_V_VBUS_PIN_C 	26 													/* VBUS_VSENSE */
+#define D_ADC_V_12V_PIN_C 	27 													/* +12V_VSENSE */
+#define D_ADC_V_24V_PIN_C 	29 													/* +24V_VSENSE */
+
+#define D_ADC_V_VBUS_ADC_C	0
+#define D_ADC_V_12V_ADC_C	1
+#define D_ADC_V_24V_ADC_C	3
 
 
 /* Global variables  ---------------------------------------------------------*/
 
-float g_sense_vbus, g_sense_12v, g_sense_24v = 0;
+float g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v = 0;
 
 
 /* Private variables  --------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
-static float sense_convert_adc_sample(uint16_t sample);
+static float drv_adc_volt_convert_sample(uint16_t sample);
 
 
 /* Exported functions --------------------------------------------------------*/
 
 /**
- * @brief Voltages sensing initialization procedure
+ * @brief ADC voltages sensing initialization procedure
  * 
  * @return 	void  
  * 
  */
-void sense_init(void)
+void drv_adc_volt_init(void)
 {
 	adc_init();
 
-    adc_gpio_init(PIN_VSENSE_VBUS);
-    adc_gpio_init(PIN_VSENSE_12V);
-    adc_gpio_init(PIN_VSENSE_24V);
+    adc_gpio_init(D_ADC_V_VBUS_PIN_C);
+    adc_gpio_init(D_ADC_V_12V_PIN_C);
+    adc_gpio_init(D_ADC_V_24V_PIN_C);
 }
 
 /**
@@ -52,16 +58,16 @@ void sense_init(void)
  * 
  * @return 	void  
  */
-void sense_update(void)
+void drv_adc_volt_update(void)
 {
-	adc_select_input(PIN_VSENSE_VBUS - SENSE_PIN_ADC0_C);
-	g_sense_vbus = sense_convert_adc_sample(adc_read());
+	adc_select_input(D_ADC_V_VBUS_ADC_C);
+	g_adc_v_vbus = drv_adc_volt_convert_sample(adc_read());
 
-	adc_select_input(PIN_VSENSE_12V - SENSE_PIN_ADC0_C);
-	g_sense_12v = sense_convert_adc_sample(adc_read());
+	adc_select_input(D_ADC_V_12V_ADC_C);
+	g_adc_v_12v = drv_adc_volt_convert_sample(adc_read());
 
-	adc_select_input(PIN_VSENSE_24V - SENSE_PIN_ADC0_C);
-	g_sense_24v = sense_convert_adc_sample(adc_read());
+	adc_select_input(D_ADC_V_24V_ADC_C);
+	g_adc_v_24v = drv_adc_volt_convert_sample(adc_read());
 }
 
 
@@ -73,7 +79,7 @@ void sense_update(void)
  * @param adc_sample ADC channel sample
  * @return float 
  */
-static float sense_convert_adc_sample(uint16_t adc_sample)
+static float drv_adc_volt_convert_sample(uint16_t adc_sample)
 {
 	float reading = ((float)adc_sample) * (3.3f / (float)(1 << 12));
 	float r1 = 100000;

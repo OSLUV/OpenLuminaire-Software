@@ -13,13 +13,16 @@
 #include "splash_img.h"
 #include "lamp.h"
 #include "display.h"
-#include "board.h"
-#include "sense.h"
+#include "Drivers/drv_adc_volt.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
+
+extern bool g_mod_pow_hw_is_rev1_2_b;
+
+
 /* Private variables  --------------------------------------------------------*/
 
 static lv_group_t*   ui_loading_lv_group;
@@ -155,7 +158,7 @@ void ui_loading_show_psu(void)
                               "VBUS: %.1f V\n"
                               "12V: %.1f  24V: %.1f",
                               ui_loading_get_psu_error_msg(),
-                              g_sense_vbus, g_sense_12v, g_sense_24v);
+                              g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
         lv_label_set_text(ui_loading_lv_psu_status, "");
         lv_scr_load(ui_loading_lv_psu_screen);
         return;
@@ -209,7 +212,7 @@ void ui_loading_show_psu_status(const char *status)
 
 static const char* ui_loading_get_psu_error_msg(void)
 {
-    if (board_is_v1_2())
+    if (g_mod_pow_hw_is_rev1_2_b)
     {
         return "ERROR:\nPOWER SUPPLY\n"
                "INCOMPATIBLE!\n"

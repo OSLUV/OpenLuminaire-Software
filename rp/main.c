@@ -23,99 +23,30 @@
 #include "pins.h"
 #include "imu.h"
 #include "mag.h"
-#include "usbpd.h"
 #include "lamp.h"
 #include "buttons.h"
-#include "sense.h"
 #include "radar.h"
 #include "fan.h"
 #include "radio.h"
 #include "safety_logic.h"
-#include "persistance.h"
 #include "display.h"
 #include "ui_main.h"
 #include "ui_loading.h"
 #include "ui_debug.h"
 
-#include "m_cmd.h"
-#include "board.h"
-#include <hardware/watchdog.h>
+#include "Modules/mod_comm_mgr.h"
+#include "Modules/mod_pow_mgr.h"
+#include "Modules/mod_system.h"
 
 #include "font.c"
 
+static void main_sys_init(void);
 
 /* Application main function -------------------------------------------------*/
 
 void main(void)
-{	
-	display_screen_off();
-	stdio_init_all();
-
-	gpio_init(4);
-	gpio_init(5);
-	gpio_init(6);
-	gpio_set_dir(4, GPIO_IN);
-	gpio_set_dir(5, GPIO_IN);
-	gpio_set_dir(6, GPIO_IN);
-
-	persistance_read_region();
-	printf("g_persistance_region.factory_lamp_type = %d\n", 
-		   g_persistance_region.factory_lamp_type);
-		
-	lv_init();
-	display_init();
-
-	lamp_load_type_from_flash();
-	ui_loading_splash_image_init();
-	ui_loading_splash_image_open(NULL);
-
-	buttons_init();
-	imu_init();
-	mag_init();
-	lamp_init();
-	sense_init();
-	radar_init();
-	fan_init();
-	//radio_init();
-	board_init();
-	usbpd_negotiate(true);
-	usbpd_init_update();
-	fan_set_speed(100);
-	m_cmd_init();
-
-	/* Watchdog: catches runtime hangs (brownout gray zone, stuck loops).
-	 * Enabled after usbpd_negotiate() (long blocking) but before
-	 * lamp_power_up_rails() (lamp could be on after this point).
-	 * Feeds: main loop, type test loops, lamp_power_up_rails sleeps,
-	 * usbpd_negotiate loop (for hot-plug re-negotiation). */
-	watchdog_enable(1500, true);
-
-	lamp_power_up_rails();
-
-	printf("Scripted start...\n");
-
-	if (lamp_is_power_ok())
-	{
-		lamp_perform_type_test();
-		lamp_request_power_level(LAMP_PWR_100PCT_C);
-	}	
-	
-	printf("Enter mainloop... xx\n");
-	
-	// Main UI init
-    ui_main_init();
-    ui_debug_init();
-	
-    //ui_main_open();  
-	
-	if (lamp_is_power_ok()) 
-	{
-		ui_main_open();
-	} 
-	else 
-	{
-		ui_loading_show_psu();
-	}	
+{
+	main_sys_init();
 	
     // Housekeeping flags
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   						// 5 min
@@ -124,14 +55,16 @@ void main(void)
 	
 	while (1)
 	{
-		watchdog_update();
-		m_cmd_handler();
-		sense_update();
+		mod_system_services();
+
+		mod_pow_manager();
+		
+		mod_comm_manager();
+		
 		buttons_update();
 		imu_update();
 		mag_update();
 		radar_update();
-		usbpd_update();
 		lamp_update();
 		
 		if (lamp_is_power_ok())
@@ -201,5 +134,78 @@ void main(void)
 		}
 	}
 }
+
+/**
+ * @brief Full system initialization procedure
+ * 
+ */
+static void main_sys_init(void)
+{
+	display_screen_off();
+	stdio_init_all();
+
+	gpio_init(4); /* RADIO_RX */
+	gpio_init(5); /* RADIO_TX */
+	gpio_init(6); /* RADIO_ENABLE */
+	gpio_set_dir(4, GPIO_IN);
+	gpio_set_dir(5, GPIO_IN);
+	gpio_set_dir(6, GPIO_IN);
+
+	mod_sys_init();
+
+	lv_init();
+	display_init();
+
+	lamp_load_type_from_flash();
+	ui_loading_splash_image_init();
+	ui_loading_splash_image_open(NULL);
+
+	mod_pow_init();
+	mod_comm_init();
+
+	buttons_init();
+	imu_init();
+	mag_init();
+	lamp_init();
+	
+	radar_init();
+	fan_init();
+	fan_set_speed(100);
+
+	/* Watchdog: catches runtime hangs (brownout gray zone, stuck loops).
+	 * Enabled after drv_usb_pd_negotiate() (long blocking) but before
+	 * lamp_power_up_rails() (lamp could be on after this point).
+	 * Feeds: main loop, type test loops, lamp_power_up_rails sleeps,
+	 * drv_usb_pd_negotiate loop (for hot-plug re-negotiation). */
+	watchdog_enable(1500, true);
+
+	lamp_power_up_rails();
+
+	printf("Scripted start...\n");
+
+	if (lamp_is_power_ok()) 
+	{
+		lamp_perform_type_test();
+		lamp_request_power_level(LAMP_PWR_100PCT_C);
+	}
+	
+	printf("Enter mainloop... xx\n");
+	
+	// Main UI init
+    ui_main_init();
+    ui_debug_init();
+	
+    //ui_main_open();  
+	
+	if (lamp_is_power_ok()) 
+	{
+		ui_main_open();
+	} 
+	else 
+	{
+		ui_loading_show_psu();
+	}
+}
+
 
 /*** END OF FILE ***/

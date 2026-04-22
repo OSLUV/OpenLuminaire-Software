@@ -10,18 +10,16 @@
 
 /* Includes ------------------------------------------------------------------*/
 
-#include <hardware/i2c.h>
 #include <pico/stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
 
-#include "pins.h"
+#include "Drivers/drv_i2c.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define MAG_I2C_PORT_C          I2C_INST
 #define MAG_IC_ADDR_C           0x35
 #define MAG_REG_DEV_CFG_1_C     0x01
 #define MAG_REG_DEV_CFG_2_C     0x02
@@ -55,6 +53,8 @@ static inline int mag_write(uint8_t dev_addr, uint8_t data_wr);
  */
 void mag_init(void)
 {
+    drv_i2c_init();
+
     mag_write(MAG_REG_DEV_CFG_1_C, (0x04 << 2) | (0x02 << 0));                  /* CONV_AVG: 16x average, I2C_RD: 1-byte I2C read command for 8 bit sensor MSB data and conversion status */
     mag_write(MAG_REG_DEV_CFG_2_C, (0x03 << 5) | (0x01 << 4));                  /* THR_HYST: ? , LP_LN: Low noise mode */
 }
@@ -92,13 +92,13 @@ void mag_update(void)
  */
 static inline int mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_rd)
 {
-    if (i2c_write_timeout_us(MAG_I2C_PORT_C, MAG_IC_ADDR_C, &dev_addr, 1, true, 1000) <0)
+    if (drv_i2c_wr_tmout_us(MAG_IC_ADDR_C, &dev_addr, 1, true, 1000) <0)
     {
         printf("mag_read fail: addr\n");
         return 1;
     }
 
-    if (i2c_read_timeout_us(MAG_I2C_PORT_C, MAG_IC_ADDR_C, p_data_rd, data_len, false, 1000) <0)
+    if (drv_i2c_rd_tmout_us(MAG_IC_ADDR_C, p_data_rd, data_len, false, 1000) <0)
     {
         printf("mag_read fail: data\n");
         return 1;
@@ -119,7 +119,7 @@ static inline int mag_write(uint8_t dev_addr, uint8_t data_wr)
 {
     uint8_t buf[] = {dev_addr, data_wr};
 
-    if (i2c_write_timeout_us(MAG_I2C_PORT_C, MAG_IC_ADDR_C, buf, 2, false, 1000) <0)
+    if (drv_i2c_wr_tmout_us(MAG_IC_ADDR_C, buf, 2, false, 1000) <0)
     {
         printf("mag_write fail\n");
         return 1;

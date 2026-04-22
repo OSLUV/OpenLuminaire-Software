@@ -12,19 +12,11 @@
 #define PIN_BUTTON_RIGHT 20
 #define PIN_BUTTON_CENTER 17
 
-#define PIN_I2C_SDA 2
-#define PIN_I2C_SCL 3
-#define I2C_INST i2c1
-
 #define PIN_ENABLE_12V 7
 #define PIN_ENABLE_24V 15
 #define PIN_ENABLE_LAMP 14
 #define PIN_STATUS_LAMP 12
 #define PIN_PWM_LAMP 13
-
-#define PIN_VSENSE_VBUS 26
-#define PIN_VSENSE_12V 27
-#define PIN_VSENSE_24V 29
 
 #define PIN_FAN_PWM 10
 

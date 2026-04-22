@@ -15,18 +15,24 @@
 #include "ui_debug.h"
 #include "display.h"
 #include "lamp.h"
-#include "usbpd.h"
-#include "sense.h"
+#include "Drivers/drv_usb_pd.h"
+#include "Drivers/drv_adc_volt.h"
 #include "mag.h"
 #include "imu.h"
 #include "radar.h"
 #include "ui_main.h"
-#include "board.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
+
+extern bool     g_mod_pow_hw_is_rev1_2_b;
+extern bool     g_mod_pow_is_usb_connected_b;
+extern uint32_t g_mod_pow_usb_negotiated_ma;
+extern uint32_t g_mod_pow_usb_negotiated_mv;
+
+
 /* Private variables  --------------------------------------------------------*/
 
 static lv_obj_t*    ui_debug_screen;
@@ -138,28 +144,28 @@ void ui_debug_update(void)
 
     ADD_TEXT("Lamp Type %s\n", type_strs[lamp_get_type()]);
 
-    ADD_TEXT("Board %s\n", board_is_v1_2()?"V1.2":"V1.1");
+    ADD_TEXT("Board %s\n", g_mod_pow_hw_is_rev1_2_b?"V1.2":"V1.1");
 
     ADD_TEXT("IMU: %+.2f/%+.2f/%+.2f\n", g_imu_x, g_imu_y, g_imu_z);
 
     ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_mag_x, g_mag_y, g_mag_z);
 
     ADD_TEXT("12V %s %s / 24V Reg %s\n",
-             board_is_v1_2()?"Reg":"Switched",
+             g_mod_pow_hw_is_rev1_2_b?"Reg":"Switched",
              lamp_get_switched_12v()?"ON ":"off",
              lamp_get_switched_24v()?"ON ":"off");
 
     ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
-             g_sense_vbus,
-             g_sense_12v,
-             g_sense_24v);
+             g_adc_v_vbus,
+             g_adc_v_12v,
+             g_adc_v_24v);
 
-    if (usbpd_is_connected())
+    if (g_mod_pow_is_usb_connected_b)
     {
         ADD_TEXT("USB Req %dV Got %.1fV/%.1fA\n",
-                 usbpd_get_negotiated_mV() / 1000,
-                 g_sense_vbus,
-                 ((float)usbpd_get_negotiated_mA())/1000.);
+                 g_mod_pow_usb_negotiated_mv / 1000,
+                 g_adc_v_vbus,
+                 ((float)drv_usb_pd_get_negotiated_ma())/1000.);
     }
     else
     {
@@ -232,7 +238,7 @@ static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
     sleep_ms(100);
 
     // Refresh ADC readings — stale values may cause issues with voltage pre-checks
-    sense_update();
+    drv_adc_volt_update();
 
     lamp_reset_type();
     lamp_perform_type_test();

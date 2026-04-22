@@ -1,5 +1,5 @@
 /**
- * @file      usbpd.c
+ * @file      drv_usb_pd.c
  * @author    The OSLUV Project
  * @brief     Driver for power negociations IC controller (STUSB4500)
  * @schematic lamp_controller.SchDoc
@@ -9,36 +9,34 @@
 
 /* Includes ------------------------------------------------------------------*/
 
-#include <hardware/i2c.h>
+#include <hardware/watchdog.h>
 #include <pico/stdlib.h>
 
 #include <stdio.h>
 #include <stdint.h>
 #include <string.h>
 
-#include "pins.h"
-#include "usbpd.h"
+#include "Drivers/drv_usb_pd.h"
+#include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_i2c.h"
 #include "lamp.h"
-#include "board.h"
-#include "sense.h"
-#include <hardware/watchdog.h>
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define USBPD_I2C_PORT_C 		        I2C_INST
-#define USBPD_ADDR_C 			        0x28
+#define D_USB_PD_IC_ADDR_C 			      0x28
 
-#define USBPD_REG_TYPEC_STATUS_C        0x15
-#define USBPD_REG_PD_COMMAND_CTRL_C     0x1A
-#define USBPD_REG_TX_HEADER_LOW_C       0x51
-#define USBPD_REG_DPM_PDO_NUMB_C        0x70
-#define USBPD_REG_DPM_SNK_PDO1_0_C      0x85
-#define USBPD_REG_RDO_REG_STATUS_0_C    0x91
-#define USBPD_PDO_BASE_REG(pdo_num)     (USBPD_REG_DPM_SNK_PDO1_0_C + (pdo_num * 4))
+#define D_USB_PD_REG_TYPEC_STATUS_C       0x15
+#define D_USB_PD_REG_PD_COMMAND_CTRL_C    0x1A
+#define D_USB_PD_REG_TX_HEADER_LOW_C      0x51
+#define D_USB_PD_REG_DPM_PDO_NUMB_C       0x70
+#define D_USB_PD_REG_DPM_SNK_PDO1_0_C     0x85
+#define D_USB_PD_REG_RDO_REG_STATUS_0_C   0x91
+#define D_USB_PD_PDO_BASE_REG(pdo_num)    (D_USB_PD_REG_DPM_SNK_PDO1_0_C + (pdo_num * 4))
 
-#define USBPD_WRITE_LIT(addr, lit)      {uint8_t arr[] = lit; usbpd_write(addr, sizeof(arr), arr);}
+#define D_USB_PD_WRITE_LIT(addr, lit)     {uint8_t arr[] = lit; \
+										   drv_usb_pd_write(addr, sizeof(arr), arr);}
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -46,137 +44,81 @@
 typedef struct {
 	int mv;		/* Voltage in millivolts */
 	int ma;		/* Minimum required current in milliamps */
-} usbpd_candidate_t;
+} drv_usb_pd_candidate_t;
 
 
 /* Global variables  ---------------------------------------------------------*/
+
+extern bool g_mod_pow_hw_is_rev1_2_b;
+
+
 /* Private variables  --------------------------------------------------------*/
 
-static bool trying_up = false;
-static int  negotiated_mv = 5000;
-static bool usbpd_was_connected = false;
+static bool 	drv_usb_pd_is_trying_up_b    = false;
+static uint32_t drv_drv_usb_pd_negotiated_mv = 5000;
+static bool 	drv_usb_pd_was_connected_b   = false;
 
 /* V1.2: worst-case I3 ballast requirements (from controller_pcb_v1.2_software_notes.md) */
-static const usbpd_candidate_t usbpd_v12_candidates[] = {
+static const drv_usb_pd_candidate_t drv_usb_pd_v12_candidates[] = {
 	{ 20000, 1000 },
 	{ 15000, 1400 },
 	{ 12000, 1800 },
 	{  9000, 2300 },
 	{  5000, 4200 },
 };
-#define USBPD_V12_CANDIDATE_COUNT_C  (sizeof(usbpd_v12_candidates) / sizeof(usbpd_v12_candidates[0]))
+#define D_USB_PD_V12_CANDIDATE_COUNT_C  (sizeof(drv_usb_pd_v12_candidates) / \
+										 sizeof(drv_usb_pd_v12_candidates[0]))
 
 /* V1.1: single candidate — never negotiate above 12V (20V on 12V rail is dangerous) */
-static const usbpd_candidate_t usbpd_v11_candidates[] = {
+static const drv_usb_pd_candidate_t drv_usb_pd_v11_candidates[] = {
 	{ 12000, 1800 },
 };
-#define USBPD_V11_CANDIDATE_COUNT_C  (sizeof(usbpd_v11_candidates) / sizeof(usbpd_v11_candidates[0]))
+#define D_USB_PD_V11_CANDIDATE_COUNT_C  (sizeof(drv_usb_pd_v11_candidates) / \
+										 sizeof(drv_usb_pd_v11_candidates[0]))
 
 
 /* Private function prototypes -----------------------------------------------*/
 
-static inline int usbpd_read(uint8_t addr_l, int len, uint8_t* out);
-static inline int usbpd_write(uint8_t addr_l, int len, uint8_t* value);
-static void usbpd_software_reset(void);
-static void usbpd_configure_pdo(usbpd_pdo_t* pdo, int mv, int ma);
-static void usbpd_print_pdo(usbpd_pdo_t pdo);
-static void usbpd_print_rdo(usbpd_rdo_t rdo);
+static inline int drv_usb_pd_read(uint8_t addr_l, uint32_t len, uint8_t* out);
+static inline int drv_usb_pd_write(uint8_t addr_l, uint32_t len, uint8_t* value);
+static inline void drv_usb_pd_software_reset(void);
+static void drv_usb_pd_configure_pdo(usbpd_pdo_t* pdo, uint32_t mv, uint32_t ma);
+static void drv_usb_pd_print_pdo(usbpd_pdo_t pdo);
+static void drv_usb_pd_print_rdo(usbpd_rdo_t rdo);
 //void dbgf(const char *fmt, ...);
 
 
 /* Exported functions --------------------------------------------------------*/
 
+void drv_usb_pd_init(void)
+{
+	drv_i2c_init();
+}
+
 /**
- * @brief USB PD controller task handling
+ * @brief Performs a software reset to external USB PD device
  * 
  */
-void usbpd_update(void)
+void drv_usb_pd_reset(void)
 {
-	bool is_connected = usbpd_is_connected();
+	drv_usb_pd_software_reset();
+}
 
-	if (!usbpd_was_connected && is_connected)
-	{
-		/* USB just hot-plugged — write board-safe PDOs and reset so the
-		 * STUSB4500 renegotiates with our values instead of NVM defaults.
-		 * On V1.1, NVM defaults may request 20V which would damage the
-		 * 12V rail. */
-		printf("USB-PD: hot-plug detected, configuring safe PDOs\n");
-
-		usbpd_pdo_t pdo;
-		pdo.u32 = 0;
-		if (board_is_v1_2())
-			usbpd_configure_pdo(&pdo, 20000, 1000);
-		else
-			usbpd_configure_pdo(&pdo, 12000, 1800);
-		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
-		usbpd_software_reset();
-
-		negotiated_mv = board_is_v1_2() ? 20000 : 12000;
-		trying_up = true;
-	}
-
-	usbpd_was_connected = is_connected;
-
-	// printf("\n\n\n\n\n\n\n");
-
-	// uint8_t c_status = 0;
-
-	// usbpd_read(USBPD_REG_TYPEC_STATUS_C, 1, &c_status);
-
-	// // printf("USBPD_REG_TYPEC_STATUS_C: %02x\n", c_status);
-
-	// uint8_t pdo_count = 0;
-
-	// usbpd_read(USBPD_REG_DPM_PDO_NUMB_C, 1, &pdo_count);
-	// pdo_count &= 0b111;
-
-	// // printf("USBPD_REG_DPM_PDO_NUMB_C: %02x\n", pdo_count);
-
-	// usbpd_pdo_t pdos[3];
-
-	// for (int i = 0; i < 3; i++)
-	// {
-	// 	usbpd_pdo_t pdo = {0};
-	// 	usbpd_read(USBPD_PDO_BASE_REG(i), 4, (uint8_t*)&pdo);
-	// 	pdos[i] = pdo;
-
-	// 	if (i < pdo_count)
-	// 	{
-	// 		// printf("---PDO %d [0x%02x]---\n", i+1, USBPD_PDO_BASE_REG(i));
-	// 		// usbpd_print_pdo(pdo);
-	// 	}
-	// }
-
-	// usbpd_rdo_t rdo = {0};
-	// usbpd_read(USBPD_REG_RDO_REG_STATUS_0_C, 4, (uint8_t*)&rdo);
-	// // printf("---RDO 'status' [0x91]---\n");
-	// // usbpd_print_rdo(rdo);
-
-	// // dbgf("USB: C:0x%02x %dPDOs enab\n", c_status, pdo_count);
-	// int op = rdo.fixed.object_position;
-	// // dbgf("USB: RDO.op=%d .cm=%d %.1fA/%.1fA\n", op, rdo.fixed.capability_mismatch, ((float)rdo.fixed.operating_current)*0.010, ((float)rdo.fixed.max_operating_current)*0.010);
-
-	// op &= 0b11;
-
-	// // This simply does not seem to work as described
-	// // if (op == 0)
-	// // {
-	// // 	dbgf("USB: No RDO configured        ");
-	// // }
-	// // else if (op > 3)
-	// // {
-	// // 	dbgf("USB: RDO.op ???");
-	// // }
-	// // else
-	// // {
-	// // 	dbgf("USB: PDO@%d: %.1fV/%.1fA            ", op-1, ((float)pdos[op-1].fixed.voltage)*0.050, ((float)pdos[op-1].fixed.operational_current)*0.010);
-	// // }
-
-	// uint8_t mv_from_status1 = 0;
-	// usbpd_read(0x21, 1, &mv_from_status1);
-
-	// dbgf("USB: V[0x21]: %d/%.1fV\n", mv_from_status1, ((float)mv_from_status1)*0.100);
+/**
+ * @brief Sets a PDO configuration from requested parameters
+ * 
+ * @param mv Millivolts to set
+ * @param ma Milliamps to set
+ */
+void drv_usb_pd_set_pdo(uint32_t mv, uint32_t ma)
+{
+	usbpd_pdo_t pdo;
+	
+	pdo.u32 = 0;
+	drv_usb_pd_configure_pdo(&pdo, mv, ma);
+	
+	drv_usb_pd_write(D_USB_PD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
+	D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x02});
 }
 
 /**
@@ -191,7 +133,7 @@ void usbpd_update(void)
  *
  * @param up   true: negotiate higher voltage, false: 5V only
  */
-void usbpd_negotiate(bool up)
+void drv_usb_pd_negotiate(bool up)
 {
 	usbpd_pdo_t pdo;
 
@@ -203,15 +145,15 @@ void usbpd_negotiate(bool up)
 	if (!up)
 	{
 		printf("USB-PD negotiate: 5V only\n");
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});
-		usbpd_software_reset();
-		trying_up = false;
-		negotiated_mv = 5000;
+		D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x01});
+		drv_usb_pd_software_reset();
+		drv_usb_pd_is_trying_up_b = false;
+		drv_drv_usb_pd_negotiated_mv = 5000;
 		return;
 	}
 
 	/* Check if USB-C is connected — if not, assume barrel jack */
-	if (!usbpd_is_connected())
+	if (!drv_usb_pd_is_connected())
 	{
 		printf("USB-PD: no USB-C detected, configuring safe PDOs for hot-plug\n");
 
@@ -219,32 +161,36 @@ void usbpd_negotiate(bool up)
 		 * voltage. Without this, STUSB4500 NVM defaults may request 20V,
 		 * which is dangerous on V1.1 (20V on the 12V rail). */
 		pdo.u32 = 0;
-		if (board_is_v1_2())
-			usbpd_configure_pdo(&pdo, 20000, 1000);
+		if (g_mod_pow_hw_is_rev1_2_b)
+		{
+			drv_usb_pd_configure_pdo(&pdo, 20000, 1000);
+		}
 		else
-			usbpd_configure_pdo(&pdo, 12000, 1800);
-		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
-		usbpd_software_reset();
+		{
+			drv_usb_pd_configure_pdo(&pdo, 12000, 1800);
+		}
+		drv_usb_pd_write(D_USB_PD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
+		D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x02});
+		drv_usb_pd_software_reset();
 
-		trying_up = false;
-		negotiated_mv = 0;
+		drv_usb_pd_is_trying_up_b = false;
+		drv_drv_usb_pd_negotiated_mv = 0;
 		return;
 	}
 
 	/* Select candidate table based on board type */
-	const usbpd_candidate_t *candidates;
+	const drv_usb_pd_candidate_t *candidates;
 	int count;
 
-	if (board_is_v1_2())
+	if (g_mod_pow_hw_is_rev1_2_b)
 	{
-		candidates = usbpd_v12_candidates;
-		count = USBPD_V12_CANDIDATE_COUNT_C;
+		candidates = drv_usb_pd_v12_candidates;
+		count = D_USB_PD_V12_CANDIDATE_COUNT_C;
 	}
 	else
 	{
-		candidates = usbpd_v11_candidates;
-		count = USBPD_V11_CANDIDATE_COUNT_C;
+		candidates = drv_usb_pd_v11_candidates;
+		count = D_USB_PD_V11_CANDIDATE_COUNT_C;
 	}
 
 	/* Step down through candidates — try highest voltage first */
@@ -256,17 +202,17 @@ void usbpd_negotiate(bool up)
 		printf("USB-PD negotiate: trying %dmV / %dmA min\n", mv, ma);
 
 		pdo.u32 = 0;
-		usbpd_configure_pdo(&pdo, mv, ma);
-		usbpd_write(USBPD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
-		USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x02});
-		usbpd_software_reset();
+		drv_usb_pd_configure_pdo(&pdo, mv, ma);
+		drv_usb_pd_write(D_USB_PD_PDO_BASE_REG(1), sizeof(pdo), (uint8_t*)&pdo);
+		D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x02});
+		drv_usb_pd_software_reset();
 
 		sleep_ms(1000);
 		watchdog_update();
 
-		sense_update();
-		int got_mv = (int)(g_sense_vbus * 1000);
-		int got_ma = usbpd_get_negotiated_mA();
+		drv_adc_volt_update();
+		int got_mv = (int)(g_adc_v_vbus * 1000);
+		int got_ma = drv_usb_pd_get_negotiated_ma();
 
 		printf("USB-PD negotiate: got %dmV/%dmA (need %dmV/%dmA)\n",
 			   got_mv, got_ma, mv, ma);
@@ -274,18 +220,18 @@ void usbpd_negotiate(bool up)
 		if (got_mv >= (mv - 1000) && got_ma >= ma)
 		{
 			printf("USB-PD negotiate: accepted %dmV / %dmA\n", got_mv, got_ma);
-			trying_up = true;
-			negotiated_mv = mv;
+			drv_usb_pd_is_trying_up_b = true;
+			drv_drv_usb_pd_negotiated_mv = mv;
 			return;
 		}
 	}
 
 	/* Nothing worked — fall back to 5V */
 	printf("USB-PD negotiate: no candidate met requirements, falling back to 5V\n");
-	USBPD_WRITE_LIT(USBPD_REG_DPM_PDO_NUMB_C, {0x01});
-	usbpd_software_reset();
-	trying_up = false;
-	negotiated_mv = 5000;
+	D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x01});
+	drv_usb_pd_software_reset();
+	drv_usb_pd_is_trying_up_b = false;
+	drv_drv_usb_pd_negotiated_mv = 5000;
 }
 
 /**
@@ -294,21 +240,21 @@ void usbpd_negotiate(bool up)
  * @return true   USB-C cable detected
  * @return false  No USB-C cable (barrel jack or unplugged)
  */
-bool usbpd_is_connected(void)
+bool drv_usb_pd_is_connected(void)
 {
 	uint8_t c_status = 0;
-	usbpd_read(USBPD_REG_TYPEC_STATUS_C, 1, &c_status);
+	drv_usb_pd_read(D_USB_PD_REG_TYPEC_STATUS_C, 1, &c_status);
 	return (c_status != 0);
 }
 
 /**
  * @brief Sets the baseline USB connection state for hot-plug edge detection.
- *        Call once after usbpd_negotiate() so that usbpd_update() doesn't
+ *        Call once after drv_usb_pd_negotiate() so that drv_usb_pd_update() doesn't
  *        falsely trigger on the first loop iteration.
  */
-void usbpd_init_update(void)
+void drv_usb_pd_init_update(void)
 {
-	usbpd_was_connected = usbpd_is_connected();
+	drv_usb_pd_was_connected_b = drv_usb_pd_is_connected();
 }
 
 /**
@@ -317,11 +263,12 @@ void usbpd_init_update(void)
  * @return true
  * @return false
  */
-bool usbpd_get_is_12v(void)
+#if 0
+bool drv_usb_pd_get_is_12v(void)
 {
 	uint8_t mv_from_status1 = 0;
 
-	usbpd_read(0x21, 1, &mv_from_status1);
+	drv_usb_pd_read(0x21, 1, &mv_from_status1);
 
 	// Register 0x21 reports voltage in 0.1V units (120 = 12.0V, 200 = 20.0V)
 	// Check if we got at least what we asked for (12V for V1.1, 20V for V1.2)
@@ -334,19 +281,20 @@ bool usbpd_get_is_12v(void)
  * @return true   Negotiated above 5V (or attempted to)
  * @return false  5V only or barrel jack
  */
-bool usbpd_get_is_trying_for_hv(void)
+bool drv_usb_pd_get_is_trying_for_hv(void)
 {
-	return trying_up;
+	return drv_usb_pd_is_trying_up_b;
 }
+#endif
 
 /**
  * @brief Returns the voltage that was successfully negotiated (in mV)
  *
  * @return int  Negotiated voltage in millivolts (0 = barrel jack, 5000 = fallback)
  */
-int usbpd_get_negotiated_mV(void)
+uint32_t drv_usb_pd_get_negotiated_mv(void)
 {
-	return negotiated_mv;
+	return drv_drv_usb_pd_negotiated_mv;
 }
 
 /**
@@ -354,19 +302,19 @@ int usbpd_get_negotiated_mV(void)
  *
  * @return int  Current in milliamps (0 if no USB-C connection)
  */
-int usbpd_get_negotiated_mA(void)
+uint32_t drv_usb_pd_get_negotiated_ma(void)
 {
 	uint8_t c_status = 0;
 	usbpd_rdo_t rdo = {0};
 
-	usbpd_read(USBPD_REG_TYPEC_STATUS_C, 1, &c_status);
+	drv_usb_pd_read(D_USB_PD_REG_TYPEC_STATUS_C, 1, &c_status);
 
 	if (c_status == 0) 
 	{
 		return 0;
 	}
 
-	usbpd_read(USBPD_REG_RDO_REG_STATUS_0_C, 4, (uint8_t*)&rdo);
+	drv_usb_pd_read(D_USB_PD_REG_RDO_REG_STATUS_0_C, 4, (uint8_t*)&rdo);
 
 	if (rdo.fixed.capability_mismatch)
 	{
@@ -389,22 +337,22 @@ int usbpd_get_negotiated_mA(void)
  * @param out    Data read
  * @return int   Operation result (0: failed, 1: succeed)
  */
-static inline int usbpd_read(uint8_t addr_l, int len, uint8_t* out)
+static inline int drv_usb_pd_read(uint8_t addr_l, uint32_t len, uint8_t* out)
 {
 	int e = 0;
 
-	e = i2c_write_timeout_us(USBPD_I2C_PORT_C, USBPD_ADDR_C, &addr_l, 1, true, 1000);
+	e = drv_i2c_wr_tmout_us(D_USB_PD_IC_ADDR_C, &addr_l, 1, true, 1000);
     if (e < 0)
     {
-        printf("usbpd_read fail: addr: %d\n", e);
+        printf("drv_usb_pd_read fail: addr: %d\n", e);
 
         return 1;
     }
 
-	e = i2c_read_timeout_us(USBPD_I2C_PORT_C, USBPD_ADDR_C, out, len, false, 1000);
+	e = drv_i2c_rd_tmout_us(D_USB_PD_IC_ADDR_C, out, len, false, 1000);
     if (e < 0)
     {
-        printf("usbpd_read fail: data: %d\n", e);
+        printf("drv_usb_pd_read fail: data: %d\n", e);
 
         return 1;
     }
@@ -418,9 +366,9 @@ static inline int usbpd_read(uint8_t addr_l, int len, uint8_t* out)
  * @param addr_l Register's address to write to
  * @param len    Data length to write
  * @param value  Data to write
- * @return int   Operation result (0: failed, 1: succeed)
+ * @return int   Operation result (1: failed, 0: succeed)
  */
-static inline int usbpd_write(uint8_t addr_l, int len, uint8_t* value)
+static inline int drv_usb_pd_write(uint8_t addr_l, uint32_t len, uint8_t* value)
 {
     uint8_t buf[len + 1];
     int e = 0;
@@ -428,10 +376,10 @@ static inline int usbpd_write(uint8_t addr_l, int len, uint8_t* value)
     buf[0] = addr_l;
     memcpy(buf+1, value, len);
 
-	e = i2c_write_timeout_us(USBPD_I2C_PORT_C, USBPD_ADDR_C, buf, len+1, false, 1000);
+	e = drv_i2c_wr_tmout_us(D_USB_PD_IC_ADDR_C, buf, len+1, false, 1000);
     if (e < 0)
     {
-        printf("usbpd_write fail: %d\n", e);
+        printf("drv_usb_pd_write fail: %d\n", e);
 
         return 1;
     }
@@ -443,10 +391,10 @@ static inline int usbpd_write(uint8_t addr_l, int len, uint8_t* value)
  * @brief Issues a software reset command to PD IC
  * 
  */
-static void usbpd_software_reset(void)
+static inline void drv_usb_pd_software_reset(void)
 {
-	USBPD_WRITE_LIT(USBPD_REG_TX_HEADER_LOW_C, {0x0D});
-	USBPD_WRITE_LIT(USBPD_REG_PD_COMMAND_CTRL_C, {0x26});
+	D_USB_PD_WRITE_LIT(D_USB_PD_REG_TX_HEADER_LOW_C, {0x0D});
+	D_USB_PD_WRITE_LIT(D_USB_PD_REG_PD_COMMAND_CTRL_C, {0x26});
 }
 
 /**
@@ -456,7 +404,7 @@ static void usbpd_software_reset(void)
  * @param mv  Voltage to set in millivolts
  * @param ma  Current to set int milliamps
  */
-static void usbpd_configure_pdo(usbpd_pdo_t* pdo, int mv, int ma)
+static void drv_usb_pd_configure_pdo(usbpd_pdo_t* pdo, uint32_t mv, uint32_t ma)
 {
 	pdo->fixed.voltage = mv / 50;
 	pdo->fixed.operational_current = ma / 10;
@@ -467,7 +415,7 @@ static void usbpd_configure_pdo(usbpd_pdo_t* pdo, int mv, int ma)
  * 
  * @param pdo PDO configuration to print
  */
-static void usbpd_print_pdo(usbpd_pdo_t pdo)
+static void drv_usb_pd_print_pdo(usbpd_pdo_t pdo)
 {
 	printf("-PDO=%08x\n", pdo.u32);
 	printf("-.typetag = %d\n", pdo.fixed.typetag);
@@ -487,7 +435,7 @@ static void usbpd_print_pdo(usbpd_pdo_t pdo)
  * 
  * @param rdo RDO configuration to print
  */
-static void usbpd_print_rdo(usbpd_rdo_t rdo)
+static void drv_usb_pd_print_rdo(usbpd_rdo_t rdo)
 {
 	printf("-RDO=%08x\n", rdo.u32);
 	printf("-.reserved_1 = %d\n", rdo.fixed.reserved_1);
