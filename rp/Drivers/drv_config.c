@@ -14,6 +14,7 @@
 #include <string.h>
 #include <stdio.h>
 #include "Drivers/drv_config.h"
+#include "Drivers/drv_debug.h"
 #include "Modules/mod_ui_scrn_main.h"
 
 
@@ -30,12 +31,19 @@ typedef struct __packed {
 
 /* Private define ------------------------------------------------------------*/
 
-#define DRV_CFG_MAGIC_VAL_C 	0xb8870200
-#define DRV_CFG_FLASH_OFFSET_C 	(PICO_FLASH_SIZE_BYTES - 4096) 					/* Stored in the very last 4 kB sector */
+#define D_CFG_DBG_ID_STR_C          "drv_config          "
+#define D_CFG_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define D_CFG_DBG_PRINT_TXT(...)    debug_print_mod_f(D_CFG_DBG_ID_STR_C, __VA_ARGS__)
+#define D_CFG_DBG_PRINT_ERR(...)    debug_print_err(D_CFG_DBG_ID_STR_C, __VA_ARGS__)
+#define D_CFG_DBG_PRINT_WRN(...)    debug_print_warn(D_CFG_DBG_ID_STR_C, __VA_ARGS__)
+#define D_CFG_DBG_PRINT_OK(...)     debug_print_ok(D_CFG_DBG_ID_STR_C, __VA_ARGS__)
 
-#define DRV_CFG_DEF_POWER_ON_C	1												/* Lamp on   */
-#define DRV_CFG_DEF_RADAR_ON_C  0												/* Radar off */
-#define DRV_CFG_DEF_DIM_IDX_C	3												/* 0–3  (20/40/70/100 %) */
+#define D_CFG_MAGIC_VAL_C 			0xb8870200
+#define D_CFG_FLASH_OFFSET_C 		(PICO_FLASH_SIZE_BYTES - 4096) 				/* Stored in the very last 4 kB sector */
+
+#define D_CFG_DEF_POWER_ON_C		1											/* Lamp on   */
+#define D_CFG_DEF_RADAR_ON_C  		0											/* Radar off */
+#define D_CFG_DEF_DIM_IDX_C			3											/* 0–3  (20/40/70/100 %) */
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -47,7 +55,7 @@ D_CFG_DATA_T g_drv_cfg = {0};
 
 static bool 				b_drv_cfg_is_modified = false;
 static const uint8_t*		p_drv_cfg_flash_region = 
-							(const uint8_t *)(XIP_BASE + DRV_CFG_FLASH_OFFSET_C);
+							(const uint8_t *)(XIP_BASE + D_CFG_FLASH_OFFSET_C);
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -80,14 +88,14 @@ void drv_cfg_read(void)
 {
 	memcpy(&g_drv_cfg, p_drv_cfg_flash_region, sizeof(g_drv_cfg));
 
-	if (g_drv_cfg.magic != DRV_CFG_MAGIC_VAL_C)
+	if (g_drv_cfg.magic != D_CFG_MAGIC_VAL_C)
 	{
 		memset(&g_drv_cfg, 0, sizeof(g_drv_cfg));
 
-		g_drv_cfg.magic 	 = DRV_CFG_MAGIC_VAL_C;
-		g_drv_cfg.power_on   = DRV_CFG_DEF_POWER_ON_C;
-        g_drv_cfg.radar_on   = DRV_CFG_DEF_RADAR_ON_C;
-        g_drv_cfg.dim_index  = DRV_CFG_DEF_DIM_IDX_C;
+		g_drv_cfg.magic 	 = D_CFG_MAGIC_VAL_C;
+		g_drv_cfg.power_on   = D_CFG_DEF_POWER_ON_C;
+        g_drv_cfg.radar_on   = D_CFG_DEF_RADAR_ON_C;
+        g_drv_cfg.dim_index  = D_CFG_DEF_DIM_IDX_C;
 
 		b_drv_cfg_is_modified = true;
 	}
@@ -101,7 +109,7 @@ void drv_cfg_save(void)
 {
 	if (b_drv_cfg_is_modified) 
 	{
-		printf("drv_cfg_save saving configuration");
+		D_CFG_DBG_PRINT_TXT("drv_cfg_save saving configuration");
 
 		flash_safe_execute(drv_cfg_write_data, NULL, 100);
 
@@ -215,9 +223,9 @@ uint8_t drv_cfg_get_factory_lamp_type(void)
  */
 static void drv_cfg_write_data(void*)
 {
-	flash_range_erase(DRV_CFG_FLASH_OFFSET_C, FLASH_SECTOR_SIZE);
+	flash_range_erase(D_CFG_FLASH_OFFSET_C, FLASH_SECTOR_SIZE);
 
-	flash_range_program(DRV_CFG_FLASH_OFFSET_C, 
+	flash_range_program(D_CFG_FLASH_OFFSET_C, 
 						(const uint8_t*)&g_drv_cfg,
 						sizeof(g_drv_cfg));
 }

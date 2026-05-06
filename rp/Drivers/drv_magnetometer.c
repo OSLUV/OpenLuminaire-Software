@@ -15,20 +15,28 @@
 #include <stdint.h>
 
 #include "Drivers/drv_i2c.h"
+#include "Drivers/drv_debug.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define D_MAG_IC_ADDR_C           0x35
-#define D_MAG_REG_DEV_CFG_1_C     0x01
-#define D_MAG_REG_DEV_CFG_2_C     0x02
-#define D_MAG_REG_X_MSB_RES_C     0x12
-#define D_MAG_REG_X_LSB_RES_C     0x13
-#define D_MAG_REG_Y_MSB_RES_C     0x14
-#define D_MAG_REG_Y_LSB_RES_C     0x15
-#define D_MAG_REG_Z_MSB_RES_C     0x16
-#define D_MAG_REG_Z_LSB_RES_C     0x17
+#define D_MAG_DBG_ID_STR_C          "drv_magnetometer    "
+#define D_MAG_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define D_MAG_DBG_PRINT_TXT(...)    debug_print_mod_f(D_MAG_DBG_ID_STR_C, __VA_ARGS__)
+#define D_MAG_DBG_PRINT_ERR(...)    debug_print_err(D_MAG_DBG_ID_STR_C, __VA_ARGS__)
+#define D_MAG_DBG_PRINT_WRN(...)    debug_print_warn(D_MAG_DBG_ID_STR_C, __VA_ARGS__)
+#define D_MAG_DBG_PRINT_OK(...)     debug_print_ok(D_MAG_DBG_ID_STR_C, __VA_ARGS__)
+
+#define D_MAG_IC_ADDR_C             0x35
+#define D_MAG_REG_DEV_CFG_1_C       0x01
+#define D_MAG_REG_DEV_CFG_2_C       0x02
+#define D_MAG_REG_X_MSB_RES_C       0x12
+#define D_MAG_REG_X_LSB_RES_C       0x13
+#define D_MAG_REG_Y_MSB_RES_C       0x14
+#define D_MAG_REG_Y_LSB_RES_C       0x15
+#define D_MAG_REG_Z_MSB_RES_C       0x16
+#define D_MAG_REG_Z_LSB_RES_C       0x17
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -94,13 +102,13 @@ static inline int drv_mag_read(uint8_t dev_addr, int data_len, uint8_t* p_data_r
 {
     if (drv_i2c_wr_tmout_us(D_MAG_IC_ADDR_C, &dev_addr, 1, true, 1000) <0)
     {
-        printf("drv_mag_read fail: addr\n");
+        D_MAG_DBG_PRINT_ERR("drv_mag_read fail: addr");
         return 1;
     }
 
     if (drv_i2c_rd_tmout_us(D_MAG_IC_ADDR_C, p_data_rd, data_len, false, 1000) <0)
     {
-        printf("drv_mag_read fail: data\n");
+        D_MAG_DBG_PRINT_ERR("drv_mag_read fail: data");
         return 1;
     }
 
@@ -121,7 +129,7 @@ static inline int drv_mag_write(uint8_t dev_addr, uint8_t data_wr)
 
     if (drv_i2c_wr_tmout_us(D_MAG_IC_ADDR_C, buf, 2, false, 1000) <0)
     {
-        printf("drv_mag_write fail\n");
+        D_MAG_DBG_PRINT_ERR("drv_mag_write fail");
         return 1;
     }
 

@@ -150,7 +150,7 @@ void mod_ui_main_init(void)
  * @brief Handles main screen widgets updates
  * 
  */
-void mod_ui_main_update(void)
+void mod_ui_main_handler(void)
 {
 	static char buf[48];
     bool power_on = lv_obj_has_state(mod_ui_main_sw_power, LV_STATE_CHECKED);

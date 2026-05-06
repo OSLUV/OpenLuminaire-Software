@@ -23,6 +23,13 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
+#define D_DISPLAY_DBG_ID_STR_C          "drv_display         "
+#define D_DISPLAY_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_TXT(...)    debug_print_mod_f(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_ERR(...)    debug_print_err(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_WRN(...)    debug_print_warn(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_OK(...)     debug_print_ok(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+
 #define D_DISPLAY_SDA_PIN_C 					19 								/* LCD_SDA		 */
 #define D_DISPLAY_SCLK_PIN_C 					18 								/* LCD_SCLK		 */
 #define D_DISPLAY_CS_PIN_C 						24 								/* LCD_CS		 */
@@ -103,7 +110,7 @@ void drv_display_init(void)
 	gpio_set_function(D_DISPLAY_SCLK_PIN_C, GPIO_FUNC_SPI);
 	drv_display_driver_config_spi(8);
 
-	printf("Reset device...\n");
+	D_DISPLAY_DBG_PRINT_TXT("Reset device...");
 	sleep_ms(10);
 	gpio_put(D_DISPLAY_RST_PIN_C, 0);
 	sleep_ms(15);
@@ -113,10 +120,10 @@ void drv_display_init(void)
 	/* Back-light Init PWM & Default Setting */
 	drv_display_set_init_config();
 
-	printf("Config LVGL...\n");
+	D_DISPLAY_DBG_PRINT_TXT("Config LVGL...");
 	lv_tick_set_cb(drv_display_lvgl_tick_callback);
 
-	printf("Create ST7796...\n");
+	D_DISPLAY_DBG_PRINT_TXT("Create ST7796...");
 	lv_display_t * disp = lv_st7796_create(D_DISPLAY_LCD_WIDTH_C,  
 										   D_DISPLAY_LCD_HEIGHT_C, 
 										   0, //LV_LCD_FLAG_BGR, 
@@ -239,12 +246,12 @@ void drv_display_read_keypad_callback(lv_indev_t * p_indev_drv, lv_indev_data_t 
 
 		last_key = key_map[bit];
 
-		// printf("Produce PRESSED %d\n", last_key);
+		// D_DISPLAY_DBG_PRINT_TXT("Produce PRESSED %d", last_key);
 	}
 	else
 	{
 		p_data->state = LV_INDEV_STATE_RELEASED;
-		// printf("Produce RELEASED %d\n", last_key);
+		// D_DISPLAY_DBG_PRINT_TXT("Produce RELEASED %d", last_key);
 	}
 
 	p_data->key = last_key;
@@ -302,7 +309,7 @@ static void drv_display_driver_send_cmd(bool is_color,
 								 const uint8_t* p_cmd, size_t cmd_size,
 								 const uint8_t* p_param, size_t param_size)
 {
-	// printf("st7796_send_%s(cmd %db, param %db)\n", is_color?"color":"cmd", cmd_size, param_size);
+	// D_DISPLAY_DBG_PRINT_TXT("st7796_send_%s(cmd %db, param %db)", is_color?"color":"cmd", cmd_size, param_size);
 
 	gpio_put(D_DISPLAY_DC_PIN_C, 0);
 	gpio_put(D_DISPLAY_CS_PIN_C, 0);

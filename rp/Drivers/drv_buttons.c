@@ -15,6 +15,7 @@
 #include <hardware/gpio.h>
 #include <pico/stdlib.h>
 #include "Drivers/drv_buttons.h"
+#include "Drivers/drv_debug.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -30,16 +31,23 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
+#define D_BTN_DBG_ID_STR_C          "drv_buttons         "
+#define D_BTN_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define D_BTN_DBG_PRINT_TXT(...)    debug_print_mod_f(D_BTN_DBG_ID_STR_C, __VA_ARGS__)
+#define D_BTN_DBG_PRINT_ERR(...)    debug_print_err(D_BTN_DBG_ID_STR_C, __VA_ARGS__)
+#define D_BTN_DBG_PRINT_WRN(...)    debug_print_warn(D_BTN_DBG_ID_STR_C, __VA_ARGS__)
+#define D_BTN_DBG_PRINT_OK(...)     debug_print_ok(D_BTN_DBG_ID_STR_C, __VA_ARGS__)
+
 #define D_BUTTONS_UP_PIN_C 					28									/* UP     */
 #define D_BUTTONS_DOWN_PIN_C 				23									/* DOWN   */
 #define D_BUTTONS_LEFT_PIN_C 				16									/* LEFT   */
 #define D_BUTTONS_RIGHT_PIN_C 				20									/* RIGHT  */
 #define D_BUTTONS_CENTER_PIN_C 				17									/* CENTER */
 
-#define BUTTONS_PULSE_TIME_US_C           	(1000 * 200) 						/* Pulse time in micro seconds */
-#define BUTTONS_PULSE_TIME_INITIAL_US_C   	(1000 * 300)						/* Pulse time in micro seconds after system startup */
-#define BUTTONS_DEBOUNCE_TIME_US_C        	(1000 * 20)							/* Debounce time in micro seconds */
-#define BUTTONS_COUNT_C 				  	5									/* System's buttons count */
+#define D_BUTTONS_PULSE_TIME_US_C           (1000 * 200) 						/* Pulse time in micro seconds */
+#define D_BUTTONS_PULSE_TIME_INITIAL_US_C   (1000 * 300)						/* Pulse time in micro seconds after system startup */
+#define D_BUTTONS_DEBOUNCE_TIME_US_C        (1000 * 20)							/* Debounce time in micro seconds */
+#define D_BUTTONS_COUNT_C 				  	5									/* System's buttons count */
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -49,7 +57,7 @@ D_BUTTONS_E g_drv_buttons_pressed, g_drv_buttons_released, g_drv_buttons_down, g
 
 /* Private variables  --------------------------------------------------------*/
 
-static BTN_CTRL_T buttons[BUTTONS_COUNT_C] = {
+static BTN_CTRL_T buttons[D_BUTTONS_COUNT_C] = {
 	{D_BUTTONS_UP_PIN_C,     D_BUTTON_UP_C,     0, 0, false},
 	{D_BUTTONS_DOWN_PIN_C,   D_BUTTON_DOWN_C,   0, 0, false},
 	{D_BUTTONS_LEFT_PIN_C,   D_BUTTON_LEFT_C,   0, 0, false},
@@ -73,7 +81,7 @@ static const char * p_buttons_get_name_string(D_BUTTONS_E a_btn);
  */
 void drv_buttons_init(void)
 {
-	for (int idx = 0; idx < BUTTONS_COUNT_C; idx++)
+	for (int idx = 0; idx < D_BUTTONS_COUNT_C; idx++)
 	{
 		gpio_init(buttons[idx].pin);
 		gpio_set_dir(buttons[idx].pin, GPIO_IN);
@@ -100,7 +108,7 @@ void drv_buttons_monitor(void)
 
 	uint64_t now = time_us_64();
 
-	for (int idx = 0; idx < BUTTONS_COUNT_C; idx++)
+	for (int idx = 0; idx < D_BUTTONS_COUNT_C; idx++)
 	{
 		D_BUTTONS_E btn   = buttons[idx].button;
 		bool gpio_state = !gpio_get(buttons[idx].pin);
@@ -116,7 +124,7 @@ void drv_buttons_monitor(void)
 
 		bool btn_is_down =  (buttons[idx].first_down_us != 0) &&
 			 				((now - buttons[idx].first_down_us) >
-							 BUTTONS_DEBOUNCE_TIME_US_C);
+							 D_BUTTONS_DEBOUNCE_TIME_US_C);
 
 		if (btn_is_down)
 		{
@@ -124,9 +132,9 @@ void drv_buttons_monitor(void)
 			{
 				g_drv_buttons_pressed |= btn;
 
-				buttons[idx].last_pulsed_us = now + BUTTONS_PULSE_TIME_INITIAL_US_C;
+				buttons[idx].last_pulsed_us = now + D_BUTTONS_PULSE_TIME_INITIAL_US_C;
 			}
-			else if ((now - buttons[idx].last_pulsed_us) > BUTTONS_PULSE_TIME_US_C)
+			else if ((now - buttons[idx].last_pulsed_us) > D_BUTTONS_PULSE_TIME_US_C)
 			{
 				g_drv_buttons_pulsed |= btn;
 
@@ -160,41 +168,41 @@ void drv_buttons_print_states(void)
 {
     if (g_drv_buttons_pressed)
 	{
-        printf("pressed:  ");
+        D_BTN_DBG_PRINT_TXT("pressed:  ");
         for (uint32_t bit = 1; bit; bit <<= 1)
 		{
             if (g_drv_buttons_pressed & bit) 
 			{
-				printf(" %s", p_buttons_get_name_string(bit));
+				D_BTN_DBG_PRINTF(" %s", p_buttons_get_name_string(bit));
 			}
 		}
-        printf("\n");
+        D_BTN_DBG_PRINTF("\n");
     }
 
     if (g_drv_buttons_released)
 	{
-        printf("released: ");
+        D_BTN_DBG_PRINT_TXT("released: ");
         for (uint32_t bit = 1; bit; bit <<= 1)
 		{
             if (g_drv_buttons_released & bit) 
 			{
-				printf(" %s", p_buttons_get_name_string(bit));
+				D_BTN_DBG_PRINTF(" %s", p_buttons_get_name_string(bit));
 			}
 		}
-        printf("\n");
+        D_BTN_DBG_PRINTF("\n");
     }
 
     if (g_drv_buttons_down)
 	{
-        printf("btn_is_down    : ");
+        D_BTN_DBG_PRINT_TXT("btn_is_down    : ");
         for (uint32_t bit = 1; bit; bit <<= 1)
 		{
             if (g_drv_buttons_down & bit)
 			{
-				printf(" %s", p_buttons_get_name_string(bit));
+				D_BTN_DBG_PRINTF(" %s", p_buttons_get_name_string(bit));
 			}
 		}
-        printf("\n");
+        D_BTN_DBG_PRINTF("\n");
     }
 }
 

@@ -12,19 +12,27 @@
 #include "Modules/mod_pow_mgr.h"
 #include "Modules/system.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_debug.h"
 #include "Drivers/drv_usb_pd.h"
 
 
 /* Private define ------------------------------------------------------------*/
 
-#define MOD_POW_24V_PASSIVE_THRESHOLD_C	(float)(3.0)                            /* V — VSYS leaks through on V1.2, reads ~0V on V1.1 */
-#define MOD_POW_USB_PLUGGED_C			true
-#define MOD_POW_USB_UNPLUGGED_C			false
+#define M_POW_DBG_ID_STR_C        		"mod_pow             "
+#define M_POW_DBG_PRINTF(...)    		debug_print_f(__VA_ARGS__)
+#define M_POW_DBG_PRINT_TXT(...)		debug_print_mod_f(M_POW_DBG_ID_STR_C, __VA_ARGS__)
+#define M_POW_DBG_PRINT_ERR(...)		debug_print_err(M_POW_DBG_ID_STR_C, __VA_ARGS__)
+#define M_POW_DBG_PRINT_WRN(...)		debug_print_warn(M_POW_DBG_ID_STR_C, __VA_ARGS__)
+#define M_POW_DBG_PRINT_OK(...)			debug_print_ok(M_POW_DBG_ID_STR_C, __VA_ARGS__)
 
-#define MOD_POW_HW_REV_1_1_NEG_MV_C		12000									/* Hw rev 1.1 milli-volts to negotiate */
-#define MOD_POW_HW_REV_1_1_NEG_MA_C		1800									/* Hw rev 1.1 milli-amps to negotiate */
-#define MOD_POW_HW_REV_1_2_NEG_MV_C		20000									/* Hw rev 1.2 milli-volts to negotiate */
-#define MOD_POW_HW_REV_1_2_NEG_MA_C		1000									/* Hw rev 1.2 milli-amps to negotiate */
+#define M_POW_24V_PASSIVE_THRESHOLD_C	(float)(3.0)                            /* V — VSYS leaks through on V1.2, reads ~0V on V1.1 */
+#define M_POW_USB_PLUGGED_C				true
+#define M_POW_USB_UNPLUGGED_C			false
+
+#define M_POW_HW_REV_1_1_NEG_MV_C		12000									/* Hw rev 1.1 milli-volts to negotiate */
+#define M_POW_HW_REV_1_1_NEG_MA_C		1800									/* Hw rev 1.1 milli-amps to negotiate */
+#define M_POW_HW_REV_1_2_NEG_MV_C		20000									/* Hw rev 1.2 milli-volts to negotiate */
+#define M_POW_HW_REV_1_2_NEG_MA_C		1000									/* Hw rev 1.2 milli-amps to negotiate */
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -85,6 +93,7 @@ void mod_pow_manager(void)
 	mod_pow_usb_hot_plug_handler();
 }
 
+
 /* Callback functions --------------------------------------------------------*/
 /* Private functions ---------------------------------------------------------*/
 
@@ -100,18 +109,18 @@ static void mod_pow_get_hw_revision(void)
 {
 	drv_adc_volt_update();
 
-	printf("Board detection: 24V sense = %.2fV (threshold = %.1fV)\n",
-		   g_adc_v_24v, MOD_POW_24V_PASSIVE_THRESHOLD_C);
+	M_POW_DBG_PRINT_TXT("Board detection: 24V sense = %.2fV (threshold = %.1fV)",
+		   g_adc_v_24v, M_POW_24V_PASSIVE_THRESHOLD_C);
 
-	if (g_adc_v_24v > MOD_POW_24V_PASSIVE_THRESHOLD_C)
+	if (g_adc_v_24v > M_POW_24V_PASSIVE_THRESHOLD_C)
 	{
 		g_mod_pow_hw_is_rev1_2_b = true;
-		printf("Board detected: V1.2 (VSYS on 24V sense)\n");
+		M_POW_DBG_PRINT_TXT("Board detected: V1.2 (VSYS on 24V sense)");
 	}
 	else
 	{
 		g_mod_pow_hw_is_rev1_2_b = false;
-		printf("Board detected: V1.1 (no voltage on 24V sense)\n");
+		M_POW_DBG_PRINT_TXT("Board detected: V1.1 (no voltage on 24V sense)");
 	}
 }
 
@@ -121,7 +130,7 @@ static void mod_pow_get_hw_revision(void)
  */
 static void mod_pow_usb_hot_plug_handler(void)
 {
-	if (mod_pow_last_usb_conn_stt == MOD_POW_USB_UNPLUGGED_C)
+	if (mod_pow_last_usb_conn_stt == M_POW_USB_UNPLUGGED_C)
 	{ 
 	    if (drv_usb_pd_is_connected())
 		{
@@ -129,23 +138,23 @@ static void mod_pow_usb_hot_plug_handler(void)
 			* STUSB4500 renegotiates with our values instead of NVM defaults.
 			* On V1.1, NVM defaults may request 20V which would damage the
 			* 12V rail. */
-			printf("MOD POW. USB-C hot-plug detected, configuring safe PDOs\n");
+			M_POW_DBG_PRINT_TXT("MOD POW. USB-C hot-plug detected, configuring safe PDOs");
 
 			if (g_mod_pow_hw_is_rev1_2_b)
 			{
-				drv_usb_pd_set_pdo(MOD_POW_HW_REV_1_2_NEG_MV_C, 
-								   MOD_POW_HW_REV_1_2_NEG_MA_C);
-				g_mod_pow_usb_negotiated_mv = MOD_POW_HW_REV_1_2_NEG_MV_C;
+				drv_usb_pd_set_pdo(M_POW_HW_REV_1_2_NEG_MV_C, 
+								   M_POW_HW_REV_1_2_NEG_MA_C);
+				g_mod_pow_usb_negotiated_mv = M_POW_HW_REV_1_2_NEG_MV_C;
 			}
 			else
 			{
-				drv_usb_pd_set_pdo(MOD_POW_HW_REV_1_1_NEG_MV_C, 
-								   MOD_POW_HW_REV_1_1_NEG_MA_C);
-				g_mod_pow_usb_negotiated_mv = MOD_POW_HW_REV_1_1_NEG_MV_C;
+				drv_usb_pd_set_pdo(M_POW_HW_REV_1_1_NEG_MV_C, 
+								   M_POW_HW_REV_1_1_NEG_MA_C);
+				g_mod_pow_usb_negotiated_mv = M_POW_HW_REV_1_1_NEG_MV_C;
 			}
 			drv_usb_pd_reset();
 
-			mod_pow_last_usb_conn_stt    = MOD_POW_USB_PLUGGED_C;
+			mod_pow_last_usb_conn_stt    = M_POW_USB_PLUGGED_C;
 			g_mod_pow_is_usb_connected_b = true;
 		}
 	}
@@ -153,9 +162,9 @@ static void mod_pow_usb_hot_plug_handler(void)
 	{
 		if (!drv_usb_pd_is_connected())
 		{
-			printf("MOD POW. USB-C disconnected\n");
+			M_POW_DBG_PRINT_TXT("MOD POW. USB-C disconnected");
 
-			mod_pow_last_usb_conn_stt    = MOD_POW_USB_UNPLUGGED_C;
+			mod_pow_last_usb_conn_stt    = M_POW_USB_UNPLUGGED_C;
 			g_mod_pow_is_usb_connected_b = true;
 		}
 	}

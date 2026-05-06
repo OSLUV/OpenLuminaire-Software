@@ -15,9 +15,10 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include <stdio.h>
-#include <string.h>
 #include <pico/stdlib.h>
-#include <lvgl.h>
+#ifndef DEBUG_BUILD
+#include <pico/stdio_uart.h>
+#endif
 #include "Modules/mod_comm_mgr.h"
 #include "Modules/mod_ctrl_mgr.h"
 #include "Modules/mod_pow_mgr.h"
@@ -35,14 +36,16 @@ static void main_sys_init(void);
 void main(void)
 {
 	main_sys_init();
-		
+	
 	while (1)
 	{
 		mod_sys_services();
 
 		mod_pow_manager();
 		
+#ifndef DEBUG_BUILD
 		mod_comm_manager();
+#endif
 		
 		mod_ctrl_manager();
 
@@ -56,7 +59,13 @@ void main(void)
  */
 static void main_sys_init(void)
 {
+#ifdef DEBUG_BUILD
+	//stdio_uart_init_full(uart1, 115200, 8, 9);
+#endif
+
 	stdio_init_all();
+
+	sleep_ms(3 * 1000); // Needed to avoid "detecting" v1.2 if power cycle to fast
 
 	gpio_init(4); /* RADIO_RX */
 	gpio_init(5); /* RADIO_TX */
@@ -69,7 +78,9 @@ static void main_sys_init(void)
 	mod_ui_init();
 	mod_pow_init();
 	mod_sys_startup_wdt();
+#ifndef DEBUG_BUILD
 	mod_comm_init();
+#endif
 	mod_ctrl_init();
 }
 

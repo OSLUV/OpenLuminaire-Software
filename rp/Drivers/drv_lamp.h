@@ -24,7 +24,7 @@ void drv_lamp_update(void);
 
 void drv_lamp_load_type_from_flash(void);
 D_LAMP_TYPE_E drv_lamp_get_type(void);
-void drv_lamp_perform_type_test(void);
+int8_t drv_lamp_perform_type_test(void);
 void drv_lamp_reset_type(void);
 
 void drv_lamp_set_switched_12v(bool on);

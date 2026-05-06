@@ -18,12 +18,20 @@
 
 #include "Drivers/drv_usb_pd.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_debug.h"
 #include "Drivers/drv_i2c.h"
 #include "Drivers/drv_lamp.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
+#define D_USB_PD_DBG_ID_STR_C        	  "drv_usb_pd          "
+#define D_USB_PD_DBG_PRINTF(...)    	  debug_print_f(__VA_ARGS__)
+#define D_USB_PD_DBG_PRINT_TXT(...)    	  debug_print_mod_f(D_USB_PD_DBG_ID_STR_C, __VA_ARGS__)
+#define D_USB_PD_DBG_PRINT_ERR(...)		  debug_print_err(D_USB_PD_DBG_ID_STR_C, __VA_ARGS__)
+#define D_USB_PD_DBG_PRINT_WRN(...)		  debug_print_warn(D_USB_PD_DBG_ID_STR_C, __VA_ARGS__)
+#define D_USB_PD_DBG_PRINT_OK(...)		  debug_print_ok(D_USB_PD_DBG_ID_STR_C, __VA_ARGS__)
 
 #define D_USB_PD_IC_ADDR_C 			      0x28
 
@@ -144,7 +152,7 @@ void drv_usb_pd_negotiate(bool up)
 
 	if (!up)
 	{
-		printf("drv_usb_pd_negotiate: 5V only\n");
+		D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_negotiate: 5V only");
 		D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x01});
 		drv_usb_pd_software_reset();
 		drv_usb_pd_is_trying_up_b = false;
@@ -155,7 +163,7 @@ void drv_usb_pd_negotiate(bool up)
 	/* Check if USB-C is connected — if not, assume barrel jack */
 	if (!drv_usb_pd_is_connected())
 	{
-		printf("drv_usb_pd_negotiate: no USB-C detected, configuring safe PDOs for hot-plug\n");
+		D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_negotiate: no USB-C detected, configuring safe PDOs for hot-plug");
 
 		/* Write board-appropriate PDOs so any USB hot-plug negotiates a safe
 		 * voltage. Without this, STUSB4500 NVM defaults may request 20V,
@@ -199,7 +207,7 @@ void drv_usb_pd_negotiate(bool up)
 		int mv = candidates[i].mv;
 		int ma = candidates[i].ma;
 
-		printf("drv_usb_pd_negotiate: trying %dmV / %dmA min\n", mv, ma);
+		D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_negotiate: trying %dmV / %dmA min", mv, ma);
 
 		pdo.u32 = 0;
 		drv_usb_pd_configure_pdo(&pdo, mv, ma);
@@ -214,12 +222,12 @@ void drv_usb_pd_negotiate(bool up)
 		int got_mv = (int)(g_adc_v_vbus * 1000);
 		int got_ma = drv_usb_pd_get_negotiated_ma();
 
-		printf("drv_usb_pd_negotiate: got %dmV/%dmA (need %dmV/%dmA)\n",
+		D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_negotiate: got %dmV/%dmA (need %dmV/%dmA)",
 			   got_mv, got_ma, mv, ma);
 
 		if (got_mv >= (mv - 1000) && got_ma >= ma)
 		{
-			printf("drv_usb_pd_negotiate: accepted %dmV / %dmA\n", got_mv, got_ma);
+			D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_negotiate: accepted %dmV / %dmA", got_mv, got_ma);
 			drv_usb_pd_is_trying_up_b = true;
 			drv_drv_usb_pd_negotiated_mv = mv;
 			return;
@@ -227,7 +235,7 @@ void drv_usb_pd_negotiate(bool up)
 	}
 
 	/* Nothing worked — fall back to 5V */
-	printf("drv_usb_pd_negotiate: no candidate met requirements, falling back to 5V\n");
+	D_USB_PD_DBG_PRINT_ERR("drv_usb_pd_negotiate: no candidate met requirements, falling back to 5V");
 	D_USB_PD_WRITE_LIT(D_USB_PD_REG_DPM_PDO_NUMB_C, {0x01});
 	drv_usb_pd_software_reset();
 	drv_usb_pd_is_trying_up_b = false;
@@ -318,7 +326,7 @@ uint32_t drv_usb_pd_get_negotiated_ma(void)
 
 	if (rdo.fixed.capability_mismatch)
 	{
-		printf("drv_usb_pd_get_negotiated_ma: capability mismatch — source can't meet current request\n");
+		D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_get_negotiated_ma: capability mismatch — source can't meet current request");
 		return 0;
 	}
 
@@ -344,7 +352,7 @@ static inline int drv_usb_pd_read(uint8_t addr_l, uint32_t len, uint8_t* out)
 	e = drv_i2c_wr_tmout_us(D_USB_PD_IC_ADDR_C, &addr_l, 1, true, 1000);
     if (e < 0)
     {
-        printf("drv_usb_pd_read fail: addr: %d\n", e);
+        D_USB_PD_DBG_PRINT_ERR("drv_usb_pd_read fail: addr: %d", e);
 
         return 1;
     }
@@ -352,7 +360,7 @@ static inline int drv_usb_pd_read(uint8_t addr_l, uint32_t len, uint8_t* out)
 	e = drv_i2c_rd_tmout_us(D_USB_PD_IC_ADDR_C, out, len, false, 1000);
     if (e < 0)
     {
-        printf("drv_usb_pd_read fail: data: %d\n", e);
+        D_USB_PD_DBG_PRINT_ERR("drv_usb_pd_read fail: data: %d", e);
 
         return 1;
     }
@@ -379,7 +387,7 @@ static inline int drv_usb_pd_write(uint8_t addr_l, uint32_t len, uint8_t* value)
 	e = drv_i2c_wr_tmout_us(D_USB_PD_IC_ADDR_C, buf, len+1, false, 1000);
     if (e < 0)
     {
-        printf("drv_usb_pd_write fail: %d\n", e);
+        D_USB_PD_DBG_PRINT_ERR("drv_usb_pd_write fail: %d", e);
 
         return 1;
     }
@@ -417,17 +425,17 @@ static void drv_usb_pd_configure_pdo(usbpd_pdo_t* pdo, uint32_t mv, uint32_t ma)
  */
 static void drv_usb_pd_print_pdo(usbpd_pdo_t pdo)
 {
-	printf("-PDO=%08x\n", pdo.u32);
-	printf("-.typetag = %d\n", pdo.fixed.typetag);
-	printf("-.dual_role_power = %d\n", pdo.fixed.dual_role_power);
-	printf("-.higher_capability = %d\n", pdo.fixed.higher_capability);
-	printf("-.unconstrained_power = %d\n", pdo.fixed.unconstrained_power);
-	printf("-.usb_comms_capable = %d\n", pdo.fixed.usb_comms_capable);
-	printf("-.dual_role_data = %d\n", pdo.fixed.dual_role_data);
-	printf("-.fast_role_swap_required_current = %d\n", pdo.fixed.fast_role_swap_required_current);
-	printf("-.reserved = %d\n", pdo.fixed.reserved);
-	printf("-.voltage = %d (%dmV)\n", pdo.fixed.voltage, pdo.fixed.voltage*50);
-	printf("-.operational_current = %d (%dmA)\n", pdo.fixed.operational_current, pdo.fixed.operational_current*10);
+	D_USB_PD_DBG_PRINTF("-PDO=%08x\n", pdo.u32);
+	D_USB_PD_DBG_PRINTF("-.typetag = %d\n", pdo.fixed.typetag);
+	D_USB_PD_DBG_PRINTF("-.dual_role_power = %d\n", pdo.fixed.dual_role_power);
+	D_USB_PD_DBG_PRINTF("-.higher_capability = %d\n", pdo.fixed.higher_capability);
+	D_USB_PD_DBG_PRINTF("-.unconstrained_power = %d\n", pdo.fixed.unconstrained_power);
+	D_USB_PD_DBG_PRINTF("-.usb_comms_capable = %d\n", pdo.fixed.usb_comms_capable);
+	D_USB_PD_DBG_PRINTF("-.dual_role_data = %d\n", pdo.fixed.dual_role_data);
+	D_USB_PD_DBG_PRINTF("-.fast_role_swap_required_current = %d\n", pdo.fixed.fast_role_swap_required_current);
+	D_USB_PD_DBG_PRINTF("-.reserved = %d\n", pdo.fixed.reserved);
+	D_USB_PD_DBG_PRINTF("-.voltage = %d (%dmV)\n", pdo.fixed.voltage, pdo.fixed.voltage*50);
+	D_USB_PD_DBG_PRINTF("-.operational_current = %d (%dmA)\n", pdo.fixed.operational_current, pdo.fixed.operational_current*10);
 }
 
 /**
@@ -437,17 +445,17 @@ static void drv_usb_pd_print_pdo(usbpd_pdo_t pdo)
  */
 static void drv_usb_pd_print_rdo(usbpd_rdo_t rdo)
 {
-	printf("-RDO=%08x\n", rdo.u32);
-	printf("-.reserved_1 = %d\n", rdo.fixed.reserved_1);
-	printf("-.object_position = %d\n", rdo.fixed.object_position);
-	printf("-.giveback_flag = %d\n", rdo.fixed.giveback_flag);
-	printf("-.capability_mismatch = %d\n", rdo.fixed.capability_mismatch);
-	printf("-.usb_comms_capable = %d\n", rdo.fixed.usb_comms_capable);
-	printf("-.no_usb_suspend = %d\n", rdo.fixed.no_usb_suspend);
-	printf("-.unchuncked_ext_msg_supported = %d\n", rdo.fixed.unchuncked_ext_msg_supported);
-	printf("-.reserved_2 = %d\n", rdo.fixed.reserved_2);
-	printf("-.operating_current = %d (%dmA)\n", rdo.fixed.operating_current, rdo.fixed.operating_current*10);
-	printf("-.max_operating_current = %d (%dmA)\n", rdo.fixed.max_operating_current, rdo.fixed.max_operating_current*10);
+	D_USB_PD_DBG_PRINTF("-RDO=%08x\n", rdo.u32);
+	D_USB_PD_DBG_PRINTF("-.reserved_1 = %d\n", rdo.fixed.reserved_1);
+	D_USB_PD_DBG_PRINTF("-.object_position = %d\n", rdo.fixed.object_position);
+	D_USB_PD_DBG_PRINTF("-.giveback_flag = %d\n", rdo.fixed.giveback_flag);
+	D_USB_PD_DBG_PRINTF("-.capability_mismatch = %d\n", rdo.fixed.capability_mismatch);
+	D_USB_PD_DBG_PRINTF("-.usb_comms_capable = %d\n", rdo.fixed.usb_comms_capable);
+	D_USB_PD_DBG_PRINTF("-.no_usb_suspend = %d\n", rdo.fixed.no_usb_suspend);
+	D_USB_PD_DBG_PRINTF("-.unchuncked_ext_msg_supported = %d\n", rdo.fixed.unchuncked_ext_msg_supported);
+	D_USB_PD_DBG_PRINTF("-.reserved_2 = %d\n", rdo.fixed.reserved_2);
+	D_USB_PD_DBG_PRINTF("-.operating_current = %d (%dmA)\n", rdo.fixed.operating_current, rdo.fixed.operating_current*10);
+	D_USB_PD_DBG_PRINTF("-.max_operating_current = %d (%dmA)\n", rdo.fixed.max_operating_current, rdo.fixed.max_operating_current*10);
 }
 
 /*** END OF FILE ***/

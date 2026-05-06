@@ -20,6 +20,7 @@
 void mod_sys_init(void);
 void mod_sys_startup_wdt(void);
 void mod_sys_services(void);
+void mod_sys_reset(void);
 
 
 #endif /* _M_SYS_H_ */

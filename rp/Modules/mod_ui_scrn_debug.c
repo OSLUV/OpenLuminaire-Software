@@ -14,8 +14,10 @@
 #include <hardware/watchdog.h>
 #include "Modules/mod_ui_scrn_debug.h"
 #include "Modules/mod_ui_screens.h"
+#include "Modules/mod_ctrl_mgr.h"
 #include "Modules/system.h"
 #include "Drivers/drv_adc_volt.h"
+#include "Drivers/drv_debug.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
@@ -24,6 +26,15 @@
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
+#define M_UI_SCRN_DBG_DBG_ID_STR_C        	"mod_ui_scrn_dbg     "
+#define M_UI_SCRN_DBG_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define M_UI_SCRN_DBG_DBG_PRINT_TXT(...)    debug_print_mod_f(M_UI_SCRN_DBG_DBG_ID_STR_C, __VA_ARGS__)
+#define M_UI_SCRN_DBG_DBG_PRINT_ERR(...)	debug_print_err(M_UI_SCRN_DBG_DBG_ID_STR_C, __VA_ARGS__)
+#define M_UI_SCRN_DBG_DBG_PRINT_WRN(...)	debug_print_warn(M_UI_SCRN_DBG_DBG_ID_STR_C, __VA_ARGS__)
+#define M_UI_SCRN_DBG_DBG_PRINT_OK(...)		debug_print_ok(M_UI_SCRN_DBG_DBG_ID_STR_C, __VA_ARGS__)
+
+
 /* Global variables  ---------------------------------------------------------*/
 
 extern M_UI_SCRN_E  g_mod_ui_new_screen;
@@ -36,19 +47,20 @@ extern uint32_t     g_mod_pow_usb_negotiated_mv;
 
 /* Private variables  --------------------------------------------------------*/
 
-static lv_obj_t*    ui_debug_screen;
-static lv_obj_t*    ui_debug_label;
-static lv_obj_t*    ui_debug_back_btn;
-static lv_obj_t*    ui_debug_retest_btn;
-static lv_group_t*  ui_debug_group;
-static char         ui_debug_label_txt[512];
+static lv_obj_t*    mod_ui_debug_screen;
+static lv_obj_t*    mod_ui_debug_label;
+static lv_obj_t*    mod_ui_debug_back_btn;
+static lv_obj_t*    mod_ui_debug_retest_btn;
+static lv_group_t*  mod_ui_debug_group;
+static char         mod_ui_debug_label_txt[512];
+static bool         b_mod_ui_debug_is_retesting;
 
 
 /* Callback prototypes -------------------------------------------------------*/
 
-static void ui_debug_back_btn_callback(lv_event_t* p_evt);
-static void ui_debug_retest_btn_callback(lv_event_t* p_evt);
-static void ui_debug_key_callback(lv_event_t* p_evt);
+static void mod_ui_debug_back_btn_callback(lv_event_t* p_evt);
+static void mod_ui_debug_retest_btn_callback(lv_event_t* p_evt);
+static void mod_ui_debug_key_callback(lv_event_t* p_evt);
 
 
 /* Private function prototypes -----------------------------------------------*/
@@ -58,68 +70,75 @@ static void ui_debug_key_callback(lv_event_t* p_evt);
  * @brief UI debug initialization procedure
  *
  */
-void ui_debug_init(void)
+void mod_ui_debug_init(void)
 {
-	ui_debug_screen = lv_obj_create(NULL);
-	lv_obj_set_style_bg_color(ui_debug_screen, lv_color_black(), 0);
-	lv_obj_remove_style(ui_debug_screen, NULL, LV_PART_SCROLLBAR);
-	lv_obj_set_scrollbar_mode(ui_debug_screen, LV_SCROLLBAR_MODE_OFF);
-	lv_obj_clear_flag(ui_debug_screen, LV_OBJ_FLAG_SCROLLABLE);
+    b_mod_ui_debug_is_retesting = false;
 
-    ui_debug_group = lv_group_create();
+	mod_ui_debug_screen = lv_obj_create(NULL);
+	lv_obj_set_style_bg_color(mod_ui_debug_screen, lv_color_black(), 0);
+	lv_obj_remove_style(mod_ui_debug_screen, NULL, LV_PART_SCROLLBAR);
+	lv_obj_set_scrollbar_mode(mod_ui_debug_screen, LV_SCROLLBAR_MODE_OFF);
+	lv_obj_clear_flag(mod_ui_debug_screen, LV_OBJ_FLAG_SCROLLABLE);
 
-	ui_debug_label = lv_label_create(ui_debug_screen);
-	lv_obj_set_style_text_color(ui_debug_label, lv_color_white(), 0);
+    mod_ui_debug_group = lv_group_create();
+
+	mod_ui_debug_label = lv_label_create(mod_ui_debug_screen);
+	lv_obj_set_style_text_color(mod_ui_debug_label, lv_color_white(), 0);
 
     // BACK button
-    ui_debug_back_btn = lv_btn_create(ui_debug_screen);
-    lv_obj_remove_style_all(ui_debug_back_btn);
-    lv_obj_set_pos(ui_debug_back_btn, 10, 220);
-    lv_label_set_text(lv_label_create(ui_debug_back_btn), "BACK");
-    lv_obj_set_style_text_color(ui_debug_back_btn, lv_color_white(), 0);
-    lv_obj_set_style_bg_color(ui_debug_back_btn, lv_color_white(), LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_opa(ui_debug_back_btn, LV_OPA_COVER, LV_STATE_FOCUSED);
-    lv_obj_set_style_text_color(ui_debug_back_btn, lv_color_black(), LV_STATE_FOCUSED);
-    lv_obj_set_style_pad_all(ui_debug_back_btn, 2, 0);
-    lv_obj_set_style_radius(ui_debug_back_btn, 4, 0);
-    lv_obj_add_event_cb(ui_debug_back_btn,
-                        ui_debug_back_btn_callback,
+    mod_ui_debug_back_btn = lv_btn_create(mod_ui_debug_screen);
+    lv_obj_remove_style_all(mod_ui_debug_back_btn);
+    lv_obj_set_pos(mod_ui_debug_back_btn, 10, 220);
+    lv_label_set_text(lv_label_create(mod_ui_debug_back_btn), "BACK");
+    lv_obj_set_style_text_color(mod_ui_debug_back_btn, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(mod_ui_debug_back_btn, lv_color_white(), LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_opa(mod_ui_debug_back_btn, LV_OPA_COVER, LV_STATE_FOCUSED);
+    lv_obj_set_style_text_color(mod_ui_debug_back_btn, lv_color_black(), LV_STATE_FOCUSED);
+    lv_obj_set_style_pad_all(mod_ui_debug_back_btn, 2, 0);
+    lv_obj_set_style_radius(mod_ui_debug_back_btn, 4, 0);
+    lv_obj_add_event_cb(mod_ui_debug_back_btn,
+                        mod_ui_debug_back_btn_callback,
                         LV_EVENT_CLICKED, NULL);
-    lv_obj_add_event_cb(ui_debug_back_btn,
-                        ui_debug_key_callback,
+    lv_obj_add_event_cb(mod_ui_debug_back_btn,
+                        mod_ui_debug_key_callback,
                         LV_EVENT_KEY, NULL);
-    lv_group_add_obj(ui_debug_group, ui_debug_back_btn);
+    lv_group_add_obj(mod_ui_debug_group, mod_ui_debug_back_btn);
 
     // RETEST button
-    ui_debug_retest_btn = lv_btn_create(ui_debug_screen);
-    lv_obj_remove_style_all(ui_debug_retest_btn);
-    lv_obj_set_pos(ui_debug_retest_btn, 150, 220);
-    lv_label_set_text(lv_label_create(ui_debug_retest_btn), "RETEST");
-    lv_obj_set_style_text_color(ui_debug_retest_btn, lv_color_white(), 0);
-    lv_obj_set_style_bg_color(ui_debug_retest_btn, lv_color_white(), LV_STATE_FOCUSED);
-    lv_obj_set_style_bg_opa(ui_debug_retest_btn, LV_OPA_COVER, LV_STATE_FOCUSED);
-    lv_obj_set_style_text_color(ui_debug_retest_btn, lv_color_black(), LV_STATE_FOCUSED);
-    lv_obj_set_style_pad_all(ui_debug_retest_btn, 2, 0);
-    lv_obj_set_style_radius(ui_debug_retest_btn, 4, 0);
-    lv_obj_add_event_cb(ui_debug_retest_btn,
-                        ui_debug_retest_btn_callback,
+    mod_ui_debug_retest_btn = lv_btn_create(mod_ui_debug_screen);
+    lv_obj_remove_style_all(mod_ui_debug_retest_btn);
+    lv_obj_set_pos(mod_ui_debug_retest_btn, 150, 220);
+    lv_label_set_text(lv_label_create(mod_ui_debug_retest_btn), "RETEST");
+    lv_obj_set_style_text_color(mod_ui_debug_retest_btn, lv_color_white(), 0);
+    lv_obj_set_style_bg_color(mod_ui_debug_retest_btn, lv_color_white(), LV_STATE_FOCUSED);
+    lv_obj_set_style_bg_opa(mod_ui_debug_retest_btn, LV_OPA_COVER, LV_STATE_FOCUSED);
+    lv_obj_set_style_text_color(mod_ui_debug_retest_btn, lv_color_black(), LV_STATE_FOCUSED);
+    lv_obj_set_style_pad_all(mod_ui_debug_retest_btn, 2, 0);
+    lv_obj_set_style_radius(mod_ui_debug_retest_btn, 4, 0);
+    lv_obj_add_event_cb(mod_ui_debug_retest_btn,
+                        mod_ui_debug_retest_btn_callback,
                         LV_EVENT_CLICKED, NULL);
-    lv_obj_add_event_cb(ui_debug_retest_btn,
-                        ui_debug_key_callback,
+    lv_obj_add_event_cb(mod_ui_debug_retest_btn,
+                        mod_ui_debug_key_callback,
                         LV_EVENT_KEY, NULL);
-    lv_group_add_obj(ui_debug_group, ui_debug_retest_btn);
+    lv_group_add_obj(mod_ui_debug_group, mod_ui_debug_retest_btn);
 }
 
 /**
  * @brief Updates UI debug information
  *
  */
-void ui_debug_update(void)
+void mod_ui_debug_handler(void)
 {
-    char* w = ui_debug_label_txt;
+    char* w = mod_ui_debug_label_txt;
 
-    #define ADD_TEXT(...) w += lv_snprintf(w, sizeof(ui_debug_label_txt) - \
-                               (w - ui_debug_label_txt) - 1, __VA_ARGS__)
+    #define ADD_TEXT(...) w += lv_snprintf(w, sizeof(mod_ui_debug_label_txt) - \
+                               (w - mod_ui_debug_label_txt) - 1, __VA_ARGS__)
+
+    if (b_mod_ui_debug_is_retesting)
+    {
+        return;
+    }
 
     ADD_TEXT("Lamp State: %s %dms\n",
              drv_lamp_get_lamp_state_str(drv_lamp_get_lamp_state()),
@@ -193,18 +212,18 @@ void ui_debug_update(void)
              r->report.detection_distance_cm,
              drv_radar_get_distance_cm());
 
-    lv_label_set_text(ui_debug_label, ui_debug_label_txt);
+    lv_label_set_text(mod_ui_debug_label, mod_ui_debug_label_txt);
 }
 
 /**
  * @brief Display debug screen
  *
  */
-void ui_debug_open(void)
+void mod_ui_debug_open(void)
 {
-	lv_screen_load(ui_debug_screen);
-    drv_display_set_indev_group(ui_debug_group);
-    lv_group_focus_obj(ui_debug_back_btn);
+	lv_screen_load(mod_ui_debug_screen);
+    drv_display_set_indev_group(mod_ui_debug_group);
+    lv_group_focus_obj(mod_ui_debug_back_btn);
 }
 
 /* Callback functions --------------------------------------------------------*/
@@ -214,7 +233,7 @@ void ui_debug_open(void)
  *
  * @param p_evt
  */
-static void ui_debug_back_btn_callback(lv_event_t* p_evt)
+static void mod_ui_debug_back_btn_callback(lv_event_t* p_evt)
 {
     g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
 }
@@ -224,43 +243,35 @@ static void ui_debug_back_btn_callback(lv_event_t* p_evt)
  *
  * @param p_evt
  */
-static void ui_debug_retest_btn_callback(lv_event_t* p_evt)
+static void mod_ui_debug_retest_btn_callback(lv_event_t* p_evt)
 {
-    printf("Retest requested from debug menu\n");
+    M_UI_SCRN_DBG_DBG_PRINT_TXT("Retest requested from debug screen");
 
-    lv_obj_add_flag(ui_debug_back_btn, LV_OBJ_FLAG_HIDDEN);
-    lv_obj_add_flag(ui_debug_retest_btn, LV_OBJ_FLAG_HIDDEN);
-    lv_label_set_text(ui_debug_label, "RETESTING...\n\nLamp will turn off,\nthen board will\nreboot when done.");
-    lv_obj_invalidate(ui_debug_screen);
-    lv_refr_now(NULL);
+    lv_obj_add_flag(mod_ui_debug_back_btn, LV_OBJ_FLAG_HIDDEN);
+    lv_obj_add_flag(mod_ui_debug_retest_btn, LV_OBJ_FLAG_HIDDEN);
+    lv_label_set_text(mod_ui_debug_label, "RETESTING...\n\nLamp will turn off,\nthen board will\nreboot when done.");
+    lv_obj_invalidate(mod_ui_debug_screen);
+    //lv_refr_now(NULL);
 
-    drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
-    drv_lamp_update();
-    drv_lamp_update();
-    sleep_ms(100);
+    b_mod_ui_debug_is_retesting = true;
 
-    // Refresh ADC readings — stale values may cause issues with voltage pre-checks
-    drv_adc_volt_update();
-
-    drv_lamp_reset_type();
-    drv_lamp_perform_type_test();
-
-    printf("Retest complete, type=%d. Rebooting to apply new UI layout...\n",
-           drv_lamp_get_type());
-
-    watchdog_reboot(0, 0, 0);
+    mod_ctrl_perform_lamp_retest();
 }
 
 /**
  * @brief Key handler for debug buttons — LEFT/RIGHT navigate between buttons
  */
-static void ui_debug_key_callback(lv_event_t* p_evt)
+static void mod_ui_debug_key_callback(lv_event_t* p_evt)
 {
     uint32_t key = lv_event_get_key(p_evt);
     if (key == LV_KEY_LEFT)
-        lv_group_focus_prev(ui_debug_group);
+    {
+        lv_group_focus_prev(mod_ui_debug_group);
+    }
     else if (key == LV_KEY_RIGHT)
-        lv_group_focus_next(ui_debug_group);
+    {
+        lv_group_focus_next(mod_ui_debug_group);
+    }
 }
 
 

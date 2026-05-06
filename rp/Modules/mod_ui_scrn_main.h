@@ -17,7 +17,7 @@
 /* Exported functions prototypes ---------------------------------------------*/
 
 void mod_ui_main_init(void);
-void mod_ui_main_update(void);
+void mod_ui_main_handler(void);
 void mod_ui_main_open(void);
 
 int16_t mod_ui_main_lamp_set_stt(uint16_t req_state);

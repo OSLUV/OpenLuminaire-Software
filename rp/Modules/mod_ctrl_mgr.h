@@ -19,6 +19,7 @@
 
 void mod_ctrl_init(void);
 void mod_ctrl_manager(void);
+void mod_ctrl_perform_lamp_retest(void);
 
 
 #endif /* _M_CTRL_H_ */

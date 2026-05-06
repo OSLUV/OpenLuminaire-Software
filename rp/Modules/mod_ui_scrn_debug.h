@@ -11,9 +11,9 @@
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-void ui_debug_init(void);
-void ui_debug_update(void);
-void ui_debug_open(void);
+void mod_ui_debug_init(void);
+void mod_ui_debug_handler(void);
+void mod_ui_debug_open(void);
 
 
 #endif /* _UI_DEBUG_H_ */

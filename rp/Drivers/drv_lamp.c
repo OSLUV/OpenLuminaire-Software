@@ -12,11 +12,13 @@
 
 #include <stdio.h>
 #include <pico/stdlib.h>
+#include "pico/time.h"
 #include <hardware/gpio.h>
 #include <hardware/pwm.h>
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_config.h"
+#include "Drivers/drv_debug.h"
 #include "Drivers/drv_usb_pd.h"
 #include "Drivers/drv_radar.h"
 
@@ -33,8 +35,15 @@ typedef struct {
 
 /* Private define ------------------------------------------------------------*/
 
-#define PIN_ENABLE_12V 7	/* +12V_ENABLE */
-#define PIN_ENABLE_24V 15	/* +24V_ENABLE */
+#define D_LAMP_DBG_ID_STR_C        	  		"drv_lamp            "
+#define D_LAMP_DBG_PRINTF(...)    	  		debug_print_f(__VA_ARGS__)
+#define D_LAMP_DBG_PRINT_TXT(...)    		debug_print_mod_f(D_LAMP_DBG_ID_STR_C, __VA_ARGS__)
+#define D_LAMP_DBG_PRINT_ERR(...)			debug_print_err(D_LAMP_DBG_ID_STR_C, __VA_ARGS__)
+#define D_LAMP_DBG_PRINT_WRN(...)			debug_print_warn(D_LAMP_DBG_ID_STR_C, __VA_ARGS__)
+#define D_LAMP_DBG_PRINT_OK(...)			debug_print_ok(D_LAMP_DBG_ID_STR_C, __VA_ARGS__)
+
+#define PIN_ENABLE_12V 						7	/* +12V_ENABLE */
+#define PIN_ENABLE_24V 						15	/* +24V_ENABLE */
 #define D_LAMP_ENABLE_PIN_C 				14 									/* D_LAMP_ENABLE */
 #define D_LAMP_STATUS_PIN_C 				12 									/* D_LAMP_STATUS */
 #define D_LAMP_PWM_PIN_C 					13 									/* LAMP_PWM */
@@ -75,6 +84,9 @@ static uint64_t 		lamp_state_transition_time = 0;
 
 static uint64_t 		lamp_last_update = 0;
 static int 				lamp_latched_freq_hz  = 0;
+
+static absolute_time_t  drv_lamp_tmout;
+static absolute_time_t  drv_lamp_delay_tmout;
 
 volatile int 			lamp_status_events  = 0;
 
@@ -128,14 +140,14 @@ void drv_lamp_power_up_rails(void)
 	sleep_ms(250);
 	drv_adc_volt_update();
 	watchdog_update();
-	printf("Pre-enable: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
-		   g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
+	D_LAMP_DBG_PRINT_TXT("Pre-enable: VBUS=%.2f 12V=%.2f 24V=%.2f",
+		   				 g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
 
 	if (g_mod_pow_hw_is_rev1_2_b)
 	{
 		if ((g_adc_v_24v < 7.0) || (g_adc_v_24v > 27.0))
 		{
-			printf("FAIL: 24V pre-check out of range (%.2fV)\n", g_adc_v_24v);
+			D_LAMP_DBG_PRINT_ERR("FAIL: 24V pre-check out of range (%.2fV)", g_adc_v_24v);
 			return;
 		}
 		
@@ -144,11 +156,11 @@ void drv_lamp_power_up_rails(void)
 		sleep_ms(200);
 		drv_adc_volt_update();
 		watchdog_update();
-		printf("24V post-enable: g_adc_v_24v=%.2f\n", g_adc_v_24v);
+		D_LAMP_DBG_PRINT_TXT("24V post-enable: g_adc_v_24v=%.2f", g_adc_v_24v);
 		if ((g_adc_v_24v < 21.0) || (g_adc_v_24v > 27.0))
 		{
-			printf("FAIL: 24V out of range (%.2fV) — incompatible power supply\n",
-				   g_adc_v_24v);
+			D_LAMP_DBG_PRINT_ERR("FAIL: 24V out of range (%.2fV) — incompatible power supply",
+				   				 g_adc_v_24v);
 			drv_lamp_set_switched_24v(false);
 			return;
 		}
@@ -157,10 +169,10 @@ void drv_lamp_power_up_rails(void)
 		sleep_ms(50);
 		drv_adc_volt_update();
 		watchdog_update();
-		printf("12V post-enable: g_adc_v_12v=%.2f\n", g_adc_v_12v);
+		D_LAMP_DBG_PRINT_TXT("12V post-enable: g_adc_v_12v=%.2f", g_adc_v_12v);
 		if ((g_adc_v_12v < 10.8) || (g_adc_v_12v > 13.8))
 		{
-			printf("FAIL: 12V out of range (%.2fV) after enable\n", g_adc_v_12v);
+			D_LAMP_DBG_PRINT_ERR("FAIL: 12V out of range (%.2fV) after enable", g_adc_v_12v);
 			drv_lamp_set_switched_12v(false);
 			drv_lamp_set_switched_24v(false);
 			return;
@@ -171,7 +183,7 @@ void drv_lamp_power_up_rails(void)
 		// V1.1: 12V from barrel/USB, then 24V boost from 12V
 		if ((g_adc_v_12v < 11.5) || (g_adc_v_12v > 12.5))
 		{
-			printf("FAIL: 12V pre-check out of range (%.2fV)\n", g_adc_v_12v);
+			D_LAMP_DBG_PRINT_ERR("FAIL: 12V pre-check out of range (%.2fV)", g_adc_v_12v);
 			return;
 		}
 
@@ -186,8 +198,8 @@ void drv_lamp_power_up_rails(void)
 		watchdog_update();
 	}
 
-	printf("After rails: VBUS=%.2f 12V=%.2f 24V=%.2f\n",
-		   g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
+	D_LAMP_DBG_PRINT_TXT("After rails: VBUS=%.2f 12V=%.2f 24V=%.2f",
+		   				 g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
 }
 
 
@@ -338,7 +350,7 @@ void drv_lamp_update(void)
 
 			if (drv_lamp_get_type() == D_LAMP_TYPE_DIMMABLE_C && elapsed_ms_in_state > (2*60*60*1000))
 			{
-				printf("Initiate full-power test\n");
+				D_LAMP_DBG_PRINT_TXT("Initiate full-power test");
 				lamp_go_to_state(D_LAMP_STATE_FULLPOWER_TEST_C);
 			}
 
@@ -359,12 +371,12 @@ void drv_lamp_update(void)
 
 			if (lamp_reported_power_level == D_LAMP_PWR_100PCT_C)
 			{
-				printf("Got a reported 100%% power, OK\n");
+				D_LAMP_DBG_PRINT_TXT("Got a reported 100%% power, OK");
 				lamp_go_to_state(D_LAMP_STATE_RUNNING_C);
 			}
 			else if (elapsed_ms_in_state > D_LAMP_START_MS_TIME_C)
 			{
-				printf("Timed out for 100%% test\n");
+				D_LAMP_DBG_PRINT_TXT("Timed out for 100%% test");
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_COOLDOWN_1_C);
 			}
 
@@ -386,7 +398,7 @@ void drv_lamp_update(void)
 			}
 			if (elapsed_ms_in_state > D_LAMP_RESTRIKE_COOLDOWN_MS_TIME_C)
 			{
-				printf("Going to restrike attempt #1\n");
+				D_LAMP_DBG_PRINT_TXT("Going to restrike attempt #1");
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_ATTEMPT_1_C);
 			}
 		break;
@@ -395,12 +407,12 @@ void drv_lamp_update(void)
 			lamp_commanded_power_level = D_LAMP_PWR_100PCT_C;
 			if (lamp_reported_power_level == D_LAMP_PWR_100PCT_C)
 			{
-				printf("Restrike succeeded on attempt #1\n");
+				D_LAMP_DBG_PRINT_TXT("Restrike succeeded on attempt #1");
 				lamp_go_to_state(D_LAMP_STATE_STARTING_C);
 			}
 			if (elapsed_ms_in_state > D_LAMP_START_MS_TIME_C)
 			{
-				printf("Timed out on restrike attempt #1\n");
+				D_LAMP_DBG_PRINT_TXT("Timed out on restrike attempt #1");
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_COOLDOWN_2_C);
 			}
 			if (lamp_requested_power_level == D_LAMP_PWR_OFF_C)
@@ -417,7 +429,7 @@ void drv_lamp_update(void)
 			}
 			if (elapsed_ms_in_state > D_LAMP_RESTRIKE_COOLDOWN_MS_TIME_C)
 			{
-				printf("Going to restrike attempt #2\n");
+				D_LAMP_DBG_PRINT_TXT("Going to restrike attempt #2");
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_ATTEMPT_2_C);
 			}
 		break;
@@ -426,12 +438,12 @@ void drv_lamp_update(void)
 			lamp_commanded_power_level = D_LAMP_PWR_100PCT_C;
 			if (lamp_reported_power_level == D_LAMP_PWR_100PCT_C)
 			{
-				printf("Restrike succeeded on attempt #2\n");
+				D_LAMP_DBG_PRINT_TXT("Restrike succeeded on attempt #2");
 				lamp_go_to_state(D_LAMP_STATE_STARTING_C);
 			}
 			if (elapsed_ms_in_state > D_LAMP_START_MS_TIME_C)
 			{
-				printf("Timed out on restrike attempt #2\n");
+				D_LAMP_DBG_PRINT_TXT("Timed out on restrike attempt #2");
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_COOLDOWN_3_C);
 			}
 			if (lamp_requested_power_level == D_LAMP_PWR_OFF_C)
@@ -448,7 +460,7 @@ void drv_lamp_update(void)
 			}
 			if (elapsed_ms_in_state > D_LAMP_RESTRIKE_COOLDOWN_MS_TIME_C)
 			{
-				printf("Going to restrike attempt #3\n");
+				D_LAMP_DBG_PRINT_TXT("Going to restrike attempt #3");
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_ATTEMPT_3_C);
 			}
 		break;
@@ -457,12 +469,12 @@ void drv_lamp_update(void)
 			lamp_commanded_power_level = D_LAMP_PWR_100PCT_C;
 			if (lamp_reported_power_level == D_LAMP_PWR_100PCT_C)
 			{
-				printf("Restrike succeeded on attempt #3\n");
+				D_LAMP_DBG_PRINT_TXT("Restrike succeeded on attempt #3");
 				lamp_go_to_state(D_LAMP_STATE_STARTING_C);
 			}
 			if (elapsed_ms_in_state > D_LAMP_START_MS_TIME_C)
 			{
-				printf("Timed out on restrike attempt #3\n");
+				D_LAMP_DBG_PRINT_TXT("Timed out on restrike attempt #3");
 				lamp_go_to_state(D_LAMP_STATE_FAILED_OFF_C);
 			}
 			if (lamp_requested_power_level == D_LAMP_PWR_OFF_C)
@@ -494,8 +506,8 @@ void drv_lamp_update(void)
 	if (b_lamp_is_12v_on && b_lamp_is_24v_on &&
 		(!lamp_12v_in_range() || !lamp_24v_in_range()))
 	{
-		printf("FAULT: VBUS=%.2f 12V=%.2f 24V=%.2f — emergency shutdown\n",
-			   g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
+		D_LAMP_DBG_PRINT_ERR("FAULT: VBUS=%.2f 12V=%.2f 24V=%.2f — emergency shutdown",
+			   				g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
 		gpio_put(D_LAMP_ENABLE_PIN_C, true);  // Possible intentional discharge
 		sleep_ms(10);
 		lamp_shutdown_rails();
@@ -511,7 +523,7 @@ void drv_lamp_update(void)
  */
 void drv_lamp_load_type_from_flash(void)
 {
-	printf("Determined type from flash\n");
+	D_LAMP_DBG_PRINT_TXT("Determined type from flash");
 
 	lamp_current_type = drv_cfg_get_factory_lamp_type();
 }
@@ -526,6 +538,7 @@ D_LAMP_TYPE_E drv_lamp_get_type(void)
 	return lamp_current_type;
 }
 
+#if 0
 /**
  * @brief 
  * 
@@ -536,22 +549,233 @@ void drv_lamp_perform_type_test(void)
 {
 	if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
 	{
-		printf("Performing lamp type test\n");
+		D_LAMP_DBG_PRINT_TXT("Performing lamp type test");
 		lamp_perform_type_test_inner();
-		printf("Done\n");
+		D_LAMP_DBG_PRINT_TXT("Done");
 
 		if (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C)
 		{
-			printf("Writing concluded type\n");
+			D_LAMP_DBG_PRINT_TXT("Writing concluded type");
 			drv_cfg_set_factory_lamp_type(drv_lamp_get_type());
 			drv_cfg_save();
 		}
 		else
 		{
-			printf("WARNING: lamp type still UNKNOWN after type test\n");
+			D_LAMP_DBG_PRINT_WRN("WARNING: lamp type still UNKNOWN after type test");
 		}
 	}
 }
+#else
+/**
+ * @brief Performs a test on the lamp to get its type
+ * 
+ * @return int8_t 0: In progress, -1: error, 1: succeed
+ */
+int8_t drv_lamp_perform_type_test(void)
+{
+    static uint8_t     stt_mchn = 0;
+	D_LAMP_PWR_LEVEL_E reported;
+	D_LAMP_STATE_E     state;
+
+	switch (stt_mchn)
+	{
+		case 0:
+			if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
+			{
+				D_LAMP_DBG_PRINT_TXT("Performing lamp type test");
+
+				drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
+
+				//drv_lamp_update();
+				//drv_lamp_update();
+
+				drv_lamp_delay_tmout = make_timeout_time_ms(100);
+
+				// TODO: Is this delay required or was for making sure that D_LAMP_PWR_OFF_C state was applied?
+
+				stt_mchn++;
+			}
+			else
+			{
+				return 1;
+			}
+		break;
+
+		case 1:
+			if (get_absolute_time() > drv_lamp_delay_tmout)
+			{
+				D_LAMP_DBG_PRINT_TXT("Type test (dimming-response)");
+				D_LAMP_DBG_PRINT_TXT("Requesting 70%%, striking at 100%%...");
+
+				drv_lamp_request_power_level(D_LAMP_PWR_70PCT_C);
+
+				drv_lamp_tmout 		 = make_timeout_time_ms(30 * 1000);
+				drv_lamp_delay_tmout = make_timeout_time_ms(10); // TODO: Is this delay required or was for making sure that D_LAMP_PWR_70PCT_C state was applied?
+
+				stt_mchn++;
+			}
+		break;
+
+		case 2:
+			if (get_absolute_time() < drv_lamp_tmout)
+			{
+				if (get_absolute_time() > drv_lamp_delay_tmout)
+				{
+					//drv_lamp_update();
+
+					state = drv_lamp_get_lamp_state();
+
+					if ((state == D_LAMP_STATE_FAILED_OFF_C         ) ||
+						(state == D_LAMP_STATE_RESTRIKE_COOLDOWN_1_C))
+					{
+						D_LAMP_DBG_PRINT_ERR("Type test: failed to strike");
+
+						lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
+
+						stt_mchn = (uint8_t)-1;
+					}
+					else if (state == D_LAMP_STATE_RUNNING_C)
+					{
+						stt_mchn++;
+					}
+				}
+			}
+			else
+			{
+				// Timeout
+				stt_mchn = (uint8_t)-1;
+			}
+		break;
+
+		case 3:
+			if (drv_lamp_get_lamp_state() != D_LAMP_STATE_RUNNING_C)
+			{
+				D_LAMP_DBG_PRINT_TXT("Type test: strike timeout");
+
+				lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
+
+				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+
+				stt_mchn = (uint8_t)-1;
+			}
+			else
+			{
+				// Wait for warmup — ballast ignores DIMMING during warmup
+				D_LAMP_DBG_PRINT_TXT("Type test: lamp running, waiting for warmup...");
+
+				if (drv_lamp_is_warming())
+				{
+					//drv_lamp_update();
+
+					drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required ?
+
+					stt_mchn++;
+				}
+			}
+		break;
+
+		case 4:
+			if (get_absolute_time() > drv_lamp_delay_tmout)
+			{
+				//drv_lamp_update();
+
+				if (!drv_lamp_is_warming())
+				{
+					// Check dimming response — wait for reported == commanded
+					D_LAMP_DBG_PRINT_TXT("Type test: warmup done, checking dimming response...");
+
+					drv_lamp_tmout 		 = make_timeout_time_ms(5 * 1000);
+					drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required or was for making sure that D_LAMP_PWR_100PCT_C state was applied?
+
+					//drv_lamp_update();
+
+					stt_mchn++;
+				}
+			}
+		break;
+
+		case 5:
+			if (get_absolute_time() < drv_lamp_tmout)
+			{
+				if (get_absolute_time() > drv_lamp_delay_tmout)
+				{
+					drv_lamp_get_reported_power_level(&reported);
+
+					D_LAMP_DBG_PRINT_TXT("Type test: polling freq=%dHz reported=%s",
+										 drv_lamp_get_raw_freq(),
+										 drv_lamp_get_power_level_string(reported));
+
+					if (reported == drv_lamp_get_commanded_power_level())
+					{
+						stt_mchn++;
+					}
+					else
+					{
+						//drv_lamp_update();
+
+						drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required?
+					}
+				}
+			}
+			else
+			{
+				// Timeout
+				stt_mchn = (uint8_t)-1;
+			}
+		break;
+
+		case 6:
+			drv_lamp_get_reported_power_level(&reported);
+			D_LAMP_DBG_PRINT_TXT("Type test: commanded=%s, reported=%s, freq=%dHz",
+				   				 drv_lamp_get_power_level_string(drv_lamp_get_commanded_power_level()),
+				   				 drv_lamp_get_power_level_string(reported),
+								 drv_lamp_get_raw_freq());
+
+			if (reported == D_LAMP_PWR_70PCT_C)
+			{
+				D_LAMP_DBG_PRINT_TXT("Determined dimmable (responded to 70%% dimming)");
+				lamp_current_type = D_LAMP_TYPE_DIMMABLE_C;
+			}
+			else if (reported == D_LAMP_PWR_100PCT_C)
+			{
+				D_LAMP_DBG_PRINT_TXT("Determined non-dimmable (ignored dimming)");
+				lamp_current_type = D_LAMP_TYPE_NON_DIMMABLE_C;
+				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+			}
+			else
+			{
+				D_LAMP_DBG_PRINT_TXT("Type test inconclusive (reported=%s) — UNKNOWN",
+									 drv_lamp_get_power_level_string(reported));
+				lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
+				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+			}
+			stt_mchn++;
+		break;
+
+		default:
+			stt_mchn = 0;
+			
+			if (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C)
+			{
+				D_LAMP_DBG_PRINT_TXT("Saving concluded lamp type");
+
+				drv_cfg_set_factory_lamp_type(drv_lamp_get_type());
+				drv_cfg_save();
+
+				return 1;
+			}
+			else
+			{
+				D_LAMP_DBG_PRINT_WRN("WARNING: lamp type still UNKNOWN after type test");
+
+				return -1;
+			}
+		break;
+	}
+
+	return 0;
+}
+#endif
 
 /**
  * @brief Resets the lamp type to UNKNOWN and clears persistence.
@@ -562,7 +786,8 @@ void drv_lamp_reset_type(void)
 	lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 	drv_cfg_set_factory_lamp_type(D_LAMP_TYPE_UNKNOWN_C);
 	drv_cfg_save();
-	printf("drv_lamp_reset_type: Lamp type reset to UNKNOWN\n");
+
+	D_LAMP_DBG_PRINT_TXT("drv_lamp_reset_type: Lamp type reset to UNKNOWN");
 }
 
 /**
@@ -662,20 +887,20 @@ bool drv_lamp_request_power_level(D_LAMP_PWR_LEVEL_E pwr_level)
 	{
 		if (pwr_level != D_LAMP_PWR_OFF_C && pwr_level != D_LAMP_PWR_100PCT_C)
 		{
-			printf("Reject dimmed control point for lamp not known to dim\n");
+			D_LAMP_DBG_PRINT_TXT("Reject dimmed control point for lamp not known to dim");
 			return false;
 		}
 	}
 
 	if (pwr_level != D_LAMP_PWR_OFF_C && (!b_lamp_is_12v_on || !b_lamp_is_24v_on))
 	{
-		printf("Reject turn on lamp without both rails\n");
+		D_LAMP_DBG_PRINT_TXT("Reject turn on lamp without both rails");
 		return false;
 	}
 
 	if (lamp_requested_power_level == D_LAMP_PWR_OFF_C && pwr_level != D_LAMP_PWR_OFF_C)
 	{
-		printf("Lamp goes to D_LAMP_STATE_STARTING_C\n");
+		D_LAMP_DBG_PRINT_TXT("Lamp goes to D_LAMP_STATE_STARTING_C");
 		lamp_state = D_LAMP_STATE_STARTING_C;
 		lamp_state_transition_time = time_us_64();
 	}
@@ -844,7 +1069,7 @@ bool drv_lamp_is_warming(void)
  * 
  * @param a_gpio 
  * @param a_events 
- * 
+ * e
  * @return 	void
  */
 void lamp_status_gpio_callback(uint gpio, uint32_t events)
@@ -871,7 +1096,7 @@ static inline void lamp_go_to_state(D_LAMP_STATE_E state)
 {
 	if (state != lamp_state) 
 	{
-		printf("State transition to %s\n", drv_lamp_get_lamp_state_str(state));
+		D_LAMP_DBG_PRINT_TXT("State transition to %s", drv_lamp_get_lamp_state_str(state));
 	}
 	lamp_state = state;
 	lamp_state_transition_time = time_us_64();
@@ -885,14 +1110,16 @@ static inline void lamp_go_to_state(D_LAMP_STATE_E state)
  */
 static void lamp_perform_type_test_inner(void)
 {
+#if 1
+#else
 	lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 	drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
 	drv_lamp_update();
 	drv_lamp_update();
 	sleep_ms(100);
 
-	printf("Type test (dimming-response)\n");
-	printf("Requesting 70%%, striking at 100%%...\n");
+	D_LAMP_DBG_PRINT_TXT("Type test (dimming-response)");
+	D_LAMP_DBG_PRINT_TXT("Requesting 70%%, striking at 100%%...");
 	drv_lamp_request_power_level(D_LAMP_PWR_70PCT_C);
 
 	// Wait for strike (STARTING → RUNNING) with safety timeout
@@ -907,7 +1134,7 @@ static void lamp_perform_type_test_inner(void)
 		if (state == D_LAMP_STATE_FAILED_OFF_C ||
 			state == D_LAMP_STATE_RESTRIKE_COOLDOWN_1_C)
 		{
-			printf("Type test: failed to strike\n");
+			D_LAMP_DBG_PRINT_TXT("Type test: failed to strike");
 			lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 			return;
 		}
@@ -919,14 +1146,14 @@ static void lamp_perform_type_test_inner(void)
 
 	if (drv_lamp_get_lamp_state() != D_LAMP_STATE_RUNNING_C)
 	{
-		printf("Type test: strike timeout\n");
+		D_LAMP_DBG_PRINT_TXT("Type test: strike timeout");
 		lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
 		return;
 	}
 
 	// Wait for warmup — ballast ignores DIMMING during warmup
-	printf("Type test: lamp running, waiting for warmup...\n");
+	D_LAMP_DBG_PRINT_TXT("Type test: lamp running, waiting for warmup...");
 	while (drv_lamp_is_warming())
 	{
 		watchdog_update();
@@ -935,7 +1162,7 @@ static void lamp_perform_type_test_inner(void)
 	}
 
 	// Check dimming response — wait for reported == commanded
-	printf("Type test: warmup done, checking dimming response...\n");
+	D_LAMP_DBG_PRINT_TXT("Type test: warmup done, checking dimming response...");
 
 	uint64_t dim_start = time_us_64();
 	D_LAMP_PWR_LEVEL_E reported;
@@ -947,9 +1174,9 @@ static void lamp_perform_type_test_inner(void)
 		sleep_ms(10);
 
 		drv_lamp_get_reported_power_level(&reported);
-		printf("Type test: polling freq=%dHz reported=%s\n",
-			   drv_lamp_get_raw_freq(),
-			   drv_lamp_get_power_level_string(reported));
+		D_LAMP_DBG_PRINT_TXT("Type test: polling freq=%dHz reported=%s",
+							 drv_lamp_get_raw_freq(),
+			   				 drv_lamp_get_power_level_string(reported));
 		if (reported == drv_lamp_get_commanded_power_level())
 		{
 			break;
@@ -957,29 +1184,30 @@ static void lamp_perform_type_test_inner(void)
 	}
 
 	drv_lamp_get_reported_power_level(&reported);
-	printf("Type test: commanded=%s, reported=%s, freq=%dHz\n",
-		   drv_lamp_get_power_level_string(drv_lamp_get_commanded_power_level()),
-		   drv_lamp_get_power_level_string(reported),
-		   drv_lamp_get_raw_freq());
+	D_LAMP_DBG_PRINT_TXT("Type test: commanded=%s, reported=%s, freq=%dHz",
+						 drv_lamp_get_power_level_string(drv_lamp_get_commanded_power_level()),
+						 drv_lamp_get_power_level_string(reported),
+						 drv_lamp_get_raw_freq());
 
 	if (reported == D_LAMP_PWR_70PCT_C)
 	{
-		printf("Determined dimmable (responded to 70%% dimming)\n");
+		D_LAMP_DBG_PRINT_TXT("Determined dimmable (responded to 70%% dimming)");
 		lamp_current_type = D_LAMP_TYPE_DIMMABLE_C;
 	}
 	else if (reported == D_LAMP_PWR_100PCT_C)
 	{
-		printf("Determined non-dimmable (ignored dimming)\n");
+		D_LAMP_DBG_PRINT_TXT("Determined non-dimmable (ignored dimming)");
 		lamp_current_type = D_LAMP_TYPE_NON_DIMMABLE_C;
 		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
 	}
 	else
 	{
-		printf("Type test inconclusive (reported=%s) — UNKNOWN\n",
+		D_LAMP_DBG_PRINT_TXT("Type test inconclusive (reported=%s) — UNKNOWN",
 			   drv_lamp_get_power_level_string(reported));
 		lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
 	}
+#endif
 }
 
 /**

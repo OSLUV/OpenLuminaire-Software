@@ -30,6 +30,13 @@ static_assert(sizeof(D_RADAR_MESSAGE_T) == (0x0D + 2 + 4 + 4));
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
+#define D_RADAR_DBG_ID_STR_C        "drv_radar           "
+#define D_RADAR_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define D_RADAR_DBG_PRINT_TXT(...)	debug_print_mod_f(D_RADAR_DBG_ID_STR_C, __VA_ARGS__)
+#define D_RADAR_DBG_PRINT_ERR(...)	debug_print_err(D_RADAR_DBG_ID_STR_C, __VA_ARGS__)
+#define D_RADAR_DBG_PRINT_WRN(...)	debug_print_warn(D_RADAR_DBG_ID_STR_C, __VA_ARGS__)
+#define D_RADAR_DBG_PRINT_OK(...)	debug_print_ok(D_RADAR_DBG_ID_STR_C, __VA_ARGS__)
+
 #define D_RADAR_UART_TX_PIN_C 		0
 #define D_RADAR_UART_RX_PIN_C 		1
 #define D_RADAR_UART_PORT_C 		uart0
@@ -130,7 +137,7 @@ void drv_radar_update(void)
 {
 	if ((time_us_64() - radar_uart_last_rx_time) > (50 * 1000))
 	{
-		// printf("Reset rx\n");
+		// D_RADAR_DBG_PRINT_TXT("Reset rx");
 		radar_reset_rx();
 	}
 
@@ -144,21 +151,21 @@ void drv_radar_update(void)
 
 	if (b_radar_is_message_ok)
 	{
-		// printf("Radar radar_message:\n");
+		// D_RADAR_DBG_PRINT_TXT("Radar radar_message:");
 
 		if ((*(uint32_t*)radar_message.preamble  == 0xf1f2f3f4) && 
 		    (*(uint32_t*)radar_message.postamble == 0xf5f6f7f8))
 		{
-			// // printf("preamble = %08x\n", *(uint32_t*)radar_message.preamble);
-			// printf(".type = %d\n", radar_message.inner.type);
-			// printf(".report.target_state = %d\n", radar_message.inner.report.target_state);
-			// printf(".report.moving_target_distance_cm = %d\n", radar_message.inner.report.moving_target_distance_cm);
-			// printf(".report.moving_target_energy = %d\n", radar_message.inner.report.moving_target_energy);
-			// printf(".report.stationary_target_distance_cm = %d\n", radar_message.inner.report.stationary_target_distance_cm);
-			// printf(".report.stationary_target_energy = %d\n", radar_message.inner.report.stationary_target_energy);
-			// printf(".report.detection_distance_cm = %d\n", radar_message.inner.report.detection_distance_cm);
-			// // printf("postamble = %08x\n", *(uint32_t*)radar_message.postamble);
-			// printf("\n");
+			// // D_RADAR_DBG_PRINTF("preamble = %08x\n", *(uint32_t*)radar_message.preamble);
+			// D_RADAR_DBG_PRINTF(".type = %d\n", radar_message.inner.type);
+			// D_RADAR_DBG_PRINTF(".report.target_state = %d\n", radar_message.inner.report.target_state);
+			// D_RADAR_DBG_PRINTF(".report.moving_target_distance_cm = %d\n", radar_message.inner.report.moving_target_distance_cm);
+			// D_RADAR_DBG_PRINTF(".report.moving_target_energy = %d\n", radar_message.inner.report.moving_target_energy);
+			// D_RADAR_DBG_PRINTF(".report.stationary_target_distance_cm = %d\n", radar_message.inner.report.stationary_target_distance_cm);
+			// D_RADAR_DBG_PRINTF(".report.stationary_target_energy = %d\n", radar_message.inner.report.stationary_target_energy);
+			// D_RADAR_DBG_PRINTF(".report.detection_distance_cm = %d\n", radar_message.inner.report.detection_distance_cm);
+			// // D_RADAR_DBG_PRINTF("postamble = %08x\n", *(uint32_t*)radar_message.postamble);
+			// D_RADAR_DBG_PRINTF("\n");
 
 			memcpy((char*)&radar_last_report, (char*)&radar_message.inner, sizeof(radar_last_report));
 			radar_last_report_time = time_us_64();
@@ -166,7 +173,7 @@ void drv_radar_update(void)
 		}
 		else
 		{
-			printf(">>ill formed<< pre=%08x post=%08x\n", 
+			D_RADAR_DBG_PRINT_TXT(">>ill formed<< pre=%08x post=%08x\n", 
 				   *(uint32_t*)radar_message.preamble, 
 				   *(uint32_t*)radar_message.postamble);
 			radar_errors++;
@@ -195,7 +202,7 @@ void drv_radar_update(void)
 	}
 	else
 	{
-		// printf("(No new radar_message, ptr=%d)\n", radar_uart_rx_ptr);
+		// D_RADAR_DBG_PRINT_TXT("(No new radar_message, ptr=%d)", radar_uart_rx_ptr);
 	}
 
 	if ((time_us_64() - radar_last_report_time) > (5 * 1000 * 1000))
@@ -337,7 +344,7 @@ static inline int radar_pick_distance(uint16_t det, uint16_t mov, uint16_t stat)
  */
 static void drv_radar_init_comms(void)
 {
-	printf("drv_radar_init_comms()\n");
+	D_RADAR_DBG_PRINT_TXT("drv_radar_init_comms()");
 	radar_reinit(256000);
     radar_reinit(9600);
 }
@@ -451,7 +458,7 @@ static void radar_reinit(int baudrate)
 {
 	int actual_baudrate = uart_set_baudrate(D_RADAR_UART_PORT_C, baudrate);
 
-    // printf("actual_baudrate: %d\n", actual_baudrate);
+    // D_RADAR_DBG_PRINT_TXT("actual_baudrate: %d", actual_baudrate);
 
     uart_set_irq_enables(D_RADAR_UART_PORT_C, false, false);
 

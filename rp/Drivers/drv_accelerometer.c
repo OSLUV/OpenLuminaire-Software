@@ -12,16 +12,22 @@
 
 #include <hardware/i2c.h>
 #include <pico/stdlib.h>
-
 #include <stdio.h>
 #include <stdint.h>
 #include <math.h>
-
 #include "Drivers/drv_i2c.h"
+#include "Drivers/drv_debug.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
+
+#define D_ACC_DBG_ID_STR_C          "drv_accelerometer   "
+#define D_ACC_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define D_ACC_DBG_PRINT_TXT(...)    debug_print_mod_f(D_ACC_DBG_ID_STR_C, __VA_ARGS__)
+#define D_ACC_DBG_PRINT_ERR(...)    debug_print_err(D_ACC_DBG_ID_STR_C, __VA_ARGS__)
+#define D_ACC_DBG_PRINT_WRN(...)    debug_print_warn(D_ACC_DBG_ID_STR_C, __VA_ARGS__)
+#define D_ACC_DBG_PRINT_OK(...)     debug_print_ok(D_ACC_DBG_ID_STR_C, __VA_ARGS__)
 
 //#define _D_ACC_ENABLE_ADC_
 
@@ -152,13 +158,13 @@ static inline int drv_acc_read(uint8_t dev_addr, int data_len, uint8_t* p_data_r
 {
     if (drv_i2c_wr_tmout_us(D_ACC_IC_ADDR_C, &dev_addr, 1, true, 1000) < 0)
     {
-        printf("drv_acc_read fail: addr\n");
+        D_ACC_DBG_PRINT_ERR("drv_acc_read fail: addr");
         return 1;
     }
 
     if (drv_i2c_rd_tmout_us(D_ACC_IC_ADDR_C, p_data_rd, data_len, false, 1000) < 0)
     {
-        printf("drv_acc_read fail: data\n");
+        D_ACC_DBG_PRINT_ERR("drv_acc_read fail: data");
         return 1;
     }
 
@@ -179,7 +185,7 @@ static inline int drv_acc_write(uint8_t dev_addr, uint8_t data_wr)
 
     if (drv_i2c_wr_tmout_us(D_ACC_IC_ADDR_C, buf, 2, false, 1000) < 0)
     {
-        printf("drv_acc_write fail\n");
+        D_ACC_DBG_PRINT_ERR("drv_acc_write fail");
         return 1;
     }
 

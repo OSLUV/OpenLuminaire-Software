@@ -13,14 +13,16 @@
 #include "pico/time.h"
 
 #include "Modules/mod_ui_mgr.h"
-#include "Modules/system.h"
-#include "Drivers/drv_buttons.h"
-#include "Drivers/drv_display.h"
-#include "Drivers/drv_lamp.h"
 #include "Modules/mod_ui_scrn_main.h"
 #include "Modules/mod_ui_screens.h"
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_scrn_debug.h"
+#include "Modules/system.h"
+#include "Drivers/drv_buttons.h"
+#include "Drivers/drv_display.h"
+#include "Drivers/drv_lamp.h"
+
+#include <hardware/watchdog.h> // TODO: Remove when mod_ui_psu_screen_handler is updated
 
 
 /* Private define ------------------------------------------------------------*/
@@ -92,7 +94,7 @@ void mod_ui_init(void)
 	/**/
 
 	mod_ui_main_init();
-    ui_debug_init();
+    mod_ui_debug_init();
 }
 
 /**
@@ -202,7 +204,7 @@ static void mod_ui_screen_handler(void)
 			break;
 			
 			case M_UI_SCRN_DEBUG_C:
-				ui_debug_open();
+				mod_ui_debug_open();
 			break;
 		}
 		mod_ui_screen = g_mod_ui_new_screen;
@@ -279,7 +281,7 @@ static void mod_ui_main_screen_handler(void)
 {
 	if (drv_lamp_is_power_ok()) 
 	{
-		mod_ui_main_update();
+		mod_ui_main_handler();
 	}
 	else
 	{
@@ -295,7 +297,7 @@ static void mod_ui_debug_screen_handler(void)
 {
 	if (drv_lamp_is_power_ok()) 
 	{
-		ui_debug_update();
+		mod_ui_debug_handler();
 	}
 	else
 	{
@@ -318,7 +320,15 @@ static void mod_ui_psu_screen_handler(void)
 
 		if (drv_lamp_is_power_ok())
 		{
+#if 0
 			drv_lamp_perform_type_test();
+#else
+			while(drv_lamp_perform_type_test() == 0)
+			{
+				drv_lamp_update();
+				watchdog_update();
+			}
+#endif
 			drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
 			
 			g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;

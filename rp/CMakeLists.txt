@@ -56,44 +56,78 @@ add_custom_target(splash_images DEPENDS ${SPLASH_C_FILES})
 
 # --------------------------------------------------------------------
 
-add_executable(app
-	main.c
-	Modules/mod_ctrl_mgr.c
-	Modules/mod_comm_mgr.c
-	Modules/mod_pow_mgr.c
-	Modules/mod_ser_cmd.c
-	Modules/mod_system.c
-	Modules/mod_ui_mgr.c
-	Modules/mod_ui_scrn_debug.c
-	Modules/mod_ui_scrn_main.c
-	Modules/mod_ui_scrn_loading.c
-	Drivers/drv_accelerometer.c
-	Drivers/drv_adc_volt.c
-	Drivers/drv_buttons.c
-	Drivers/drv_config.c
-	Drivers/drv_display.c
-	Drivers/drv_i2c.c
-	Drivers/drv_fan.c
-	Drivers/drv_lamp.c
-	Drivers/drv_magnetometer.c
-	Drivers/drv_radar.c
-	Drivers/drv_uart_cmd.c
-	Drivers/drv_usb_pd.c
-	safety_logic.c
-	splash_img.c
-)
-
-add_dependencies(app splash_images)
-
 if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+	add_executable(app
+		main.c
+		Modules/mod_ctrl_mgr.c
+		Modules/mod_pow_mgr.c
+		Modules/mod_system.c
+		Modules/mod_ui_mgr.c
+		Modules/mod_ui_scrn_debug.c
+		Modules/mod_ui_scrn_main.c
+		Modules/mod_ui_scrn_loading.c
+		Drivers/drv_accelerometer.c
+		Drivers/drv_adc_volt.c
+		Drivers/drv_buttons.c
+		Drivers/drv_config.c
+		Drivers/drv_debug.c
+		Drivers/drv_display.c
+		Drivers/drv_i2c.c
+		Drivers/drv_fan.c
+		Drivers/drv_lamp.c
+		Drivers/drv_magnetometer.c
+		Drivers/drv_radar.c
+		Drivers/drv_usb_pd.c
+		safety_logic.c
+		splash_img.c
+	)
+
+	add_dependencies(app splash_images)
+
     target_compile_options(app PRIVATE -O0 -g3)
     target_compile_definitions(app PRIVATE DEBUG_BUILD)
-else()
-    target_compile_definitions(app PRIVATE RELEASE_BUILD)
-endif()
 
-pico_enable_stdio_usb(app 1)
-pico_enable_stdio_uart(app 0)
+	target_compile_definitions(app PRIVATE
+        PICO_DEFAULT_UART=1
+        PICO_DEFAULT_UART_TX_PIN=8
+        PICO_DEFAULT_UART_RX_PIN=9)
+
+	pico_enable_stdio_usb(app 0)
+	pico_enable_stdio_uart(app 1)
+else()
+	add_executable(app
+		main.c
+		Modules/mod_ctrl_mgr.c
+		Modules/mod_comm_mgr.c
+		Modules/mod_pow_mgr.c
+		Modules/mod_ser_cmd.c
+		Modules/mod_system.c
+		Modules/mod_ui_mgr.c
+		Modules/mod_ui_scrn_debug.c
+		Modules/mod_ui_scrn_main.c
+		Modules/mod_ui_scrn_loading.c
+		Drivers/drv_accelerometer.c
+		Drivers/drv_adc_volt.c
+		Drivers/drv_buttons.c
+		Drivers/drv_config.c
+		Drivers/drv_display.c
+		Drivers/drv_i2c.c
+		Drivers/drv_fan.c
+		Drivers/drv_lamp.c
+		Drivers/drv_magnetometer.c
+		Drivers/drv_radar.c
+		Drivers/drv_uart_cmd.c
+		Drivers/drv_usb_pd.c
+		safety_logic.c
+		splash_img.c
+	)
+
+	add_dependencies(app splash_images)
+    target_compile_definitions(app PRIVATE RELEASE_BUILD)
+
+	pico_enable_stdio_usb(app 1)
+	pico_enable_stdio_uart(app 0)
+endif()
 
 pico_add_extra_outputs(app)
 
@@ -103,6 +137,7 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/vendor/lvgl" lvgl)
 
 target_link_libraries(app
 	pico_stdlib
+	pico_stdio_uart
 	hardware_pwm
 	hardware_spi
 	hardware_i2c
