@@ -112,6 +112,37 @@ void mod_ui_main_init(void)
     mod_ui_main_styles_init();
 
     mod_ui_main_set_screen();
+
+    mod_ui_main_lamp_known_b = (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C);
+
+    if (!mod_ui_main_lamp_known_b)
+    {
+        lv_obj_t *lbl = lv_label_create(mod_ui_main_screen);
+        lv_label_set_text(lbl,
+                          "LAMP TYPE COULD\n"
+                          "NOT BE DETERMINED\n\n"
+                          "Check lamp\n"
+                          "connection");
+        lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
+        lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
+        lv_obj_set_width(lbl, LV_PCT(100));
+        lv_obj_set_style_pad_top(lbl, 20, 0);
+    }
+    else
+    {
+        mod_ui_main_set_lamp_ctrl_row();
+        mod_ui_main_set_lamp_power_row();
+        mod_ui_main_set_radar_row();
+
+        if (mod_ui_main_show_dim_b)
+        {
+            mod_ui_main_set_lamp_dim_slider();
+        }
+
+        mod_ui_main_set_tilt_row();
+    }
+    mod_ui_main_set_debug_tools();
 }
 
 /**
@@ -250,37 +281,6 @@ void mod_ui_main_handler(void)
  */
 void mod_ui_main_open(void)
 {
-    mod_ui_main_lamp_known_b = (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C);
-
-    if (!mod_ui_main_lamp_known_b)
-    {
-        lv_obj_t *lbl = lv_label_create(mod_ui_main_screen);
-        lv_label_set_text(lbl,
-                          "LAMP TYPE COULD\n"
-                          "NOT BE DETERMINED\n\n"
-                          "Check lamp\n"
-                          "connection");
-        lv_obj_set_style_text_color(lbl, lv_color_white(), 0);
-        lv_obj_set_style_text_align(lbl, LV_TEXT_ALIGN_CENTER, 0);
-        lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
-        lv_obj_set_width(lbl, LV_PCT(100));
-        lv_obj_set_style_pad_top(lbl, 20, 0);
-    }
-    else
-    {
-        mod_ui_main_set_lamp_ctrl_row();
-        mod_ui_main_set_lamp_power_row();
-        mod_ui_main_set_radar_row();
-
-        if (mod_ui_main_show_dim_b)
-        {
-            mod_ui_main_set_lamp_dim_slider();
-        }
-
-        mod_ui_main_set_tilt_row();
-    }
-    mod_ui_main_set_debug_tools();
-
     lv_scr_load(mod_ui_main_screen);
     drv_display_set_indev_group(mod_ui_main_lv_group);
     lv_group_focus_obj(mod_ui_main_sw_power);

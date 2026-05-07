@@ -70,18 +70,6 @@ void mod_ctrl_init(void)
 	drv_radar_init();
 	drv_fan_init();
 	drv_fan_set_speed(100);
-
-    drv_lamp_power_up_rails();
-
-	/*if (drv_lamp_is_power_ok()) 
-	{
-		while(drv_lamp_perform_type_test() == 0)
-		{
-			drv_lamp_update();
-			watchdog_update();
-		}
-		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-	}*/
 }
 
 /**
@@ -160,6 +148,8 @@ static void mod_ctrl_lamp_test_n_configure(void)
 		case 0:
 			if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
 			{
+				drv_lamp_power_up_rails();
+
 				if (drv_lamp_is_power_ok()) 
 				{
 					M_CTRL_DBG_PRINT_TXT("Performing lamp test at startup");
@@ -224,7 +214,6 @@ static void mod_ctrl_lamp_test_n_reboot(void)
 		case 2:
 			if (drv_lamp_perform_type_test() != 0)
 			{
-				//drv_lamp_perform_type_test();
 				M_CTRL_DBG_PRINT_OK("Retest complete, type=%d. Rebooting to apply new UI layout...",
 									drv_lamp_get_type());
 

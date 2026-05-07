@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <hardware/watchdog.h>
+#include <hardware/vreg.h>
 #include "Modules/mod_system.h"
 #include "Modules/system.h"
 #include "Drivers/drv_config.h"
@@ -46,9 +47,17 @@ SYS_STATUS_T g_sys;
  */
 void mod_sys_init(void)
 {
+    uint32_t reset_reason;
+
     debug_init();
+
+    reset_reason = vreg_and_chip_reset_hw->chip_reset;
     
-    if (watchdog_enable_caused_reboot())
+    if (reset_reason & VREG_AND_CHIP_RESET_CHIP_RESET_HAD_PSM_RESTART_BITS)
+    {
+        /* Debug reset */
+    }
+    else if (watchdog_caused_reboot() && watchdog_enable_caused_reboot())
     {
         if (watchdog_hw->scratch[0] == M_SYS_RESET_MAGIC_KEY_C)                 /* Was it a controlled reset ? */
         {
