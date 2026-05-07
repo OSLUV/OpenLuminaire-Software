@@ -38,6 +38,7 @@
 /* Global variables  ---------------------------------------------------------*/
 /* Private variables  --------------------------------------------------------*/
 
+static bool 			b_mod_ctrl_is_startup;
 static bool 			b_mod_ctrl_make_retest;
 static absolute_time_t  mod_ctrl_delay_tmout;
 
@@ -47,6 +48,7 @@ static absolute_time_t  mod_ctrl_delay_tmout;
 
 static void mod_ctrl_lamp_handler(void);
 static int8_t mod_ctrl_lamp_test(void);
+static void mod_ctrl_lamp_test_n_configure(void);
 static void mod_ctrl_lamp_test_n_reboot(void);
 
 
@@ -58,6 +60,7 @@ static void mod_ctrl_lamp_test_n_reboot(void);
  */
 void mod_ctrl_init(void)
 {
+	b_mod_ctrl_is_startup  = true;
 	b_mod_ctrl_make_retest = false;
 
 	drv_acc_init();
@@ -70,21 +73,15 @@ void mod_ctrl_init(void)
 
     drv_lamp_power_up_rails();
 
-	M_CTRL_DBG_PRINT_TXT("Scripted start...");
-
-	if (drv_lamp_is_power_ok()) 
+	/*if (drv_lamp_is_power_ok()) 
 	{
-#if 0
-		drv_lamp_perform_type_test();
-#else
 		while(drv_lamp_perform_type_test() == 0)
 		{
 			drv_lamp_update();
 			watchdog_update();
 		}
-#endif
 		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-	}
+	}*/
 }
 
 /**
@@ -108,7 +105,10 @@ void mod_ctrl_manager(void)
 
     mod_ctrl_lamp_handler();
 
-	safety_logic_update();
+	if (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C)
+	{
+		safety_logic_update();
+	}
 }
 
 /**
@@ -135,9 +135,58 @@ static void mod_ctrl_lamp_handler(void)
 {
     drv_lamp_update();
 
-	if (b_mod_ctrl_make_retest)
+	if (b_mod_ctrl_is_startup)
+	{
+		mod_ctrl_lamp_test_n_configure();
+	}
+	else if (b_mod_ctrl_make_retest)
 	{
 		mod_ctrl_lamp_test_n_reboot();
+	}
+}
+
+/**
+ * @brief Tests lamp to get its type and performs a configuration
+ * 
+ * @note This function is intended to be used at system startup
+ * 
+ */
+static void mod_ctrl_lamp_test_n_configure(void)
+{
+    static uint8_t stt_mchn = 0;
+
+	switch (stt_mchn)
+	{
+		case 0:
+			if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
+			{
+				if (drv_lamp_is_power_ok()) 
+				{
+					M_CTRL_DBG_PRINT_TXT("Performing lamp test at startup");
+
+					stt_mchn++;
+				}
+			}
+			else
+			{
+				b_mod_ctrl_is_startup = false;
+			}
+		break;
+
+		case 1:
+			if (drv_lamp_perform_type_test() != 0)
+			{
+				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+
+				b_mod_ctrl_is_startup = false;
+
+				stt_mchn = 0;
+			}
+		break;
+
+		default:
+			stt_mchn = 0;
+		break;
 	}
 }
 
@@ -152,6 +201,8 @@ static void mod_ctrl_lamp_test_n_reboot(void)
 	switch (stt_mchn)
 	{
 		case 0:
+			M_CTRL_DBG_PRINT_WRN("Performing lamp test & reboot");
+
 			drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
 
 			mod_ctrl_delay_tmout = make_timeout_time_ms(100);
@@ -171,11 +222,11 @@ static void mod_ctrl_lamp_test_n_reboot(void)
 		break;
 
 		case 2:
-			//if (drv_lamp_perform_type_test() != 0)
+			if (drv_lamp_perform_type_test() != 0)
 			{
-				drv_lamp_perform_type_test();
-				M_CTRL_DBG_PRINT_TXT("Retest complete, type=%d. Rebooting to apply new UI layout...",
-									 drv_lamp_get_type());
+				//drv_lamp_perform_type_test();
+				M_CTRL_DBG_PRINT_OK("Retest complete, type=%d. Rebooting to apply new UI layout...",
+									drv_lamp_get_type());
 
 				b_mod_ctrl_make_retest = false;
 

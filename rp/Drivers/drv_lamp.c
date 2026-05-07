@@ -59,36 +59,36 @@ extern bool g_mod_pow_hw_is_rev1_2_b;
 
 /* Private variables  --------------------------------------------------------*/
 
-const int 				D_LAMP_STEPCOUNT_SOFTSTART_C = 64;
-const int 				D_LAMP_STEPCOUNT_DIMMING_C   = 100;
+const int 					D_LAMP_STEPCOUNT_SOFTSTART_C = 64;
+const int 					D_LAMP_STEPCOUNT_DIMMING_C   = 100;
 
-const D_LAMP_PWR_CTL_T 	lamp_pwr_settings[D_LAMP_PWR_MAX_SETTINGS_C] = {
-							[D_LAMP_PWR_OFF_C]    = {0,     0},
-							[D_LAMP_PWR_20PCT_C]  = {100,  20},
-							[D_LAMP_PWR_40PCT_C]  = {83,   40},
-							[D_LAMP_PWR_70PCT_C]  = {50,   70},
-							[D_LAMP_PWR_100PCT_C] = {0,   100},
-						};
+const D_LAMP_PWR_CTL_T 		lamp_pwr_settings[D_LAMP_PWR_MAX_SETTINGS_C] = {
+								[D_LAMP_PWR_OFF_C]    = {0,     0},
+								[D_LAMP_PWR_20PCT_C]  = {100,  20},
+								[D_LAMP_PWR_40PCT_C]  = {83,   40},
+								[D_LAMP_PWR_70PCT_C]  = {50,   70},
+								[D_LAMP_PWR_100PCT_C] = {0,   100},
+							};
 
-static bool 			b_lamp_is_12v_on = false;
-static bool 			b_lamp_is_24v_on = false;
+static bool 				b_lamp_is_12v_on = false;
+static bool 				b_lamp_is_24v_on = false;
 
-static D_LAMP_TYPE_E  	lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
-static D_LAMP_STATE_E 	lamp_state 		  = D_LAMP_STATE_OFF_C;
+static D_LAMP_TYPE_E  		lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
+static D_LAMP_STATE_E 		lamp_state 		  = D_LAMP_STATE_OFF_C;
 
-static D_LAMP_PWR_LEVEL_E lamp_requested_power_level = D_LAMP_PWR_OFF_C;
-static D_LAMP_PWR_LEVEL_E lamp_commanded_power_level = D_LAMP_PWR_OFF_C;
-static D_LAMP_PWR_LEVEL_E lamp_reported_power_level  = D_LAMP_PWR_UNKNOWN_C;
+static D_LAMP_PWR_LEVEL_E 	lamp_requested_power_level = D_LAMP_PWR_OFF_C;
+static D_LAMP_PWR_LEVEL_E 	lamp_commanded_power_level = D_LAMP_PWR_OFF_C;
+static D_LAMP_PWR_LEVEL_E 	lamp_reported_power_level  = D_LAMP_PWR_UNKNOWN_C;
+static int 					lamp_last_pwm;
 
-static uint64_t 		lamp_state_transition_time = 0;
+static uint64_t 			lamp_state_transition_time = 0;
 
-static uint64_t 		lamp_last_update = 0;
-static int 				lamp_latched_freq_hz  = 0;
+static int 					lamp_latched_freq_hz  = 0;
 
-static absolute_time_t  drv_lamp_tmout;
-static absolute_time_t  drv_lamp_delay_tmout;
+static absolute_time_t  	drv_lamp_tmout;
+static absolute_time_t  	drv_lamp_delay_tmout;
 
-volatile int 			lamp_status_events  = 0;
+volatile int 				lamp_status_events  = 0;
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -99,7 +99,6 @@ void lamp_status_gpio_callback(uint gpio, uint32_t events);
 /* Private function prototypes -----------------------------------------------*/
 
 static inline void lamp_go_to_state(D_LAMP_STATE_E state);
-static void lamp_perform_type_test_inner(void);
 static bool lamp_12v_in_range(void);
 static bool lamp_24v_in_range(void);
 
@@ -216,6 +215,8 @@ void drv_lamp_init(void)
 	uint slice_num;
 	pwm_config pwm_cfg;
 
+	lamp_last_pwm = -1;
+
 	gpio_init(PIN_ENABLE_24V);
 	gpio_set_dir(PIN_ENABLE_24V, GPIO_OUT);
 	gpio_put(PIN_ENABLE_24V, false);
@@ -274,13 +275,14 @@ void drv_lamp_init(void)
  */
 void drv_lamp_update(void)
 {
+	static uint64_t last_update = 0;
 	uint64_t now = time_us_64();
 
-	if ((now - lamp_last_update) > (1000*1000))
+	if ((now - last_update) > (1000*1000))
 	{
 		lamp_latched_freq_hz = lamp_status_events;
 		lamp_status_events = 0;
-		lamp_last_update = now;
+		last_update = now;
 
 		lamp_reported_power_level = D_LAMP_PWR_UNKNOWN_C;
 
@@ -296,7 +298,8 @@ void drv_lamp_update(void)
 			}
 			else if (lamp_latched_freq_hz < 100)
 			{
-				if (lamp_commanded_power_level != D_LAMP_PWR_OFF_C && (!gpio_get(D_LAMP_STATUS_PIN_C))) 
+				if ((lamp_commanded_power_level != D_LAMP_PWR_OFF_C) && 
+					(!gpio_get(D_LAMP_STATUS_PIN_C))) 
 				{
 					lamp_reported_power_level = D_LAMP_PWR_100PCT_C;
 				}
@@ -305,15 +308,18 @@ void drv_lamp_update(void)
 					lamp_reported_power_level = D_LAMP_PWR_OFF_C;
 				}
 			}
-			else if (lamp_latched_freq_hz > 900 && lamp_latched_freq_hz < 1100) 
+			else if ((lamp_latched_freq_hz > 900) && 
+					 (lamp_latched_freq_hz < 1100))
 			{
 				lamp_reported_power_level = D_LAMP_PWR_70PCT_C;
 			}
-			else if (lamp_latched_freq_hz > 400 && lamp_latched_freq_hz < 600)
+			else if ((lamp_latched_freq_hz > 400) &&
+					 (lamp_latched_freq_hz < 600))
 			{
 				lamp_reported_power_level = D_LAMP_PWR_40PCT_C;
 			}
-			else if (lamp_latched_freq_hz > 150 && lamp_latched_freq_hz < 250) 
+			else if ((lamp_latched_freq_hz > 150) &&
+					 (lamp_latched_freq_hz < 250))
 			{
 				lamp_reported_power_level = D_LAMP_PWR_20PCT_C;
 			}
@@ -348,13 +354,16 @@ void drv_lamp_update(void)
 		case D_LAMP_STATE_RUNNING_C:
 			lamp_commanded_power_level = lamp_requested_power_level;
 
-			if (drv_lamp_get_type() == D_LAMP_TYPE_DIMMABLE_C && elapsed_ms_in_state > (2*60*60*1000))
+			if ((drv_lamp_get_type() == D_LAMP_TYPE_DIMMABLE_C) && 
+				elapsed_ms_in_state > (2*60*60*1000))
 			{
 				D_LAMP_DBG_PRINT_TXT("Initiate full-power test");
 				lamp_go_to_state(D_LAMP_STATE_FULLPOWER_TEST_C);
 			}
 
-			if (drv_lamp_get_type() == D_LAMP_TYPE_NON_DIMMABLE_C && elapsed_ms_in_state > 1000 & lamp_reported_power_level != D_LAMP_PWR_100PCT_C)
+			if ((drv_lamp_get_type() == D_LAMP_TYPE_NON_DIMMABLE_C) && 
+				(elapsed_ms_in_state > 1000) && 
+				 (lamp_reported_power_level != D_LAMP_PWR_100PCT_C))
 			{
 				// Can tell immediately if a non-dimmable lamp has gone out
 				lamp_go_to_state(D_LAMP_STATE_RESTRIKE_COOLDOWN_1_C);
@@ -500,15 +509,21 @@ void drv_lamp_update(void)
 		break;
 	}
 
-	pwm_set_gpio_level(D_LAMP_PWM_PIN_C, lamp_pwr_settings[lamp_commanded_power_level].pwm);
+	if (lamp_last_pwm != lamp_pwr_settings[lamp_commanded_power_level].pwm)
+	{
+		pwm_set_gpio_level(D_LAMP_PWM_PIN_C, lamp_pwr_settings[lamp_commanded_power_level].pwm);
+
+		lamp_last_pwm = lamp_pwr_settings[lamp_commanded_power_level].pwm;
+	}
 	gpio_put(D_LAMP_ENABLE_PIN_C, lamp_commanded_power_level != D_LAMP_PWR_OFF_C);
 
 	if (b_lamp_is_12v_on && b_lamp_is_24v_on &&
 		(!lamp_12v_in_range() || !lamp_24v_in_range()))
 	{
 		D_LAMP_DBG_PRINT_ERR("FAULT: VBUS=%.2f 12V=%.2f 24V=%.2f — emergency shutdown",
-			   				g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
-		gpio_put(D_LAMP_ENABLE_PIN_C, true);  // Possible intentional discharge
+			   				 g_adc_v_vbus, g_adc_v_12v, g_adc_v_24v);
+
+		gpio_put(D_LAMP_ENABLE_PIN_C, true);  									// Possible intentional discharge
 		sleep_ms(10);
 		lamp_shutdown_rails();
 		lamp_go_to_state(D_LAMP_STATE_OFF_C);
@@ -523,9 +538,9 @@ void drv_lamp_update(void)
  */
 void drv_lamp_load_type_from_flash(void)
 {
-	D_LAMP_DBG_PRINT_TXT("Determined type from flash");
-
 	lamp_current_type = drv_cfg_get_factory_lamp_type();
+
+	D_LAMP_DBG_PRINT_TXT("Determined type from flash: %d", lamp_current_type);
 }
 
 /**
@@ -538,34 +553,6 @@ D_LAMP_TYPE_E drv_lamp_get_type(void)
 	return lamp_current_type;
 }
 
-#if 0
-/**
- * @brief 
- * 
- * @return 	void  
- * 
- */
-void drv_lamp_perform_type_test(void)
-{
-	if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
-	{
-		D_LAMP_DBG_PRINT_TXT("Performing lamp type test");
-		lamp_perform_type_test_inner();
-		D_LAMP_DBG_PRINT_TXT("Done");
-
-		if (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C)
-		{
-			D_LAMP_DBG_PRINT_TXT("Writing concluded type");
-			drv_cfg_set_factory_lamp_type(drv_lamp_get_type());
-			drv_cfg_save();
-		}
-		else
-		{
-			D_LAMP_DBG_PRINT_WRN("WARNING: lamp type still UNKNOWN after type test");
-		}
-	}
-}
-#else
 /**
  * @brief Performs a test on the lamp to get its type
  * 
@@ -585,9 +572,6 @@ int8_t drv_lamp_perform_type_test(void)
 				D_LAMP_DBG_PRINT_TXT("Performing lamp type test");
 
 				drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
-
-				//drv_lamp_update();
-				//drv_lamp_update();
 
 				drv_lamp_delay_tmout = make_timeout_time_ms(100);
 
@@ -619,10 +603,8 @@ int8_t drv_lamp_perform_type_test(void)
 		case 2:
 			if (get_absolute_time() < drv_lamp_tmout)
 			{
-				if (get_absolute_time() > drv_lamp_delay_tmout)
+				if (get_absolute_time() >= drv_lamp_delay_tmout)
 				{
-					//drv_lamp_update();
-
 					state = drv_lamp_get_lamp_state();
 
 					if ((state == D_LAMP_STATE_FAILED_OFF_C         ) ||
@@ -638,11 +620,16 @@ int8_t drv_lamp_perform_type_test(void)
 					{
 						stt_mchn++;
 					}
+					else
+					{
+						drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required ?
+					}
 				}
 			}
 			else
 			{
-				// Timeout
+				D_LAMP_DBG_PRINT_ERR("Type test. Timeout (Ln %d)", __LINE__);
+
 				stt_mchn = (uint8_t)-1;
 			}
 		break;
@@ -665,8 +652,6 @@ int8_t drv_lamp_perform_type_test(void)
 
 				if (drv_lamp_is_warming())
 				{
-					//drv_lamp_update();
-
 					drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required ?
 
 					stt_mchn++;
@@ -677,27 +662,24 @@ int8_t drv_lamp_perform_type_test(void)
 		case 4:
 			if (get_absolute_time() > drv_lamp_delay_tmout)
 			{
-				//drv_lamp_update();
-
 				if (!drv_lamp_is_warming())
 				{
 					// Check dimming response — wait for reported == commanded
 					D_LAMP_DBG_PRINT_TXT("Type test: warmup done, checking dimming response...");
 
-					drv_lamp_tmout 		 = make_timeout_time_ms(5 * 1000);
-					drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required or was for making sure that D_LAMP_PWR_100PCT_C state was applied?
-
-					//drv_lamp_update();
+					drv_lamp_tmout = make_timeout_time_ms(5 * 1000);
 
 					stt_mchn++;
 				}
+
+				drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required or was for making sure that D_LAMP_PWR_100PCT_C state was applied?
 			}
 		break;
 
 		case 5:
 			if (get_absolute_time() < drv_lamp_tmout)
 			{
-				if (get_absolute_time() > drv_lamp_delay_tmout)
+				if (get_absolute_time() >= drv_lamp_delay_tmout)
 				{
 					drv_lamp_get_reported_power_level(&reported);
 
@@ -711,16 +693,15 @@ int8_t drv_lamp_perform_type_test(void)
 					}
 					else
 					{
-						//drv_lamp_update();
-
-						drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required?
+						drv_lamp_delay_tmout = make_timeout_time_ms(10);// TODO: Is this delay required ?
 					}
 				}
 			}
 			else
 			{
-				// Timeout
-				stt_mchn = (uint8_t)-1;
+				D_LAMP_DBG_PRINT_WRN("Type test. Timeout (Ln %d)", __LINE__);
+				stt_mchn++;
+				//stt_mchn = (uint8_t)-1;
 			}
 		break;
 
@@ -744,7 +725,7 @@ int8_t drv_lamp_perform_type_test(void)
 			}
 			else
 			{
-				D_LAMP_DBG_PRINT_TXT("Type test inconclusive (reported=%s) — UNKNOWN",
+				D_LAMP_DBG_PRINT_ERR("Type test inconclusive (reported=%s) — UNKNOWN",
 									 drv_lamp_get_power_level_string(reported));
 				lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
 				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
@@ -757,10 +738,10 @@ int8_t drv_lamp_perform_type_test(void)
 			
 			if (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C)
 			{
-				D_LAMP_DBG_PRINT_TXT("Saving concluded lamp type");
-
 				drv_cfg_set_factory_lamp_type(drv_lamp_get_type());
 				drv_cfg_save();
+
+				D_LAMP_DBG_PRINT_OK("Saving concluded lamp type: %d", lamp_current_type);
 
 				return 1;
 			}
@@ -775,7 +756,6 @@ int8_t drv_lamp_perform_type_test(void)
 
 	return 0;
 }
-#endif
 
 /**
  * @brief Resets the lamp type to UNKNOWN and clears persistence.
@@ -885,20 +865,23 @@ bool drv_lamp_request_power_level(D_LAMP_PWR_LEVEL_E pwr_level)
 
 	if (drv_lamp_get_type() == D_LAMP_TYPE_NON_DIMMABLE_C)
 	{
-		if (pwr_level != D_LAMP_PWR_OFF_C && pwr_level != D_LAMP_PWR_100PCT_C)
+		if ((pwr_level != D_LAMP_PWR_OFF_C) && 
+			(pwr_level != D_LAMP_PWR_100PCT_C))
 		{
-			D_LAMP_DBG_PRINT_TXT("Reject dimmed control point for lamp not known to dim");
+			D_LAMP_DBG_PRINT_WRN("Reject dimmed control point for lamp not known to dim");
 			return false;
 		}
 	}
 
-	if (pwr_level != D_LAMP_PWR_OFF_C && (!b_lamp_is_12v_on || !b_lamp_is_24v_on))
+	if ((pwr_level != D_LAMP_PWR_OFF_C) && 
+		(!b_lamp_is_12v_on || !b_lamp_is_24v_on))
 	{
-		D_LAMP_DBG_PRINT_TXT("Reject turn on lamp without both rails");
+		D_LAMP_DBG_PRINT_WRN("Reject turn on lamp without both rails");
 		return false;
 	}
 
-	if (lamp_requested_power_level == D_LAMP_PWR_OFF_C && pwr_level != D_LAMP_PWR_OFF_C)
+	if ((lamp_requested_power_level == D_LAMP_PWR_OFF_C) &&
+		(pwr_level != D_LAMP_PWR_OFF_C))
 	{
 		D_LAMP_DBG_PRINT_TXT("Lamp goes to D_LAMP_STATE_STARTING_C");
 		lamp_state = D_LAMP_STATE_STARTING_C;
@@ -1100,114 +1083,6 @@ static inline void lamp_go_to_state(D_LAMP_STATE_E state)
 	}
 	lamp_state = state;
 	lamp_state_transition_time = time_us_64();
-}
-
-/**
- * @brief Dimming-response type test (board-agnostic).
- *        Both rails must be on. Request 70% — STARTING forces 100% to strike.
- *        Once RUNNING + warmup, check if ballast responds to dimming:
- *        reported=70% → dimmable, reported=100% → non-dimmable.
- */
-static void lamp_perform_type_test_inner(void)
-{
-#if 1
-#else
-	lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
-	drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
-	drv_lamp_update();
-	drv_lamp_update();
-	sleep_ms(100);
-
-	D_LAMP_DBG_PRINT_TXT("Type test (dimming-response)");
-	D_LAMP_DBG_PRINT_TXT("Requesting 70%%, striking at 100%%...");
-	drv_lamp_request_power_level(D_LAMP_PWR_70PCT_C);
-
-	// Wait for strike (STARTING → RUNNING) with safety timeout
-	uint64_t start = time_us_64();
-	while ((time_us_64() - start) < (30ULL * 1000 * 1000))
-	{
-		watchdog_update();
-		drv_lamp_update();
-		sleep_ms(10);
-
-		D_LAMP_STATE_E state = drv_lamp_get_lamp_state();
-		if (state == D_LAMP_STATE_FAILED_OFF_C ||
-			state == D_LAMP_STATE_RESTRIKE_COOLDOWN_1_C)
-		{
-			D_LAMP_DBG_PRINT_TXT("Type test: failed to strike");
-			lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
-			return;
-		}
-		if (state == D_LAMP_STATE_RUNNING_C)
-		{
-			break;
-		}
-	}
-
-	if (drv_lamp_get_lamp_state() != D_LAMP_STATE_RUNNING_C)
-	{
-		D_LAMP_DBG_PRINT_TXT("Type test: strike timeout");
-		lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
-		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-		return;
-	}
-
-	// Wait for warmup — ballast ignores DIMMING during warmup
-	D_LAMP_DBG_PRINT_TXT("Type test: lamp running, waiting for warmup...");
-	while (drv_lamp_is_warming())
-	{
-		watchdog_update();
-		drv_lamp_update();
-		sleep_ms(10);
-	}
-
-	// Check dimming response — wait for reported == commanded
-	D_LAMP_DBG_PRINT_TXT("Type test: warmup done, checking dimming response...");
-
-	uint64_t dim_start = time_us_64();
-	D_LAMP_PWR_LEVEL_E reported;
-
-	while ((time_us_64() - dim_start) < (5ULL * 1000 * 1000))
-	{
-		watchdog_update();
-		drv_lamp_update();
-		sleep_ms(10);
-
-		drv_lamp_get_reported_power_level(&reported);
-		D_LAMP_DBG_PRINT_TXT("Type test: polling freq=%dHz reported=%s",
-							 drv_lamp_get_raw_freq(),
-			   				 drv_lamp_get_power_level_string(reported));
-		if (reported == drv_lamp_get_commanded_power_level())
-		{
-			break;
-		}
-	}
-
-	drv_lamp_get_reported_power_level(&reported);
-	D_LAMP_DBG_PRINT_TXT("Type test: commanded=%s, reported=%s, freq=%dHz",
-						 drv_lamp_get_power_level_string(drv_lamp_get_commanded_power_level()),
-						 drv_lamp_get_power_level_string(reported),
-						 drv_lamp_get_raw_freq());
-
-	if (reported == D_LAMP_PWR_70PCT_C)
-	{
-		D_LAMP_DBG_PRINT_TXT("Determined dimmable (responded to 70%% dimming)");
-		lamp_current_type = D_LAMP_TYPE_DIMMABLE_C;
-	}
-	else if (reported == D_LAMP_PWR_100PCT_C)
-	{
-		D_LAMP_DBG_PRINT_TXT("Determined non-dimmable (ignored dimming)");
-		lamp_current_type = D_LAMP_TYPE_NON_DIMMABLE_C;
-		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-	}
-	else
-	{
-		D_LAMP_DBG_PRINT_TXT("Type test inconclusive (reported=%s) — UNKNOWN",
-			   drv_lamp_get_power_level_string(reported));
-		lamp_current_type = D_LAMP_TYPE_UNKNOWN_C;
-		drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-	}
-#endif
 }
 
 /**

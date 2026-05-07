@@ -19,6 +19,7 @@
 #include "hardware/gpio.h"
 #include "hardware/uart.h"
 #include "Drivers/drv_radar.h"
+#include "Drivers/drv_debug.h"
 #include "Drivers/drv_lamp.h"
 
 

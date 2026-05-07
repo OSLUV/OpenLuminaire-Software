@@ -227,7 +227,7 @@ void drv_usb_pd_negotiate(bool up)
 
 		if (got_mv >= (mv - 1000) && got_ma >= ma)
 		{
-			D_USB_PD_DBG_PRINT_TXT("drv_usb_pd_negotiate: accepted %dmV / %dmA", got_mv, got_ma);
+			D_USB_PD_DBG_PRINT_OK("drv_usb_pd_negotiate: accepted %dmV / %dmA", got_mv, got_ma);
 			drv_usb_pd_is_trying_up_b = true;
 			drv_drv_usb_pd_negotiated_mv = mv;
 			return;

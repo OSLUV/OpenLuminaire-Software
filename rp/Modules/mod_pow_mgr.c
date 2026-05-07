@@ -110,17 +110,17 @@ static void mod_pow_get_hw_revision(void)
 	drv_adc_volt_update();
 
 	M_POW_DBG_PRINT_TXT("Board detection: 24V sense = %.2fV (threshold = %.1fV)",
-		   g_adc_v_24v, M_POW_24V_PASSIVE_THRESHOLD_C);
+		   				g_adc_v_24v, M_POW_24V_PASSIVE_THRESHOLD_C);
 
 	if (g_adc_v_24v > M_POW_24V_PASSIVE_THRESHOLD_C)
 	{
 		g_mod_pow_hw_is_rev1_2_b = true;
-		M_POW_DBG_PRINT_TXT("Board detected: V1.2 (VSYS on 24V sense)");
+		M_POW_DBG_PRINT_OK("Board detected: V1.2 (VSYS on 24V sense)");
 	}
 	else
 	{
 		g_mod_pow_hw_is_rev1_2_b = false;
-		M_POW_DBG_PRINT_TXT("Board detected: V1.1 (no voltage on 24V sense)");
+		M_POW_DBG_PRINT_OK("Board detected: V1.1 (no voltage on 24V sense)");
 	}
 }
 

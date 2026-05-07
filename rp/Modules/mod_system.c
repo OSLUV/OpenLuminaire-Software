@@ -95,6 +95,8 @@ void mod_sys_services(void)
  */
 void mod_sys_reset(void)
 {
+    M_SYS_DBG_PRINT_WRN("Reseting system by WDT...");
+
     watchdog_hw->scratch[0] = M_SYS_RESET_MAGIC_KEY_C;
     watchdog_reboot(0, 0, 0);
 }
