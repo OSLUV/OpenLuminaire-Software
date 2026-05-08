@@ -102,7 +102,7 @@ static int safety_logic_get_power_for_distance(int distance, bool b_is_diffused,
  */
 bool safety_logic_is_high_tilt(void)
 {
-	return g_sys.acc_pointing_down_angle > safety_logic_get_tilt_break();
+	return g_sys_stt.acc_pointing_down_angle > safety_logic_get_tilt_break();
 }
 
 /**

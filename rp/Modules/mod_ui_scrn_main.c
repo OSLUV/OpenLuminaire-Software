@@ -272,7 +272,7 @@ void mod_ui_main_handler(void)
 	}
 	
 	/* Update tilt data */
-	mod_ui_main_set_tilt(g_sys.acc_pointing_down_angle);
+	mod_ui_main_set_tilt(g_sys_stt.acc_pointing_down_angle);
 }
 
 /**

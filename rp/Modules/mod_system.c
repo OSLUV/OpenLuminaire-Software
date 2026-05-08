@@ -9,6 +9,7 @@
 /* Includes ------------------------------------------------------------------*/
 
 #include <stdio.h>
+#include <string.h>
 #include <hardware/watchdog.h>
 #include <hardware/vreg.h>
 #include "Modules/mod_system.h"
@@ -32,12 +33,16 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Global variables  ---------------------------------------------------------*/
 
-SYS_STATUS_T g_sys;
+SYS_STATUS_T g_sys_stt;
+SYS_CTRL_T   g_sys_ctl;
 
 
 /* Private variables  --------------------------------------------------------*/
 /* Callback prototypes -------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
+
+static void mod_sys_reset(void);
+
 
 /* Exported functions --------------------------------------------------------*/
 
@@ -48,6 +53,9 @@ SYS_STATUS_T g_sys;
 void mod_sys_init(void)
 {
     uint32_t reset_reason;
+
+    memset((void*)&g_sys_stt, 0, sizeof(SYS_STATUS_T));
+    memset((void*)&g_sys_ctl, 0, sizeof(SYS_CTRL_T));
 
     debug_init();
 
@@ -96,23 +104,28 @@ void mod_sys_services(void)
 {
     watchdog_update();
     drv_cfg_save();
+
+    if (g_sys_ctl.task.reboot_b)
+    {
+        mod_sys_reset();
+    }
 }
+
+
+/* Callback functions --------------------------------------------------------*/
+/* Private functions ---------------------------------------------------------*/
 
 /**
  * @brief Performs a controlled system reset
  * 
  */
-void mod_sys_reset(void)
+static void mod_sys_reset(void)
 {
     M_SYS_DBG_PRINT_WRN("Reseting system by WDT...");
 
     watchdog_hw->scratch[0] = M_SYS_RESET_MAGIC_KEY_C;
     watchdog_reboot(0, 0, 0);
 }
-
-
-/* Callback functions --------------------------------------------------------*/
-/* Private functions ---------------------------------------------------------*/
 
 
 /*** END OF FILE ***/

@@ -344,21 +344,21 @@ static void mod_ui_psu_screen_handler(void)
 			{
 				ui_loading_show_psu_status("Retrying...");
 
-				drv_lamp_power_up_rails();
+				g_sys_ctl.task.lamp_test_b = 1;
 
 				stt_mchn++;
 			}
 		break;
 
 		case 1:
-			if (drv_lamp_is_power_ok())
+			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		/* Lamp test is being executed? */
 			{
 				stt_mchn++;
 			}
 		break;
 
 		case 2:
-			if (drv_lamp_perform_type_test() != 0)
+			if (!g_sys_stt.task.lamp_test_b)
 			{
 				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
 			

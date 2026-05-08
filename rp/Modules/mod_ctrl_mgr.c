@@ -47,9 +47,8 @@ static absolute_time_t  mod_ctrl_delay_tmout;
 /* Private function prototypes -----------------------------------------------*/
 
 static void mod_ctrl_lamp_handler(void);
-static int8_t mod_ctrl_lamp_test(void);
-static void mod_ctrl_lamp_test_n_configure(void);
-static void mod_ctrl_lamp_test_n_reboot(void);
+static void mod_ctrl_lamp_test_handler(void);
+static void mod_ctrl_lamp_test_n_reboot_handler(void);
 
 
 /* Exported functions --------------------------------------------------------*/
@@ -79,15 +78,15 @@ void mod_ctrl_init(void)
 void mod_ctrl_manager(void)
 {
     drv_acc_update();
-	g_sys.acc_x = g_drv_acc_x;
-	g_sys.acc_y = g_drv_acc_y;
-	g_sys.acc_z = g_drv_acc_z;
-	g_sys.acc_pointing_down_angle = drv_acc_get_pointing_down_angle();
+	g_sys_stt.acc_x = g_drv_acc_x;
+	g_sys_stt.acc_y = g_drv_acc_y;
+	g_sys_stt.acc_z = g_drv_acc_z;
+	g_sys_stt.acc_pointing_down_angle = drv_acc_get_pointing_down_angle();
 
     drv_mag_update();
-	g_sys.mag_x = g_drv_mag_x;
-	g_sys.mag_y = g_drv_mag_y;
-	g_sys.mag_z = g_drv_mag_z;
+	g_sys_stt.mag_x = g_drv_mag_x;
+	g_sys_stt.mag_y = g_drv_mag_y;
+	g_sys_stt.mag_z = g_drv_mag_z;
 
     drv_radar_update();
 
@@ -97,15 +96,11 @@ void mod_ctrl_manager(void)
 	{
 		safety_logic_update();
 	}
-}
 
-/**
- * @brief 
- * 
- */
-void mod_ctrl_perform_lamp_retest(void)
-{
-	b_mod_ctrl_make_retest = true;
+	if (b_mod_ctrl_is_startup)
+	{
+		b_mod_ctrl_is_startup = false;
+	}
 }
 
 
@@ -123,52 +118,63 @@ static void mod_ctrl_lamp_handler(void)
 {
     drv_lamp_update();
 
-	if (b_mod_ctrl_is_startup)
-	{
-		mod_ctrl_lamp_test_n_configure();
-	}
-	else if (b_mod_ctrl_make_retest)
-	{
-		mod_ctrl_lamp_test_n_reboot();
-	}
+	mod_ctrl_lamp_test_handler();
+	mod_ctrl_lamp_test_n_reboot_handler();
 }
 
 /**
- * @brief Tests lamp to get its type and performs a configuration
- * 
- * @note This function is intended to be used at system startup
+ * @brief Tests lamp to get its type
  * 
  */
-static void mod_ctrl_lamp_test_n_configure(void)
+static void mod_ctrl_lamp_test_handler(void)
 {
     static uint8_t stt_mchn = 0;
+    static bool    power_up_lamp_at_end_b = false;
 
 	switch (stt_mchn)
 	{
 		case 0:
-			if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
+			if (b_mod_ctrl_is_startup)
 			{
-				drv_lamp_power_up_rails();
-
-				if (drv_lamp_is_power_ok()) 
+				if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
 				{
-					M_CTRL_DBG_PRINT_TXT("Performing lamp test at startup");
+					g_sys_ctl.task.lamp_test_b = 1;
 
-					stt_mchn++;
+					power_up_lamp_at_end_b = true;
 				}
 			}
-			else
+
+			if (g_sys_ctl.task.lamp_test_b)
 			{
-				b_mod_ctrl_is_startup = false;
+				M_CTRL_DBG_PRINT_TXT("Performing lamp test");
+
+				g_sys_ctl.task.lamp_test_b = 0;
+				g_sys_stt.task.lamp_test_b = 1;
+
+				drv_lamp_power_up_rails();
+
+				stt_mchn++;
 			}
 		break;
 
 		case 1:
+			if (drv_lamp_is_power_ok()) 
+			{
+				stt_mchn++;
+			}
+		break;
+
+		case 2:
 			if (drv_lamp_perform_type_test() != 0)
 			{
-				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+				g_sys_stt.task.lamp_test_b = 0;
 
-				b_mod_ctrl_is_startup = false;
+				if (power_up_lamp_at_end_b)
+				{
+					power_up_lamp_at_end_b = false;
+
+					drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+				}
 
 				stt_mchn = 0;
 			}
@@ -181,25 +187,31 @@ static void mod_ctrl_lamp_test_n_configure(void)
 }
 
 /**
- * @brief Tests lamp to get its type and performs a system reboot
+ * @brief Starts a lamp type test and issues a system reboot when finished
  * 
  */
-static void mod_ctrl_lamp_test_n_reboot(void)
+static void mod_ctrl_lamp_test_n_reboot_handler(void)
 {
     static uint8_t stt_mchn = 0;
 
 	switch (stt_mchn)
 	{
 		case 0:
-			M_CTRL_DBG_PRINT_WRN("Performing lamp test & reboot");
+			if (g_sys_ctl.task.lamp_test_n_reboot_b)
+			{
+				g_sys_ctl.task.lamp_test_n_reboot_b = 0;
+				g_sys_stt.task.lamp_test_n_reboot_b = 1;
 
-			drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
+				M_CTRL_DBG_PRINT_WRN("Performing lamp test & reboot");
 
-			mod_ctrl_delay_tmout = make_timeout_time_ms(100);
+				drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
 
-			// TODO: Is this delay required or was for making sure that D_LAMP_PWR_OFF_C state was applied?
+				mod_ctrl_delay_tmout = make_timeout_time_ms(100);
 
-			stt_mchn++;
+				// TODO: Is this delay required or was for making sure that D_LAMP_PWR_OFF_C state was applied?
+
+				stt_mchn++;
+			}
 		break;
 
 		case 1:
@@ -207,21 +219,30 @@ static void mod_ctrl_lamp_test_n_reboot(void)
 			{
 				drv_lamp_reset_type();
 
+				g_sys_ctl.task.lamp_test_b = 1;
+
 				stt_mchn++;
 			}
 		break;
 
 		case 2:
-			if (drv_lamp_perform_type_test() != 0)
+			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		/* Lamp test is being executed? */
+			{
+				stt_mchn++;
+			}
+		break;
+
+		case 3:
+			if (!g_sys_stt.task.lamp_test_b)
 			{
 				M_CTRL_DBG_PRINT_OK("Retest complete, type=%d. Rebooting to apply new UI layout...",
 									drv_lamp_get_type());
 
-				b_mod_ctrl_make_retest = false;
+				g_sys_stt.task.lamp_test_n_reboot_b = 0;
 
-				mod_sys_reset();
+				g_sys_ctl.task.reboot_b = 1; 									/* Issue a system reboot */
 
-				stt_mchn = 0; 	/* PC will never get here */
+				stt_mchn = 0;
 			}
 		break;
 

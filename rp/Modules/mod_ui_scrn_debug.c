@@ -14,7 +14,6 @@
 #include <hardware/watchdog.h>
 #include "Modules/mod_ui_scrn_debug.h"
 #include "Modules/mod_ui_screens.h"
-#include "Modules/mod_ctrl_mgr.h"
 #include "Modules/system.h"
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_debug.h"
@@ -166,9 +165,9 @@ void mod_ui_debug_handler(void)
 
     ADD_TEXT("Board %s\n", g_mod_pow_hw_is_rev1_2_b?"V1.2":"V1.1");
 
-    ADD_TEXT("Acc: %+.2f/%+.2f/%+.2f\n", g_sys.acc_x, g_sys.acc_y, g_sys.acc_z);
+    ADD_TEXT("Acc: %+.2f/%+.2f/%+.2f\n", g_sys_stt.acc_x, g_sys_stt.acc_y, g_sys_stt.acc_z);
 
-    ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_sys.mag_x, g_sys.mag_y, g_sys.mag_z);
+    ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_sys_stt.mag_x, g_sys_stt.mag_y, g_sys_stt.mag_z);
 
     ADD_TEXT("12V %s %s / 24V Reg %s\n",
              g_mod_pow_hw_is_rev1_2_b?"Reg":"Switched",
@@ -176,15 +175,15 @@ void mod_ui_debug_handler(void)
              drv_lamp_get_switched_24v()?"ON ":"off");
 
     ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
-             g_sys.v_vbus,
-             g_sys.v_12v,
-             g_sys.v_24v);
+             g_sys_stt.v_vbus,
+             g_sys_stt.v_12v,
+             g_sys_stt.v_24v);
 
     if (g_mod_pow_is_usb_connected_b)
     {
         ADD_TEXT("USB Req %dV Got %.1fV/%.1fA\n",
                  g_mod_pow_usb_negotiated_mv / 1000,
-                 g_sys.v_vbus,
+                 g_sys_stt.v_vbus,
                  ((float)drv_usb_pd_get_negotiated_ma())/1000.);
     }
     else
@@ -255,7 +254,7 @@ static void mod_ui_debug_retest_btn_callback(lv_event_t* p_evt)
 
     b_mod_ui_debug_is_retesting = true;
 
-    mod_ctrl_perform_lamp_retest();
+    g_sys_ctl.task.lamp_test_n_reboot_b = 1;
 }
 
 /**

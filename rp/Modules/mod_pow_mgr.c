@@ -86,9 +86,9 @@ void mod_pow_init(void)
 void mod_pow_manager(void)
 {
     drv_adc_volt_update();
-	g_sys.v_vbus = g_adc_v_vbus;
-	g_sys.v_12v  = g_adc_v_12v;
-	g_sys.v_24v  = g_adc_v_24v;
+	g_sys_stt.v_vbus = g_adc_v_vbus;
+	g_sys_stt.v_12v  = g_adc_v_12v;
+	g_sys_stt.v_24v  = g_adc_v_24v;
 
 	mod_pow_usb_hot_plug_handler();
 }
