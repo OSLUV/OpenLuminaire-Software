@@ -20,7 +20,7 @@
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_i2c.h"
-#include "Modules/mod_lamp_types.h"
+#include "Modules/mod_lamp_defs.h"
 #include "Modules/system.h"
 
 

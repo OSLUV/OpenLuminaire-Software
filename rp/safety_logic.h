@@ -11,7 +11,7 @@
 
 /* Exported includes ---------------------------------------------------------*/
 
-#include "Modules/mod_lamp_types.h"
+#include "Modules/mod_lamp_defs.h"
 
 
 /* Exported functions prototypes ---------------------------------------------*/

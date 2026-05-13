@@ -1,12 +1,12 @@
 /**
- * @file      mod_lamp_types.h
+ * @file      mod_lamp_defs.h
  * @author    The OSLUV Project
- * @brief     Lamp type definitions for lamp control
+ * @brief     Lamp module definitions for lamp control and status
  *  
  */
 
-#ifndef _M_LAMP_TYPES_H_
-#define _M_LAMP_TYPES_H_
+#ifndef _M_LAMP_DEFS_H_
+#define _M_LAMP_DEFS_H_
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -55,19 +55,11 @@
  * Used in persistance region; bump magic if changed
  * 
  */
-#if 0
-typedef enum {
-	M_LAMP_TYPE_UNKNOWN_C = 0,
-	M_LAMP_TYPE_DIMMABLE_C,
-	M_LAMP_TYPE_NON_DIMMABLE_C
-} M_LAMP_TYPE_E;
-#else
 typedef enum {
     #define X(type, str) type,
     M_LAMP_TYPE_LIST
     #undef X
 } M_LAMP_TYPE_E;
-#endif
 
 /**
  * @enum M_LAMP_PWR_LEVEL_E
@@ -75,23 +67,11 @@ typedef enum {
  * @brief Available power levels for lamp
  * 
  */
-#if 0
-typedef enum {
-	M_LAMP_PWR_OFF_C = 0,
-	M_LAMP_PWR_20PCT_C,
-	M_LAMP_PWR_40PCT_C,
-	M_LAMP_PWR_70PCT_C,
-	M_LAMP_PWR_100PCT_C,
-	M_LAMP_PWR_MAX_SETTINGS_C,
-	M_LAMP_PWR_UNKNOWN_C
-} M_LAMP_PWR_LEVEL_E;
-#else
 typedef enum {
     #define X(level, str) level,
     M_LAMP_PWR_LVL_LIST
     #undef X
 } M_LAMP_PWR_LEVEL_E;
-#endif
 
 /**
  * @enum M_LAMP_STATE_E
@@ -99,27 +79,11 @@ typedef enum {
  * @brief Lamp states list
  * 
  */
-#if 0
-typedef enum {
-	M_LAMP_STATE_OFF_C = 0,
-	M_LAMP_STATE_STARTING_C,
-	M_LAMP_STATE_RUNNING_C,
-	M_LAMP_STATE_FULLPOWER_TEST_C,
-	M_LAMP_STATE_RESTRIKE_COOLDOWN_1_C,
-	M_LAMP_STATE_RESTRIKE_ATTEMPT_1_C,
-	M_LAMP_STATE_RESTRIKE_COOLDOWN_2_C,
-	M_LAMP_STATE_RESTRIKE_ATTEMPT_2_C,
-	M_LAMP_STATE_RESTRIKE_COOLDOWN_3_C,
-	M_LAMP_STATE_RESTRIKE_ATTEMPT_3_C,
-	M_LAMP_STATE_FAILED_OFF_C
-} M_LAMP_STATE_E;
-#else
 typedef enum {
     #define X(name, str) name,
     M_LAMP_STATE_LIST
     #undef X
 } M_LAMP_STATE_E;
-#endif
 
 /**/
 
@@ -190,6 +154,6 @@ static inline const char* mod_lamp_get_power_level_str(M_LAMP_PWR_LEVEL_E level)
 }
 
 
-#endif /* _M_LAMP_TYPES_H_ */
+#endif /* _M_LAMP_DEFS_H_ */
 
 /*** END OF FILE ***/

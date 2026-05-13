@@ -13,7 +13,6 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "Modules/mod_lamp_types.h"
 
 
 /* Exported typedef ----------------------------------------------------------*/

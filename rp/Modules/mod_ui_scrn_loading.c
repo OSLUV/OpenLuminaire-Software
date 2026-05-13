@@ -11,7 +11,7 @@
 #include <lvgl.h>
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_screens.h"
-#include "Modules/mod_lamp_types.h"
+#include "Modules/mod_lamp_defs.h"
 #include "Modules/system.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
