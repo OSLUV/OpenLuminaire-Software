@@ -64,6 +64,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		Modules/mod_pow_mgr.c
 		Modules/mod_system.c
 		Modules/mod_ui_mgr.c
+		Modules/mod_safety_logic.c
 		Modules/mod_ui_scrn_debug.c
 		Modules/mod_ui_scrn_main.c
 		Modules/mod_ui_scrn_loading.c
@@ -80,7 +81,6 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		Drivers/drv_power.c
 		Drivers/drv_radar.c
 		Drivers/drv_usb_pd.c
-		safety_logic.c
 		splash_img.c
 	)
 
