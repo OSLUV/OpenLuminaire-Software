@@ -78,8 +78,8 @@ void mod_sys_init(void)
     }
 
     drv_cfg_init();
-	M_SYS_DBG_PRINT_TXT("g_drv_cfg.factory_lamp_type = %d", 
-		                drv_cfg_get_factory_lamp_type());
+	M_SYS_DBG_PRINT_TXT("g_drv_cfg.factory_lamp_type = %s", 
+		                mod_lamp_get_lamp_type_str(drv_cfg_get_factory_lamp_type()));
 }
 
 /**
@@ -105,7 +105,7 @@ void mod_sys_services(void)
     watchdog_update();
     drv_cfg_save();
 
-    if (g_sys_ctl.task.reboot_b)
+    if (g_sys_ctl.task.reboot)
     {
         mod_sys_reset();
     }

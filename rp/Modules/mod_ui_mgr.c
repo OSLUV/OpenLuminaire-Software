@@ -17,6 +17,7 @@
 #include "Modules/mod_ui_screens.h"
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_scrn_debug.h"
+#include "Modules/mod_lamp_types.h"
 #include "Modules/system.h"
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_debug.h"
@@ -33,7 +34,7 @@
 #define M_UI_DBG_PRINT_WRN(...)		debug_print_warn(M_UI_DBG_ID_STR_C, __VA_ARGS__)
 #define M_UI_DBG_PRINT_OK(...)		debug_print_ok(M_UI_DBG_ID_STR_C, __VA_ARGS__)
 
-#define M_UI_SPLASH_SCRN_TM_MS_C	1000										/* Time (in ms) Splash Screen will remain on screen */
+#define M_UI_SPLASH_SCRN_TM_MS_C	1250										/* Time (in ms) Splash Screen will remain on screen */
 #define M_UI_LOADING_RETRY_TM_MS_C	3000										/* Time (in ms) for loading to retry */
 #define M_UI_STANDBY_TM_MS_C		(5 * 60 * 1000)								/* Maximum time (in ms) for the UI to remain unused */
 
@@ -90,7 +91,6 @@ void mod_ui_init(void)
 	mod_ui_screen		= M_UI_SCRN_NONE_C;
 	g_mod_ui_new_screen = M_UI_SCRN_SPLASH_C;
 
-	drv_lamp_load_type_from_flash();
 	ui_loading_splash_image_init();
 
 	/* TODO: This next block can be deleted after fixing usb-pd negotiation to 
@@ -273,16 +273,26 @@ static void mod_ui_splash_screen_handler(void)
 		break;
 
 		case 1:
-			if ((get_absolute_time() > mod_ui_splash_tmout) && 
-				(drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C))
+			if (!g_sys_stt.is_rails_powering_on && (get_absolute_time() > mod_ui_splash_tmout))
 			{
-				M_UI_DBG_PRINT_TXT("Switching to MAIN screen");
-				
 				b_mod_ui_is_booting = false;
 
-				g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
-			
-				splash_scrn_stt = 0;
+				if (!g_sys_stt.is_power_ok)
+				{
+					M_UI_DBG_PRINT_TXT("Switching to LOADING screen due to power levels at startup");
+
+					g_mod_ui_new_screen = M_UI_SCRN_LOADING_C;
+				
+					splash_scrn_stt = 0;
+				}
+				else if ((g_sys_stt.lamp_type != M_LAMP_TYPE_UNKNOWN_C))
+				{
+					M_UI_DBG_PRINT_TXT("Switching to MAIN screen");
+
+					g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
+				
+					splash_scrn_stt = 0;
+				}
 			}
 		break;
 
@@ -298,7 +308,7 @@ static void mod_ui_splash_screen_handler(void)
  */
 static void mod_ui_main_screen_handler(void)
 {
-	if (drv_lamp_is_power_ok()) 
+	if (g_sys_stt.is_power_ok) 
 	{
 		mod_ui_main_handler();
 	}
@@ -316,7 +326,7 @@ static void mod_ui_main_screen_handler(void)
  */
 static void mod_ui_debug_screen_handler(void)
 {
-	if (drv_lamp_is_power_ok()) 
+	if (g_sys_stt.is_power_ok) 
 	{
 		mod_ui_debug_handler();
 	}
@@ -351,20 +361,23 @@ static void mod_ui_psu_screen_handler(void)
 		break;
 
 		case 1:
-			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		/* Lamp test is being executed? */
+			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		// Lamp test is being executed?
 			{
 				stt_mchn++;
 			}
 		break;
 
 		case 2:
-			if (!g_sys_stt.task.lamp_test_b)
+			if (!g_sys_stt.task.lamp_test_b) 									// Lamp test procedure is finished ?
 			{
-				drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
-			
-				g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
-
 				mod_ui_loading_retry_tmout = make_timeout_time_ms(M_UI_LOADING_RETRY_TM_MS_C);
+
+				if (g_sys_stt.is_power_ok)
+				{
+					g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_100PCT_C;
+				
+					g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
+				}
 
 				stt_mchn = 0;
 			}

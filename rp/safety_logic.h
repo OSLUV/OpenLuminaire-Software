@@ -11,7 +11,7 @@
 
 /* Exported includes ---------------------------------------------------------*/
 
-#include "Drivers/drv_lamp_types.h"
+#include "Modules/mod_lamp_types.h"
 
 
 /* Exported functions prototypes ---------------------------------------------*/
@@ -22,7 +22,7 @@ char* safety_logic_get_state_desc(void);
 void safety_logic_set_radar_enabled_state(bool b_enable);
 bool safety_logic_get_radar_enabled_state(void);
 void safety_logic_toggle_radar_enabled_state(void);
-void safety_logic_set_cap_power(D_LAMP_PWR_LEVEL_E pwr_level);
+void safety_logic_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level);
 
 
 #endif /* _SAFETY_LOGIC_H_ */

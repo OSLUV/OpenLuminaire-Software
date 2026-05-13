@@ -22,6 +22,8 @@
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_lamp.h"
 
+#include "Modules/system.h" // TODO: This shouldn't be here. Clean when radar is refactored
+
 
 /* Compile-time --------------------------------------------------------------*/
 
@@ -144,7 +146,7 @@ void drv_radar_update(void)
 
 	if ((time_us_64() - radar_last_report_time) > (1000 * 3000) && 
 	    (time_us_64() - radar_last_reinit_time) > (1000 * 3000) && 
-		drv_lamp_get_switched_12v())
+		g_sys_stt.is_12v_rail_on)
 	{
 		drv_radar_init_comms();
 		radar_last_reinit_time = time_us_64();
@@ -345,7 +347,7 @@ static inline int radar_pick_distance(uint16_t det, uint16_t mov, uint16_t stat)
  */
 static void drv_radar_init_comms(void)
 {
-	D_RADAR_DBG_PRINT_TXT("drv_radar_init_comms()");
+//	D_RADAR_DBG_PRINT_TXT("drv_radar_init_comms()");
 	radar_reinit(256000);
     radar_reinit(9600);
 }

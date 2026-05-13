@@ -11,6 +11,7 @@
 #include <lvgl.h>
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_screens.h"
+#include "Modules/mod_lamp_types.h"
 #include "Modules/system.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_lamp.h"
@@ -22,7 +23,6 @@
 /* Global variables  ---------------------------------------------------------*/
 
 extern M_UI_SCRN_E  g_mod_ui_new_screen;
-extern bool g_mod_pow_hw_is_rev1_2_b;
 
 
 /* Private variables  --------------------------------------------------------*/
@@ -87,13 +87,13 @@ void ui_loading_splash_image_init(void)
 
     /* 1 ─ Pick the bitmap -------------------------------------------------- */
     const lv_image_dsc_t *p_src = &splash_default_img;                          // Fallback
-    switch (drv_lamp_get_type())
+    switch (g_sys_stt.lamp_type)
     {
-        case D_LAMP_TYPE_DIMMABLE_C:
+        case M_LAMP_TYPE_DIMMABLE_C:
             p_src = &splash_dimmable_img;
         break;
 
-        case D_LAMP_TYPE_NON_DIMMABLE_C:
+        case M_LAMP_TYPE_NON_DIMMABLE_C:
             p_src = &splash_basic_img;
         break;
 
@@ -214,7 +214,7 @@ void ui_loading_show_psu_status(const char *status)
 
 static const char* ui_loading_get_psu_error_msg(void)
 {
-    if (g_mod_pow_hw_is_rev1_2_b)
+    if (g_sys_stt.hw_is_1_2)
     {
         return "ERROR:\nPOWER SUPPLY\n"
                "INCOMPATIBLE!\n"

@@ -20,7 +20,8 @@
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_i2c.h"
-#include "Drivers/drv_lamp.h"
+#include "Modules/mod_lamp_types.h"
+#include "Modules/system.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -56,10 +57,6 @@ typedef struct {
 
 
 /* Global variables  ---------------------------------------------------------*/
-
-extern bool g_mod_pow_hw_is_rev1_2_b;
-
-
 /* Private variables  --------------------------------------------------------*/
 
 static bool 	drv_usb_pd_is_trying_up_b    = false;
@@ -145,7 +142,7 @@ void drv_usb_pd_negotiate(bool up)
 {
 	usbpd_pdo_t pdo;
 
-	if (drv_lamp_get_commanded_power_level() != D_LAMP_PWR_OFF_C)
+	if (g_sys_stt.lamp_cmd_power_level != M_LAMP_PWR_OFF_C)
 	{
 		return;
 	}
@@ -169,7 +166,7 @@ void drv_usb_pd_negotiate(bool up)
 		 * voltage. Without this, STUSB4500 NVM defaults may request 20V,
 		 * which is dangerous on V1.1 (20V on the 12V rail). */
 		pdo.u32 = 0;
-		if (g_mod_pow_hw_is_rev1_2_b)
+		if (g_sys_stt.hw_is_1_2)
 		{
 			drv_usb_pd_configure_pdo(&pdo, 20000, 1000);
 		}
@@ -190,7 +187,7 @@ void drv_usb_pd_negotiate(bool up)
 	const drv_usb_pd_candidate_t *candidates;
 	int count;
 
-	if (g_mod_pow_hw_is_rev1_2_b)
+	if (g_sys_stt.hw_is_1_2)
 	{
 		candidates = drv_usb_pd_v12_candidates;
 		count = D_USB_PD_V12_CANDIDATE_COUNT_C;

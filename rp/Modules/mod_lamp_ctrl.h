@@ -1,12 +1,12 @@
 /**
- * @file      drv_lamp.h
+ * @file      mod_lamp_ctrl.h
  * @author    The OSLUV Project
- * @brief     Functions prototypes for lamp state control driver
+ * @brief     Functions prototypes for lamp control module
  *  
  */
 
-#ifndef _D_LAMP_H_
-#define _D_LAMP_H_
+#ifndef _M_LAMP_H_
+#define _M_LAMP_H_
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -19,15 +19,13 @@
 /* Exported typedef ----------------------------------------------------------*/
 /* Exported functions prototypes ---------------------------------------------*/
 
-void drv_lamp_init(void);
-void drv_lamp_enable(void);
-void drv_lamp_disable(void);
-bool drv_lamp_is_enabled(void);
-void drv_lamp_set_pwm_level(uint16_t level);
-bool drv_lamp_is_status_on(void);
-uint32_t drv_lamp_get_status_evts_count(void);
+void mod_lamp_init(void);
+void mod_lamp_ctrl_handler(void);
+
+int8_t mod_lamp_perform_type_test(void);
+void mod_lamp_reset_type(void);
 
 
-#endif /* _D_LAMP_H_ */
+#endif /* _M_LAMP_H_ */
 
 /*** END OF FILE ***/

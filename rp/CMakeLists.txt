@@ -60,6 +60,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 	add_executable(app
 		main.c
 		Modules/mod_ctrl_mgr.c
+		Modules/mod_lamp_ctrl.c
 		Modules/mod_pow_mgr.c
 		Modules/mod_system.c
 		Modules/mod_ui_mgr.c
@@ -76,6 +77,7 @@ if(CMAKE_BUILD_TYPE STREQUAL "Debug")
 		Drivers/drv_fan.c
 		Drivers/drv_lamp.c
 		Drivers/drv_magnetometer.c
+		Drivers/drv_power.c
 		Drivers/drv_radar.c
 		Drivers/drv_usb_pd.c
 		safety_logic.c

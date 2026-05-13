@@ -11,22 +11,20 @@
 #include <stdio.h>
 #include "pico/time.h"
 #include "Modules/mod_ctrl_mgr.h"
+#include "Modules/mod_lamp_ctrl.h"
 #include "Modules/mod_system.h"
 #include "Modules/system.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_magnetometer.h"
-#include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_fan.h"
 #include "safety_logic.h"
 
-#include <hardware/watchdog.h> // TODO: Remove when mod_ui_psu_screen_handler is updated
-
 
 /* Private define ------------------------------------------------------------*/
 
-#define M_CTRL_DBG_ID_STR_C        "mod_ctrl            "
+#define M_CTRL_DBG_ID_STR_C			"mod_ctrl            "
 #define M_CTRL_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
 #define M_CTRL_DBG_PRINT_TXT(...)	debug_print_mod_f(M_CTRL_DBG_ID_STR_C, __VA_ARGS__)
 #define M_CTRL_DBG_PRINT_ERR(...)	debug_print_err(M_CTRL_DBG_ID_STR_C, __VA_ARGS__)
@@ -64,7 +62,7 @@ void mod_ctrl_init(void)
 
 	drv_acc_init();
 	drv_mag_init();
-	drv_lamp_init();
+	mod_lamp_init();
 	
 	drv_radar_init();
 	drv_fan_init();
@@ -92,7 +90,7 @@ void mod_ctrl_manager(void)
 
     mod_ctrl_lamp_handler();
 
-	if (drv_lamp_get_type() != D_LAMP_TYPE_UNKNOWN_C)
+	if (g_sys_stt.lamp_type != M_LAMP_TYPE_UNKNOWN_C)
 	{
 		safety_logic_update();
 	}
@@ -106,8 +104,6 @@ void mod_ctrl_manager(void)
 
 /* Callback functions --------------------------------------------------------*/
 
-// Execute drv_lamp_reset_type from UI command
-
 /* Private functions ---------------------------------------------------------*/
 
 /**
@@ -116,7 +112,7 @@ void mod_ctrl_manager(void)
  */
 static void mod_ctrl_lamp_handler(void)
 {
-    drv_lamp_update();
+    mod_lamp_ctrl_handler();
 
 	mod_ctrl_lamp_test_handler();
 	mod_ctrl_lamp_test_n_reboot_handler();
@@ -136,8 +132,10 @@ static void mod_ctrl_lamp_test_handler(void)
 		case 0:
 			if (b_mod_ctrl_is_startup)
 			{
-				if (drv_lamp_get_type() == D_LAMP_TYPE_UNKNOWN_C)
+				if (g_sys_stt.lamp_type == M_LAMP_TYPE_UNKNOWN_C)
 				{
+					M_CTRL_DBG_PRINT_TXT("Lamp type is unknown at startup");
+
 					g_sys_ctl.task.lamp_test_b = 1;
 
 					power_up_lamp_at_end_b = true;
@@ -146,34 +144,60 @@ static void mod_ctrl_lamp_test_handler(void)
 
 			if (g_sys_ctl.task.lamp_test_b)
 			{
-				M_CTRL_DBG_PRINT_TXT("Performing lamp test");
+				M_CTRL_DBG_PRINT_TXT("Starting lamp test");
 
 				g_sys_ctl.task.lamp_test_b = 0;
 				g_sys_stt.task.lamp_test_b = 1;
 
-				drv_lamp_power_up_rails();
+				// TODO: Should we check that rails are not already on before issuing a power-on ?
+
+				g_sys_ctl.task.rails_on = 1;
 
 				stt_mchn++;
 			}
 		break;
 
 		case 1:
-			if (drv_lamp_is_power_ok()) 
+			if (g_sys_stt.is_rails_powering_on)
 			{
 				stt_mchn++;
 			}
 		break;
 
 		case 2:
-			if (drv_lamp_perform_type_test() != 0)
+			if (!g_sys_stt.is_rails_powering_on)
 			{
+				if (g_sys_stt.task.rails_on && g_sys_stt.is_power_ok)
+				{
+					M_CTRL_DBG_PRINT_TXT("Performing lamp test");
+
+					stt_mchn++;
+				}
+				else
+				{
+					M_CTRL_DBG_PRINT_WRN("Failed to power rails on");
+
+					power_up_lamp_at_end_b = false;
+					
+					g_sys_stt.task.lamp_test_b = 0;
+
+					stt_mchn = 0;
+				}
+			}
+		break;
+
+		case 3:
+			if (mod_lamp_perform_type_test() != 0)
+			{
+				M_CTRL_DBG_PRINT_TXT("Lamp type test finished");
+
 				g_sys_stt.task.lamp_test_b = 0;
 
 				if (power_up_lamp_at_end_b)
 				{
 					power_up_lamp_at_end_b = false;
 
-					drv_lamp_request_power_level(D_LAMP_PWR_100PCT_C);
+					g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_100PCT_C;
 				}
 
 				stt_mchn = 0;
@@ -197,18 +221,18 @@ static void mod_ctrl_lamp_test_n_reboot_handler(void)
 	switch (stt_mchn)
 	{
 		case 0:
-			if (g_sys_ctl.task.lamp_test_n_reboot_b)
+			if (g_sys_ctl.task.lamp_test_n_reboot)
 			{
-				g_sys_ctl.task.lamp_test_n_reboot_b = 0;
-				g_sys_stt.task.lamp_test_n_reboot_b = 1;
+				g_sys_ctl.task.lamp_test_n_reboot = 0;
+				g_sys_stt.task.lamp_test_n_reboot = 1;
 
 				M_CTRL_DBG_PRINT_WRN("Performing lamp test & reboot");
 
-				drv_lamp_request_power_level(D_LAMP_PWR_OFF_C);
+				g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_OFF_C;
 
 				mod_ctrl_delay_tmout = make_timeout_time_ms(100);
 
-				// TODO: Is this delay required or was for making sure that D_LAMP_PWR_OFF_C state was applied?
+				// TODO: Is this delay required or was for making sure that M_LAMP_PWR_OFF_C state was applied?
 
 				stt_mchn++;
 			}
@@ -217,7 +241,7 @@ static void mod_ctrl_lamp_test_n_reboot_handler(void)
 		case 1:
 			if (get_absolute_time() > mod_ctrl_delay_tmout)
 			{
-				drv_lamp_reset_type();
+				mod_lamp_reset_type();
 
 				g_sys_ctl.task.lamp_test_b = 1;
 
@@ -228,6 +252,8 @@ static void mod_ctrl_lamp_test_n_reboot_handler(void)
 		case 2:
 			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		/* Lamp test is being executed? */
 			{
+				// TODO: Check for any error at lamp test
+
 				stt_mchn++;
 			}
 		break;
@@ -236,11 +262,11 @@ static void mod_ctrl_lamp_test_n_reboot_handler(void)
 			if (!g_sys_stt.task.lamp_test_b)
 			{
 				M_CTRL_DBG_PRINT_OK("Retest complete, type=%d. Rebooting to apply new UI layout...",
-									drv_lamp_get_type());
+									g_sys_stt.lamp_type); 
 
-				g_sys_stt.task.lamp_test_n_reboot_b = 0;
+				g_sys_stt.task.lamp_test_n_reboot = 0;
 
-				g_sys_ctl.task.reboot_b = 1; 									/* Issue a system reboot */
+				g_sys_ctl.task.reboot = 1; 										/* Issue a system reboot */
 
 				stt_mchn = 0;
 			}

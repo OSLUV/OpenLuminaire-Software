@@ -18,7 +18,6 @@
 #include "Drivers/drv_adc_volt.h"
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_display.h"
-#include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_usb_pd.h"
 
@@ -37,7 +36,6 @@
 /* Global variables  ---------------------------------------------------------*/
 
 extern M_UI_SCRN_E  g_mod_ui_new_screen;
-extern bool         g_mod_pow_hw_is_rev1_2_b;
 extern bool         g_mod_pow_is_usb_connected_b;
 extern uint32_t     g_mod_pow_usb_negotiated_ma;
 extern uint32_t     g_mod_pow_usb_negotiated_ma;
@@ -140,39 +138,29 @@ void mod_ui_debug_handler(void)
     }
 
     ADD_TEXT("Lamp State: %s %dms\n",
-             drv_lamp_get_lamp_state_str(drv_lamp_get_lamp_state()),
-             drv_lamp_get_state_elapsed_ms());
-
-    D_LAMP_PWR_LEVEL_E rep;
-
-    drv_lamp_get_reported_power_level(&rep);
+             mod_lamp_get_lamp_state_str(g_sys_stt.lamp_state),
+             g_sys_stt.lamp_elap_ms_time);
 
     ADD_TEXT("Lamp Req %s / Cmd %s\n",
-             drv_lamp_get_power_level_string(drv_lamp_get_requested_power_level()),
-             drv_lamp_get_power_level_string(drv_lamp_get_commanded_power_level()));
+             mod_lamp_get_power_level_str(g_sys_ctl.lamp_req_pwr_level),
+             mod_lamp_get_power_level_str(g_sys_stt.lamp_cmd_power_level));
 
     ADD_TEXT("     Rep %s (%dHz)\n",
-             drv_lamp_get_power_level_string(rep),
-             drv_lamp_get_raw_freq());
+             mod_lamp_get_power_level_str(g_sys_stt.lamp_power_level),
+             g_sys_stt.lamp_latched_freq_hz);
 
-    char* type_strs[] = {
-        [D_LAMP_TYPE_UNKNOWN_C]      = "UNKNOWN",
-        [D_LAMP_TYPE_DIMMABLE_C]     = "DIMMABLE",
-        [D_LAMP_TYPE_NON_DIMMABLE_C] = "NONDIMMABLE"
-    };
+    ADD_TEXT("Lamp Type %s\n", mod_lamp_get_lamp_type_str(g_sys_stt.lamp_type));
 
-    ADD_TEXT("Lamp Type %s\n", type_strs[drv_lamp_get_type()]);
-
-    ADD_TEXT("Board %s\n", g_mod_pow_hw_is_rev1_2_b?"V1.2":"V1.1");
+    ADD_TEXT("Board %s\n", g_sys_stt.hw_is_1_2?"V1.2":"V1.1");
 
     ADD_TEXT("Acc: %+.2f/%+.2f/%+.2f\n", g_sys_stt.acc_x, g_sys_stt.acc_y, g_sys_stt.acc_z);
 
     ADD_TEXT("Mag: %+ 5d/%+ 5d/%+ 5d\n", g_sys_stt.mag_x, g_sys_stt.mag_y, g_sys_stt.mag_z);
 
     ADD_TEXT("12V %s %s / 24V Reg %s\n",
-             g_mod_pow_hw_is_rev1_2_b?"Reg":"Switched",
-             drv_lamp_get_switched_12v()?"ON ":"off",
-             drv_lamp_get_switched_24v()?"ON ":"off");
+             g_sys_stt.hw_is_1_2?"Reg":"Switched",
+             g_sys_stt.is_12v_rail_on?"ON ":"off",
+             g_sys_stt.is_24v_rail_on?"ON ":"off");
 
     ADD_TEXT("VBUS: %.1f/12V: %.1f/24V: %.1f\n",
              g_sys_stt.v_vbus,
@@ -254,7 +242,7 @@ static void mod_ui_debug_retest_btn_callback(lv_event_t* p_evt)
 
     b_mod_ui_debug_is_retesting = true;
 
-    g_sys_ctl.task.lamp_test_n_reboot_b = 1;
+    g_sys_ctl.task.lamp_test_n_reboot = 1;
 }
 
 /**
