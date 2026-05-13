@@ -22,7 +22,6 @@
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_display.h"
-#include "Drivers/drv_lamp.h"
 
 
 /* Private define ------------------------------------------------------------*/

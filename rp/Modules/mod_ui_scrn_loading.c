@@ -11,10 +11,8 @@
 #include <lvgl.h>
 #include "Modules/mod_ui_scrn_loading.h"
 #include "Modules/mod_ui_screens.h"
-#include "Modules/mod_lamp_defs.h"
 #include "Modules/system.h"
 #include "Drivers/drv_display.h"
-#include "Drivers/drv_lamp.h"
 #include "splash_img.h"
 
 
@@ -56,16 +54,6 @@ void ui_loading_init(void)
 	ui_loading_lv_splash_screen = lv_obj_create(NULL);
 	//ui_loading_lv_label = lv_label_create(screen);
 	//lv_label_set_text(ui_loading_lv_label, "Starting... 123");
-}
-
-/**
- * @brief UI update
- * 
- */
-void ui_loading_update(void)
-{
-	// static int x = 0;
-	// lv_label_set_text_fmt(ui_loading_lv_label, "Starting... %d", x++);
 }
 
 /**

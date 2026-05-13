@@ -18,17 +18,18 @@
 #include <drivers/display/st7796/lv_st7796.h>
 #include <lvgl.h>
 #include "Drivers/drv_buttons.h"
+#include "Drivers/drv_debug.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define D_DISPLAY_DBG_ID_STR_C          "drv_display         "
-#define D_DISPLAY_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
-#define D_DISPLAY_DBG_PRINT_TXT(...)    debug_print_mod_f(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
-#define D_DISPLAY_DBG_PRINT_ERR(...)    debug_print_err(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
-#define D_DISPLAY_DBG_PRINT_WRN(...)    debug_print_warn(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
-#define D_DISPLAY_DBG_PRINT_OK(...)     debug_print_ok(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_ID_STR_C          		"drv_display         "
+#define D_DISPLAY_DBG_PRINTF(...)    			debug_print_f(__VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_TXT(...)    		debug_print_mod_f(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_ERR(...)    		debug_print_err(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_WRN(...)    		debug_print_warn(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
+#define D_DISPLAY_DBG_PRINT_OK(...)     		debug_print_ok(D_DISPLAY_DBG_ID_STR_C, __VA_ARGS__)
 
 #define D_DISPLAY_SDA_PIN_C 					19 								/* LCD_SDA		 */
 #define D_DISPLAY_SCLK_PIN_C 					18 								/* LCD_SCLK		 */
