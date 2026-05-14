@@ -102,7 +102,7 @@ void mod_pow_init(void)
 	mod_pow_get_hw_revision();
 
 	drv_usb_pd_negotiate(true);
-	drv_usb_pd_init_update(); /* CLEAR: Checks if there is power over USB. Delete when drv_usb_pd_negotiate is fully refactored */
+	drv_usb_pd_init_update(); /* CLEAR: Checks if there is power over USB. TODO: Delete when drv_usb_pd_negotiate is fully refactored */
 
 	mod_pow_last_usb_conn_stt   = drv_usb_pd_is_connected();
 	g_mod_pow_usb_negotiated_ma = drv_usb_pd_get_negotiated_ma();
@@ -207,8 +207,6 @@ static void mod_pow_get_hw_revision(void)
  */
 static void mod_pow_monitor(void)
 {
-	// TODO: Add any delay on this task?
-
 	if (g_sys_stt.is_12v_rail_on && mod_pow_is_12v_rail_in_range() && 
 		g_sys_stt.is_24v_rail_on && mod_pow_is_24v_rail_in_range())
 	{

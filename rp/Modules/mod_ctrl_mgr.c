@@ -149,7 +149,7 @@ int16_t mod_ctrl_get_lamp_stt(uint16_t state)
  * @param level Dim level to set to lamp
  * @return int16_t (0: failed, 1: suceed)
  */
-int16_t mod_ui_main_lamp_set_dim(uint16_t level)
+int16_t mod_ctrl_set_lamp_dim(uint16_t level)
 {
     M_LAMP_PWR_LEVEL_E lamp_pwr_level;
 
@@ -200,7 +200,7 @@ int16_t mod_ui_main_lamp_set_dim(uint16_t level)
  * @param level No level is required. The function need to comply with format.
  * @return int16_t 
  */
-int16_t mod_ui_main_lamp_get_dim(uint16_t level)
+int16_t mod_ctrl_get_lamp_dim(uint16_t level)
 {
     int dim_setting;
     M_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
@@ -362,11 +362,18 @@ static void mod_ctrl_lamp_test_handler(void)
 				g_sys_ctl.task.lamp_test_b = 0;
 				g_sys_stt.task.lamp_test_b = 1;
 
-				// TODO: Should we check that rails are not already on before issuing a power-on ?
+				if (g_sys_stt.task.rails_on && g_sys_stt.is_power_ok)
+				{
+					M_CTRL_DBG_PRINT_TXT("Performing lamp test");
 
-				g_sys_ctl.task.rails_on = 1;
+					stt_mchn = 3;
+				}
+				else
+				{
+					g_sys_ctl.task.rails_on = 1;
 
-				stt_mchn++;
+					stt_mchn++;
+				}
 			}
 		break;
 
@@ -465,7 +472,7 @@ static void mod_ctrl_lamp_test_n_reboot_handler(void)
 		case 2:
 			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		/* Lamp test is being executed? */
 			{
-				// TODO: Check for any error at lamp test
+				// TODO: Check if lamp type was able to be defined ?
 
 				stt_mchn++;
 			}

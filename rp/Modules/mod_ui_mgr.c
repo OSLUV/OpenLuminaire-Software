@@ -47,7 +47,6 @@ M_UI_SCRN_E 			g_mod_ui_new_screen;
 /* Private variables  --------------------------------------------------------*/
 
 static bool 			b_mod_ui_is_booting;
-static bool 			b_mod_ui_is_backlight_on;
 static bool 			b_mod_ui_main_is_init;
 static M_UI_SCRN_E		mod_ui_screen;
 static absolute_time_t  mod_ui_splash_tmout;
@@ -76,9 +75,10 @@ static void mod_ui_psu_screen_handler(void);
  */
 void mod_ui_init(void)
 {
-	b_mod_ui_is_booting      = true;
-	b_mod_ui_is_backlight_on = false;
-	b_mod_ui_main_is_init 	 = false;
+	g_sys_stt.is_disp_on  = false;
+
+	b_mod_ui_is_booting   = true;
+	b_mod_ui_main_is_init = false;
 
     drv_buttons_init();
 
@@ -96,11 +96,10 @@ void mod_ui_init(void)
 	   non-blocking
 	*/
 	ui_loading_splash_image_open(NULL);
-	b_mod_ui_is_backlight_on = true;
+	g_sys_stt.is_disp_on = true;
 	mod_ui_stanby_tmout = make_timeout_time_ms (M_UI_STANDBY_TM_MS_C);
 	/**/
 
-	//mod_ui_main_init();
     mod_ui_debug_init();
 }
 
@@ -130,7 +129,7 @@ static inline void mod_ui_backlight_turn_on(void)
 {
 	drv_display_screen_turn_on();  												// Back-light on + one flush
 	
-	b_mod_ui_is_backlight_on = true;
+	g_sys_stt.is_disp_on = true;
 }
 
 /**
@@ -141,7 +140,7 @@ static inline void mod_ui_backlight_turn_off(void)
 {
 	drv_display_screen_turn_off();
 	
-	b_mod_ui_is_backlight_on = false;
+	g_sys_stt.is_disp_on = false;
 }
 
 /**
@@ -154,7 +153,7 @@ static void mod_ui_backlight_handler(void)
 
 	turn_on = 0;
 
-	if (b_mod_ui_is_backlight_on)
+	if (g_sys_stt.is_disp_on)
 	{
 		if ((get_absolute_time() > mod_ui_stanby_tmout) &&
 			(mod_ui_screen != M_UI_SCRN_LOADING_C))
@@ -165,7 +164,7 @@ static void mod_ui_backlight_handler(void)
 
 	if (g_drv_buttons_released)
 	{
-		if (!b_mod_ui_is_backlight_on)
+		if (!g_sys_stt.is_disp_on)
 		{
 			turn_on = 1;
 		}
@@ -173,7 +172,7 @@ static void mod_ui_backlight_handler(void)
 		mod_ui_stanby_tmout =  make_timeout_time_ms (M_UI_STANDBY_TM_MS_C);
 	}
 
-	if ((mod_ui_screen == M_UI_SCRN_LOADING_C) && !b_mod_ui_is_backlight_on)
+	if ((mod_ui_screen == M_UI_SCRN_LOADING_C) && !g_sys_stt.is_disp_on)
 	{
 		turn_on = 1;
 	}

@@ -100,11 +100,13 @@ else()
 	add_executable(app
 		main.c
 		Modules/mod_ctrl_mgr.c
+		Modules/mod_lamp_ctrl.c
 		Modules/mod_comm_mgr.c
 		Modules/mod_pow_mgr.c
 		Modules/mod_ser_cmd.c
 		Modules/mod_system.c
 		Modules/mod_ui_mgr.c
+		Modules/mod_safety_logic.c
 		Modules/mod_ui_scrn_debug.c
 		Modules/mod_ui_scrn_main.c
 		Modules/mod_ui_scrn_loading.c
@@ -112,15 +114,16 @@ else()
 		Drivers/drv_adc_volt.c
 		Drivers/drv_buttons.c
 		Drivers/drv_config.c
+		Drivers/drv_debug.c
 		Drivers/drv_display.c
 		Drivers/drv_i2c.c
 		Drivers/drv_fan.c
 		Drivers/drv_lamp.c
 		Drivers/drv_magnetometer.c
+		Drivers/drv_power.c
 		Drivers/drv_radar.c
 		Drivers/drv_uart_cmd.c
 		Drivers/drv_usb_pd.c
-		safety_logic.c
 		splash_img.c
 	)
 
@@ -133,9 +136,13 @@ endif()
 
 pico_add_extra_outputs(app)
 
-set(LV_CONF_PATH "${CMAKE_CURRENT_LIST_DIR}/lv_conf.h")
-target_include_directories(app PRIVATE ${CMAKE_CURRENT_LIST_DIR}/vendor/lvgl/src)
-add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/vendor/lvgl" lvgl)
+set(LV_BUILD_CONF_PATH "${CMAKE_CURRENT_LIST_DIR}/Libraries/lv_conf.h" CACHE PATH "" FORCE)
+target_include_directories(app PRIVATE
+    ${CMAKE_CURRENT_LIST_DIR}
+    ${CMAKE_CURRENT_LIST_DIR}/Libraries
+    ${CMAKE_CURRENT_LIST_DIR}/Libraries/lvgl/src
+)
+add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/Libraries/lvgl" lvgl)
 
 target_link_libraries(app
 	pico_stdlib

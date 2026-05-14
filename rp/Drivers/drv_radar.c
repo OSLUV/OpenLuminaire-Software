@@ -22,7 +22,7 @@
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_lamp.h"
 
-#include "Modules/system.h" // TODO: This shouldn't be here. Clean when radar is refactored
+#include "Modules/system.h" // TODO: This shouldn't be here. Clean when radar is refactored: control should be moved to mod_ctrl_mgr
 
 
 /* Compile-time --------------------------------------------------------------*/

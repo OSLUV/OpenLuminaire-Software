@@ -1,3 +1,6 @@
 [submodule "rp/vendor/lvgl"]
 	path = rp/vendor/lvgl
 	url = https://github.com/lvgl/lvgl.git
+[submodule "rp/Libraries/lvgl"]
+	path = rp/Libraries/lvgl
+	url = https://github.com/lvgl/lvgl.git

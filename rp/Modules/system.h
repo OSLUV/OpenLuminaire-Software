@@ -64,13 +64,13 @@ typedef struct {
     M_LAMP_PWR_LEVEL_E  lamp_power_level;
     M_LAMP_PWR_LEVEL_E  lamp_cmd_power_level;
     uint8_t             is_lamp_warming;
-    uint8_t             dummy_0;
     uint8_t             hw_is_1_2;
     uint8_t             is_rails_powering_on;
     uint8_t             is_rails_powering_off;
     uint8_t             is_12v_rail_on;
     uint8_t             is_24v_rail_on;
     uint8_t             is_power_ok;
+    uint8_t             is_disp_on;
     SYS_TASKS_T         task;
     float               v_vbus;
     float               v_12v;

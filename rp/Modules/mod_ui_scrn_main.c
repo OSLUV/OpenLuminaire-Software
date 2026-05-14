@@ -161,7 +161,7 @@ void mod_ui_main_handler(void)
         return;
     }
 
-    if (g_sys_ctl.task.lamp_on != power_on)
+    if ((g_sys_ctl.task.lamp_on != power_on) && g_sys_stt.is_disp_on)
     {
         if (g_sys_ctl.task.lamp_on) 
         {
@@ -172,7 +172,7 @@ void mod_ui_main_handler(void)
             lv_obj_clear_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
         }
     }
-    if (g_sys_ctl.task.radar_on != radar_on)
+    if ((g_sys_ctl.task.radar_on != radar_on) && g_sys_stt.is_disp_on)
     {
         if (g_sys_ctl.task.radar_on) 
         {
@@ -190,7 +190,7 @@ void mod_ui_main_handler(void)
 		int intensity_setting_int = lv_slider_get_value(mod_ui_main_slider_intensity);
         intensity_setting = M_LAMP_PWR_20PCT_C + g_sys_ctl.ui_dim_index;
 
-        if (g_sys_ctl.ui_dim_index != intensity_setting_int)
+        if ((g_sys_ctl.ui_dim_index != intensity_setting_int) && g_sys_stt.is_disp_on)
         {
             lv_slider_set_value(mod_ui_main_slider_intensity, g_sys_ctl.ui_dim_index, LV_ANIM_ON);
         }
