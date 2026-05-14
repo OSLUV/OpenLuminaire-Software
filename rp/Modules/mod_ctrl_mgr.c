@@ -12,6 +12,7 @@
 #include "pico/time.h"
 #include "Modules/mod_ctrl_mgr.h"
 #include "Modules/mod_lamp_ctrl.h"
+#include "Modules/mod_safety_logic.h"
 #include "Modules/mod_system.h"
 #include "Modules/system.h"
 #include "Drivers/drv_accelerometer.h"
@@ -19,7 +20,6 @@
 #include "Drivers/drv_magnetometer.h"
 #include "Drivers/drv_radar.h"
 #include "Drivers/drv_fan.h"
-#include "safety_logic.h"
 
 
 /* Private define ------------------------------------------------------------*/

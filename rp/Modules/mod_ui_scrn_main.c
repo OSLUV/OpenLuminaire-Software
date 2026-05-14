@@ -13,11 +13,11 @@
 #include <string.h>
 #include "Modules/mod_ui_scrn_main.h"
 #include "Modules/mod_ui_screens.h"
+#include "Modules/mod_safety_logic.h"
 #include "Modules/system.h"
 #include "Drivers/drv_buttons.h"
 #include "Drivers/drv_display.h"
 #include "Drivers/drv_config.h"
-#include "safety_logic.h"
 
 
 /* Private typedef -----------------------------------------------------------*/

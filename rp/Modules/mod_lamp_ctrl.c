@@ -58,7 +58,6 @@ static uint64_t 			mod_lamp_state_transition_time = 0;
 
 static M_LAMP_PWR_LEVEL_E	mod_lamp_req_pwr_level;
 
-static absolute_time_t  	mod_lamp_pwr_level;
 static absolute_time_t  	mod_lamp_tmout;
 static absolute_time_t  	mod_lamp_delay_tmout;
 static absolute_time_t  	mod_lamp_pw_mon_dly_tmout;

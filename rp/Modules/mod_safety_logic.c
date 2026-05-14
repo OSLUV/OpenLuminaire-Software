@@ -1,5 +1,5 @@
 /**
- * @file      safety_logic.c
+ * @file      mod_safety_logic.c
  * @author    The OSLUV Project
  * @brief     Safety logic module
  *  
@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <pico/stdlib.h>
 #include "Modules/system.h"
+#include "Modules/mod_safety_logic.h"
 #include "Modules/mod_lamp_ctrl.h"
 #include "Drivers/drv_accelerometer.h"
 #include "Drivers/drv_lamp.h"

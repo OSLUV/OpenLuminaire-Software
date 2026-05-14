@@ -1,12 +1,12 @@
 /**
- * @file      safety_logic.h
+ * @file      mod_safety_logic.h
  * @author    The OSLUV Project
  * @brief     Functions prototypes for safety logic module
  *  
  */
 
-#ifndef _SAFETY_LOGIC_H_
-#define _SAFETY_LOGIC_H_
+#ifndef _M_SAFETY_LOGIC_H_
+#define _M_SAFETY_LOGIC_H_
 
 
 /* Exported includes ---------------------------------------------------------*/
@@ -25,6 +25,6 @@ void safety_logic_toggle_radar_enabled_state(void);
 void safety_logic_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level);
 
 
-#endif /* _SAFETY_LOGIC_H_ */
+#endif /* _M_SAFETY_LOGIC_H_ */
 
 /*** END OF FILE ***/
