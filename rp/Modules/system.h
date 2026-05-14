@@ -20,12 +20,12 @@
 
 typedef struct {
 
+    uint32_t lamp_on            : 1;
     uint32_t lamp_test_b        : 1;                                            /* Perform lamp test */
     uint32_t lamp_test_n_reboot : 1;                                            /* Perform lamp test and reboots system when finished */
-    uint32_t bit2  : 1;
     uint32_t rails_on           : 1;
     uint32_t rails_off          : 1;
-    uint32_t bit5  : 1;
+    uint32_t radar_on           : 1;
     uint32_t bit6  : 1;
     uint32_t bit7  : 1;
     uint32_t bit8  : 1;
@@ -50,8 +50,8 @@ typedef struct {
     uint32_t bit27 : 1;
     uint32_t bit28 : 1;
     uint32_t bit29 : 1;
-    uint32_t bit30 : 1;
-    uint32_t reboot : 1;
+    uint32_t save_cfg           : 1;
+    uint32_t reboot             : 1;
 
 } SYS_TASKS_T;
 
@@ -89,6 +89,7 @@ typedef struct {
 
     SYS_TASKS_T         task;
     M_LAMP_PWR_LEVEL_E  lamp_req_pwr_level;
+    uint32_t            ui_dim_index;
 
 } SYS_CTRL_T;
 

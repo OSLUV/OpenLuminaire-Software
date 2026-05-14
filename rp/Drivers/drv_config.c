@@ -15,7 +15,6 @@
 #include <stdio.h>
 #include "Drivers/drv_config.h"
 #include "Drivers/drv_debug.h"
-#include "Modules/mod_ui_scrn_main.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -171,11 +170,6 @@ bool drv_cfg_get_radar_state(void)
  */
 void drv_cfg_set_dim_index(uint8_t idx)
 {
-	if (idx > UI_MAIN_MAX_DIM_INDEX_C) 
-	{
-		idx = UI_MAIN_MAX_DIM_INDEX_C;
-	}
-
 	b_drv_cfg_is_modified |= (g_drv_cfg.dim_index != idx);
 
 	g_drv_cfg.dim_index = idx;

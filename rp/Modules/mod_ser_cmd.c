@@ -13,8 +13,9 @@
 #include <string.h>
 #include "pico/time.h"
 #include "Modules/mod_ser_cmd.h"
+#include "Modules/mod_ctrl_mgr.h"
+#include "Modules/system.h"
 #include "Drivers/drv_uart_cmd.h"
-#include "Modules/mod_ui_scrn_main.h"
 
 
 /* Private define ------------------------------------------------------------*/
@@ -59,11 +60,11 @@ typedef struct {
 
 static const M_CMD_CTL_T  mod_cmd_list[] = 
 {
-    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_CTL_ID_S, mod_ui_main_lamp_set_stt },
-    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_CTL_ID_S, mod_ui_main_lamp_get_stt },
-    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_DIM_ID_S, mod_ui_main_lamp_set_dim },
-    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_DIM_ID_S, mod_ui_main_lamp_get_dim },
-    {0,              0,                       0                 }
+    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_CTL_ID_S, mod_ctrl_set_lamp_stt },
+    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_CTL_ID_S, mod_ctrl_get_lamp_stt },
+    {M_CMD_INST_SET_S, M_CMD_PARAM_LAMP_DIM_ID_S, mod_ctrl_set_lamp_dim },
+    {M_CMD_INST_GET_S, M_CMD_PARAM_LAMP_DIM_ID_S, mod_ctrl_get_lamp_dim },
+    {               0,                         0,                        0 }
 };
 
 static uint8_t          mod_cmd_buf[M_CMD_MAX_LEN_C];

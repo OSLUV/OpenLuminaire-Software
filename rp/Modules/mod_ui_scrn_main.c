@@ -29,14 +29,15 @@
 
 /* Global variables  ---------------------------------------------------------*/
 
-extern M_UI_SCRN_E       g_mod_ui_new_screen;
-extern const lv_font_t * FONT_MAIN  = NULL; 
-extern const lv_font_t * FONT_BIG   = NULL;
-extern const lv_font_t * FONT_SMALL = NULL;
-extern const lv_font_t * FONT_MED   = NULL;
+extern M_UI_SCRN_E g_mod_ui_new_screen;
 
 
 /* Private variables  --------------------------------------------------------*/
+
+const lv_font_t * FONT_MAIN  = NULL; 
+const lv_font_t * FONT_BIG   = NULL;
+const lv_font_t * FONT_SMALL = NULL;
+const lv_font_t * FONT_MED   = NULL;
 
 static const uint8_t ui_dim_levels[UI_MAIN_MAX_DIM_LEVELS_C] = { 20, 40, 70, 100 };
 
@@ -73,7 +74,9 @@ static uint16_t mod_ui_main_row_height;
 static uint16_t mod_ui_main_sw_height;
 static uint16_t mod_ui_main_sw_length;
 //static uint16_t mod_ui_main_dbg_pos;
-static bool mod_ui_main_show_dim_b;
+
+static bool mod_ui_main_last_power_sw_pos_b;
+static bool mod_ui_main_last_radar_sw_pos_b;
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -131,7 +134,7 @@ void mod_ui_main_init(void)
         mod_ui_main_set_lamp_power_row();
         mod_ui_main_set_radar_row();
 
-        if (mod_ui_main_show_dim_b)
+        if (g_sys_stt.lamp_type == M_LAMP_TYPE_DIMMABLE_C)
         {
             mod_ui_main_set_lamp_dim_slider();
         }
@@ -158,11 +161,39 @@ void mod_ui_main_handler(void)
         return;
     }
 
+    if (g_sys_ctl.task.lamp_on != power_on)
+    {
+        if (g_sys_ctl.task.lamp_on) 
+        {
+            lv_obj_add_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
+        }
+        else
+        {
+            lv_obj_clear_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
+        }
+    }
+    if (g_sys_ctl.task.radar_on != radar_on)
+    {
+        if (g_sys_ctl.task.radar_on) 
+        {
+            lv_obj_add_state(mod_ui_main_sw_radar, LV_STATE_CHECKED);
+        }
+        else
+        {
+            lv_obj_clear_state(mod_ui_main_sw_radar, LV_STATE_CHECKED);
+        }
+    }
+
 	/* Get current User set-point lamp power level  */
-	if (mod_ui_main_show_dim_b)
+	if (g_sys_stt.lamp_type == M_LAMP_TYPE_DIMMABLE_C)
     {
 		int intensity_setting_int = lv_slider_get_value(mod_ui_main_slider_intensity);
-        intensity_setting = M_LAMP_PWR_20PCT_C + intensity_setting_int;
+        intensity_setting = M_LAMP_PWR_20PCT_C + g_sys_ctl.ui_dim_index;
+
+        if (g_sys_ctl.ui_dim_index != intensity_setting_int)
+        {
+            lv_slider_set_value(mod_ui_main_slider_intensity, g_sys_ctl.ui_dim_index, LV_ANIM_ON);
+        }
 	}
 	
 	/* Update lamp status                           */
@@ -210,7 +241,7 @@ void mod_ui_main_handler(void)
 		txt = "Radar triggered";
     }
 
-	if (mod_ui_main_show_dim_b)
+	if (g_sys_stt.lamp_type == M_LAMP_TYPE_DIMMABLE_C)
     {
 		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
 		
@@ -221,29 +252,7 @@ void mod_ui_main_handler(void)
 	}
 	lv_label_set_text(mod_ui_main_lbl_status, buf);
 
-    if (!power_on)
-    {
-        safety_logic_set_radar_enabled_state(false);
-
-        g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_OFF_C;
-
-		drv_cfg_set_power_state(power_on);
-    }
-    else
-    {
-        if (radar_on)
-        {
-            safety_logic_set_radar_enabled_state(true);
-            safety_logic_set_cap_power(intensity_setting);
-        }
-        else
-        {
-            safety_logic_set_radar_enabled_state(false);
-            g_sys_ctl.lamp_req_pwr_level = intensity_setting;
-        }
-    }
-
-	if (mod_ui_main_show_dim_b)
+	if (g_sys_stt.lamp_type == M_LAMP_TYPE_DIMMABLE_C)
     {
 		if (inactive || g_sys_stt.is_lamp_warming)
         {
@@ -283,167 +292,6 @@ void mod_ui_main_open(void)
     lv_obj_send_event(mod_ui_main_sw_power, LV_EVENT_FOCUSED, NULL);
 }
 
-/**
- * @brief Sets the Lamp state (On/Off)
- * @note This function can be called via external command
- * 
- * @param req_state State to set (1: On, 0: Off)
- * @return int16_t  (0: failed, 1: suceed)
- */
-int16_t mod_ui_main_lamp_set_stt(uint16_t req_state)
-{
-    if (req_state == 0)
-    {
-        drv_display_screen_turn_on();
-
-        //if (g_sys_stt.lamp_power_level != M_LAMP_PWR_OFF_C)                                 // Lamp is ON ?
-        {
-            drv_cfg_set_power_state(0);
-            drv_cfg_save();
-
-            lv_obj_set_state(mod_ui_main_sw_power, LV_STATE_CHECKED, false);    // Update function will update lamp's state
-        }
-
-        return 1;
-    }
-    else if (req_state == 1)
-    {
-        if (g_sys_stt.lamp_power_level == M_LAMP_PWR_OFF_C)                                   // Lamp state is OFF ?
-        {
-            drv_display_screen_turn_on();
-
-            drv_cfg_set_power_state(1);
-            drv_cfg_save();
-
-            lv_obj_set_state(mod_ui_main_sw_power, LV_STATE_CHECKED, true);     // Update function will update lamp's state
-        }
-
-        return 1;
-    }
-
-    return 0; // Error
-}
-
-/**
- * @brief Gets the current Lamp Status (On/Off)
- * @note This function can be called via external command
- * 
- * @param state No state is required. The function need to comply with format.
- * @return int16_t Lamp Status (On/Off)
- */
-int16_t mod_ui_main_lamp_get_stt(uint16_t state)
-{
-    return drv_cfg_get_power_state();
-}
-
-/**
- * @brief Sets the Lamp Dim Level
- * @note This function can be called via external command
- * @note If level is not valid, returns failed
- * 
- * @param level Dim level to set to lamp
- * @return int16_t (0: failed, 1: suceed)
- */
-int16_t mod_ui_main_lamp_set_dim(uint16_t level)
-{
-    M_LAMP_PWR_LEVEL_E lamp_pwr_level;
-
-    lamp_pwr_level = M_LAMP_PWR_UNKNOWN_C;
-    switch (level)
-    {
-        case 0:
-            //lamp_pwr_level = M_LAMP_PWR_OFF_C;
-            return 0;
-        break;
-
-        case 20:
-            lamp_pwr_level = M_LAMP_PWR_20PCT_C;
-        break;
-        
-        case 40:
-            lamp_pwr_level = M_LAMP_PWR_40PCT_C;
-        break;
-        
-        case 70:
-            lamp_pwr_level = M_LAMP_PWR_70PCT_C;
-        break;
-        
-        case 100:
-            lamp_pwr_level = M_LAMP_PWR_100PCT_C;
-        break;
-
-        default:
-            return 0;
-        break;
-    }
-
-    if (mod_ui_main_show_dim_b && (lamp_pwr_level < M_LAMP_PWR_MAX_SETTINGS_C))
-    {
-        drv_display_screen_turn_on();
-
-        lamp_pwr_level -= M_LAMP_PWR_20PCT_C;
-
-        drv_cfg_set_dim_index(lamp_pwr_level);
-
-        lv_slider_set_value(mod_ui_main_slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
-
-        return level;
-    }
-
-    return 0;
-}
-
-/**
- * @brief Gets the Lamp Dim Level
- * @note This function can be called via external command
- * 
- * @param level No level is required. The function need to comply with format.
- * @return int16_t 
- */
-int16_t mod_ui_main_lamp_get_dim(uint16_t level)
-{
-    int dim_setting;
-    M_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
-    int16_t dim_level;
-
-    dim_level = 100;
-	
-	if (mod_ui_main_show_dim_b) 
-    {
-		dim_setting  = lv_slider_get_value(mod_ui_main_slider_intensity);
-        lamp_pwr_lvl = M_LAMP_PWR_20PCT_C + dim_setting;
-	
-        switch (lamp_pwr_lvl)
-        {
-            case M_LAMP_PWR_OFF_C:
-                dim_level = 0;
-            break;
-
-            case M_LAMP_PWR_20PCT_C:
-                dim_level = 20;
-            break;
-            
-            case M_LAMP_PWR_40PCT_C:
-                dim_level = 40;
-            break;
-            
-            case M_LAMP_PWR_70PCT_C:
-                dim_level = 70;
-            break;
-            
-            case M_LAMP_PWR_100PCT_C:
-                dim_level = 100;
-            break;
-
-            default:
-                dim_level = 100;
-            break;
-        }
-	}
-
-    return dim_level;
-}
-
 
 /* Callback functions --------------------------------------------------------*/
 
@@ -457,28 +305,25 @@ static void mod_ui_main_back_to_menu_callback(lv_event_t * e)
     mod_ui_main_open();                                                         // reopen the main menu mod_ui_main_screen
 }
 
-/* --- persistence write helpers --------------------------------- */
 static void mod_ui_main_sw_power_changed_callback(lv_event_t * e)
 {
     bool b_is_sw_on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
-
-    drv_cfg_set_power_state(b_is_sw_on);
-    drv_cfg_save();                        /* flash only if value changed */
+    
+    g_sys_ctl.task.lamp_on = b_is_sw_on;
 }
 
 static void mod_ui_main_sw_radar_changed_callback(lv_event_t * e)
 {
     bool b_is_sw_on = lv_obj_has_state(lv_event_get_target(e), LV_STATE_CHECKED);
 
-    drv_cfg_set_radar_state(b_is_sw_on);
-    drv_cfg_save();
+    g_sys_ctl.task.radar_on = b_is_sw_on;
 }
 
 static void mod_ui_main_slider_int_changed_callback(lv_event_t * e)
 {
-    uint8_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
-    drv_cfg_set_dim_index(idx);
-    drv_cfg_save();
+    uint32_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
+
+    g_sys_ctl.ui_dim_index = idx;
 }
 
 /**
@@ -492,10 +337,12 @@ static void mod_ui_main_focus_sync_callback(lv_event_t *e)
     lv_obj_t *label = lv_event_get_user_data(e);    /* associated label     */
 
     lv_event_code_t code = lv_event_get_code(e);
-    if(code == LV_EVENT_FOCUSED) {
+    if (code == LV_EVENT_FOCUSED)
+    {
         lv_obj_add_state(label, LV_STATE_USER_1);   /* turn mint on */
     }
-    else if(code == LV_EVENT_DEFOCUSED) {
+    else if (code == LV_EVENT_DEFOCUSED)
+    {
         lv_obj_clear_state(label, LV_STATE_USER_1); /* back to white */
     }
 }
@@ -569,7 +416,7 @@ static inline void mod_ui_main_set_lamp_power_row(void)
     lv_obj_set_pos(row, 5,20);
 
     // lv_obj_add_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
-    if (drv_cfg_get_power_state())
+    if (g_sys_stt.task.lamp_on)
     {
         lv_obj_add_state(mod_ui_main_sw_power, LV_STATE_CHECKED);
     }
@@ -610,7 +457,7 @@ static inline void mod_ui_main_set_radar_row(void)
     lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
     
     mod_ui_main_sw_radar = lv_switch_create(row);
-    if (drv_cfg_get_radar_state())
+    if (g_sys_stt.task.radar_on)
     {
         lv_obj_add_state(mod_ui_main_sw_radar, LV_STATE_CHECKED);
     }
@@ -675,7 +522,7 @@ static inline void mod_ui_main_set_lamp_dim_slider(void)
     
     lv_slider_set_range(mod_ui_main_slider_intensity, 0, 3);                             /* 4 ticks */
     //lv_slider_set_value(mod_ui_main_slider_intensity, 3, LV_ANIM_OFF);                 /* Default level 3 = 100% */
-    lv_slider_set_value(mod_ui_main_slider_intensity, drv_cfg_get_dim_index(), LV_ANIM_OFF);
+    lv_slider_set_value(mod_ui_main_slider_intensity, g_sys_ctl.ui_dim_index, LV_ANIM_OFF);
     lv_obj_add_event_cb(mod_ui_main_slider_intensity, mod_ui_main_slider_int_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
     lv_group_add_obj(mod_ui_main_lv_group, mod_ui_main_slider_intensity);
     lv_obj_add_event_cb(mod_ui_main_slider_intensity, mod_ui_main_focus_sync_callback, LV_EVENT_FOCUSED,   mod_ui_main_lbl_slider);
@@ -789,7 +636,6 @@ static void mod_ui_main_theme_init(void)
 		mod_ui_main_sw_height = mod_ui_main_row_height-3;
 		mod_ui_main_sw_length = mod_ui_main_sw_height * 2;
 		//mod_ui_main_dbg_pos = 165;
-		mod_ui_main_show_dim_b = true;
 		FONT_MAIN = &lv_font_montserrat_20;  
 		FONT_MED = &lv_font_montserrat_16;
 		FONT_SMALL = &lv_font_montserrat_14;
@@ -801,7 +647,6 @@ static void mod_ui_main_theme_init(void)
 		mod_ui_main_sw_height = mod_ui_main_row_height-2;
 		mod_ui_main_sw_length = mod_ui_main_sw_height * 2;
 		//mod_ui_main_dbg_pos = 125;
-		mod_ui_main_show_dim_b = false;
 		FONT_MAIN = &lv_font_montserrat_32;  
 		FONT_MED = &lv_font_montserrat_22;
 		FONT_SMALL = &lv_font_montserrat_22;

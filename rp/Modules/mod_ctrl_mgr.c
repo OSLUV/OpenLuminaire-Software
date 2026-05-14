@@ -16,6 +16,7 @@
 #include "Modules/mod_system.h"
 #include "Modules/system.h"
 #include "Drivers/drv_accelerometer.h"
+#include "Drivers/drv_config.h"
 #include "Drivers/drv_debug.h"
 #include "Drivers/drv_magnetometer.h"
 #include "Drivers/drv_radar.h"
@@ -30,6 +31,8 @@
 #define M_CTRL_DBG_PRINT_ERR(...)	debug_print_err(M_CTRL_DBG_ID_STR_C, __VA_ARGS__)
 #define M_CTRL_DBG_PRINT_WRN(...)	debug_print_warn(M_CTRL_DBG_ID_STR_C, __VA_ARGS__)
 #define M_CTRL_DBG_PRINT_OK(...)	debug_print_ok(M_CTRL_DBG_ID_STR_C, __VA_ARGS__)
+
+#define M_CTRL_MAX_DIM_LEVELS_C		(M_LAMP_PWR_100PCT_C - M_LAMP_PWR_20PCT_C)
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -75,7 +78,7 @@ void mod_ctrl_init(void)
  */
 void mod_ctrl_manager(void)
 {
-    drv_acc_update();
+	drv_acc_update();
 	g_sys_stt.acc_x = g_drv_acc_x;
 	g_sys_stt.acc_y = g_drv_acc_y;
 	g_sys_stt.acc_z = g_drv_acc_z;
@@ -101,6 +104,145 @@ void mod_ctrl_manager(void)
 	}
 }
 
+/**
+ * @brief Sets the Lamp state (On/Off)
+ * @note This function can be called via external command
+ * 
+ * @param req_state State to set (1: On, 0: Off)
+ * @return int16_t  (0: failed, 1: suceed)
+ */
+int16_t mod_ctrl_set_lamp_stt(uint16_t req_state)
+{
+    if (req_state == 0)
+    {
+		g_sys_ctl.task.lamp_on = 0;
+
+        return 1;
+    }
+    else if (req_state == 1)
+    {
+		g_sys_ctl.task.lamp_on = 1;
+
+        return 1;
+    }
+
+    return 0; // Error
+}
+
+/**
+ * @brief Gets the current Lamp Power Status (On/Off)
+ * @note This function can be called via external command
+ * 
+ * @param state No state is required. The function need to comply with format.
+ * @return int16_t Lamp Power Status (On/Off)
+ */
+int16_t mod_ctrl_get_lamp_stt(uint16_t state)
+{
+    return g_sys_stt.task.lamp_on;
+}
+
+/**
+ * @brief Sets the Lamp Dim Level
+ * @note This function can be called via external command
+ * @note If level is not valid, returns failed
+ * 
+ * @param level Dim level to set to lamp
+ * @return int16_t (0: failed, 1: suceed)
+ */
+int16_t mod_ui_main_lamp_set_dim(uint16_t level)
+{
+    M_LAMP_PWR_LEVEL_E lamp_pwr_level;
+
+    lamp_pwr_level = M_LAMP_PWR_UNKNOWN_C;
+    switch (level)
+    {
+        case 0:
+            //lamp_pwr_level = M_LAMP_PWR_OFF_C;
+            return 0;
+        break;
+
+        case 20:
+            lamp_pwr_level = M_LAMP_PWR_20PCT_C;
+        break;
+        
+        case 40:
+            lamp_pwr_level = M_LAMP_PWR_40PCT_C;
+        break;
+        
+        case 70:
+            lamp_pwr_level = M_LAMP_PWR_70PCT_C;
+        break;
+        
+        case 100:
+            lamp_pwr_level = M_LAMP_PWR_100PCT_C;
+        break;
+
+        default:
+            return 0;
+        break;
+    }
+
+    if ((g_sys_stt.lamp_type == M_LAMP_TYPE_DIMMABLE_C) &&
+        (lamp_pwr_level < M_LAMP_PWR_MAX_SETTINGS_C))
+    {
+        g_sys_ctl.ui_dim_index = lamp_pwr_level - M_LAMP_PWR_20PCT_C;
+
+        return level;
+    }
+
+    return 0;
+}
+
+/**
+ * @brief Gets the Lamp Dim Level
+ * @note This function can be called via external command
+ * 
+ * @param level No level is required. The function need to comply with format.
+ * @return int16_t 
+ */
+int16_t mod_ui_main_lamp_get_dim(uint16_t level)
+{
+    int dim_setting;
+    M_LAMP_PWR_LEVEL_E lamp_pwr_lvl;
+    int16_t dim_level;
+
+    dim_level = 100;
+	
+	if (g_sys_stt.lamp_type == M_LAMP_TYPE_DIMMABLE_C) 
+    {
+        lamp_pwr_lvl = M_LAMP_PWR_20PCT_C + g_sys_ctl.ui_dim_index;
+	
+        switch (lamp_pwr_lvl)
+        {
+            case M_LAMP_PWR_OFF_C:
+                dim_level = 0;
+            break;
+
+            case M_LAMP_PWR_20PCT_C:
+                dim_level = 20;
+            break;
+            
+            case M_LAMP_PWR_40PCT_C:
+                dim_level = 40;
+            break;
+            
+            case M_LAMP_PWR_70PCT_C:
+                dim_level = 70;
+            break;
+            
+            case M_LAMP_PWR_100PCT_C:
+                dim_level = 100;
+            break;
+
+            default:
+                dim_level = 100;
+            break;
+        }
+	}
+
+    return dim_level;
+}
+
 
 /* Callback functions --------------------------------------------------------*/
 
@@ -112,6 +254,77 @@ void mod_ctrl_manager(void)
  */
 static void mod_ctrl_lamp_handler(void)
 {
+	M_LAMP_PWR_LEVEL_E lamp_power_setting;
+
+	if (g_sys_ctl.ui_dim_index > M_CTRL_MAX_DIM_LEVELS_C)
+	{
+		g_sys_ctl.ui_dim_index = M_CTRL_MAX_DIM_LEVELS_C;
+	}
+
+	lamp_power_setting = M_LAMP_PWR_20PCT_C + g_sys_ctl.ui_dim_index;
+	if (g_sys_stt.lamp_type == M_LAMP_TYPE_NON_DIMMABLE_C)
+	{
+		lamp_power_setting = M_LAMP_PWR_100PCT_C;
+	}
+	if (g_sys_ctl.ui_dim_index != drv_cfg_get_dim_index())
+	{
+		drv_cfg_set_dim_index(g_sys_ctl.ui_dim_index);
+		g_sys_ctl.task.save_cfg = 1;
+	}
+
+	if (b_mod_ctrl_is_startup ||
+		(g_sys_ctl.task.lamp_on     != g_sys_stt.task.lamp_on) || 
+	    (g_sys_stt.lamp_power_level != lamp_power_setting))
+	{
+		if (g_sys_ctl.task.lamp_on)
+		{
+			if (g_sys_stt.task.radar_on)
+			{
+				safety_logic_set_radar_enabled_state(true);
+				safety_logic_set_cap_power(lamp_power_setting);
+			}
+			else
+			{
+				safety_logic_set_radar_enabled_state(false);
+
+				g_sys_ctl.lamp_req_pwr_level = lamp_power_setting;
+			}
+		}
+		else
+		{
+			safety_logic_set_radar_enabled_state(false);
+
+        	g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_OFF_C;
+		}
+
+		g_sys_stt.task.lamp_on = g_sys_ctl.task.lamp_on;
+
+		drv_cfg_set_power_state(g_sys_ctl.task.lamp_on);
+
+		g_sys_ctl.task.save_cfg = 1;
+	}
+
+	if (g_sys_ctl.task.radar_on != g_sys_stt.task.radar_on)
+	{
+		if (g_sys_stt.task.radar_on)
+		{
+			safety_logic_set_radar_enabled_state(true);
+			safety_logic_set_cap_power(lamp_power_setting); 					// TODO: Power settings depend on radar on/off state ?
+		}
+		else
+		{
+			safety_logic_set_radar_enabled_state(false);
+
+			g_sys_ctl.lamp_req_pwr_level = lamp_power_setting; 					// TODO: Power settings depend on radar on/off state ?
+		}
+
+		g_sys_stt.task.radar_on = g_sys_ctl.task.radar_on;
+
+		drv_cfg_set_radar_state(g_sys_ctl.task.radar_on);
+
+		g_sys_ctl.task.save_cfg = 1;
+	}
+
     mod_lamp_ctrl_handler();
 
 	mod_ctrl_lamp_test_handler();

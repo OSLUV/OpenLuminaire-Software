@@ -571,7 +571,7 @@ int8_t mod_lamp_perform_type_test(void)
 			if (g_sys_stt.lamp_type != M_LAMP_TYPE_UNKNOWN_C)
 			{
 				drv_cfg_set_factory_lamp_type(g_sys_stt.lamp_type);
-				drv_cfg_save();
+				g_sys_ctl.task.save_cfg = 1;
 
 				M_LAMP_DBG_PRINT_OK("Saving concluded lamp type: %d", 
 									mod_lamp_get_lamp_type_str(g_sys_stt.lamp_type));
@@ -599,7 +599,7 @@ void mod_lamp_reset_type(void)
 	g_sys_stt.lamp_type = M_LAMP_TYPE_UNKNOWN_C;
 
 	drv_cfg_set_factory_lamp_type(M_LAMP_TYPE_UNKNOWN_C);
-	drv_cfg_save();
+	g_sys_ctl.task.save_cfg = 1;
 
 	M_LAMP_DBG_PRINT_TXT("mod_lamp_reset_type: Lamp type reset to %s", 
 						 mod_lamp_get_lamp_type_str(g_sys_stt.lamp_type));

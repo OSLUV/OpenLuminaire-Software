@@ -80,6 +80,10 @@ void mod_sys_init(void)
     drv_cfg_init();
 	M_SYS_DBG_PRINT_TXT("g_drv_cfg.factory_lamp_type = %s", 
 		                mod_lamp_get_lamp_type_str(drv_cfg_get_factory_lamp_type()));
+
+    g_sys_ctl.task.lamp_on  = drv_cfg_get_power_state();
+    g_sys_ctl.task.radar_on = drv_cfg_get_radar_state();
+    g_sys_ctl.ui_dim_index  = drv_cfg_get_dim_index();
 }
 
 /**
@@ -103,7 +107,13 @@ void mod_sys_startup_wdt(void)
 void mod_sys_services(void)
 {
     watchdog_update();
-    drv_cfg_save();
+
+    if (g_sys_ctl.task.save_cfg)
+    {
+        drv_cfg_save();
+
+        g_sys_ctl.task.save_cfg = 0;
+    }
 
     if (g_sys_ctl.task.reboot)
     {

@@ -20,11 +20,6 @@ void mod_ui_main_init(void);
 void mod_ui_main_handler(void);
 void mod_ui_main_open(void);
 
-int16_t mod_ui_main_lamp_set_stt(uint16_t req_state);
-int16_t mod_ui_main_lamp_get_stt(uint16_t state);
-int16_t mod_ui_main_lamp_set_dim(uint16_t level);
-int16_t mod_ui_main_lamp_get_dim(uint16_t level);
-
 
 #endif /* _M_UI_MAIN_H_ */
 
