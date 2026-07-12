@@ -241,15 +241,9 @@ void ui_main_update(void)
 		txt = "Radar triggered";
     }
 
-	if (ui_show_dim_b)
-    {
-		lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
-		
-	}
-    else
-    {
-		lv_snprintf(buf, sizeof(buf), "%s\n%d%%", txt, pct_cmd);
-	}
+	/* bangladesh-study: single-line status on both lamp types (basic previously used
+	 * a "%s\n%d%%" line break). */
+	lv_snprintf(buf, sizeof(buf), "%s (%d%%)", txt, pct_cmd);
 	lv_label_set_text(ui_lbl_status, buf);
 
     if (!power_on)
@@ -906,30 +900,23 @@ static inline void ui_main_set_debug_tools(void)
  */
 static void ui_main_theme_init(void)
 {
-    if (lamp_get_type() == LAMP_TYPE_DIMMABLE_C)
-    {   
-		ui_row_height     = 23;
-		ui_sw_height = ui_row_height-3;
-		ui_sw_length = ui_sw_height * 2;
-		//ui_dbg_pos = 165;
-		ui_show_dim_b = true;
-		FONT_MAIN = &lv_font_montserrat_20;  
-		FONT_MED = &lv_font_montserrat_16;
-		FONT_SMALL = &lv_font_montserrat_14;
-		FONT_BIG = &lv_font_montserrat_44;
-    }
-    else
-    {
-        ui_row_height     = 32;
-		ui_sw_height = ui_row_height-2;
-		ui_sw_length = ui_sw_height * 2;
-		//ui_dbg_pos = 125;
-		ui_show_dim_b = false;
-		FONT_MAIN = &lv_font_montserrat_32;  
-		FONT_MED = &lv_font_montserrat_22;
-		FONT_SMALL = &lv_font_montserrat_22;
-		FONT_BIG = &lv_font_montserrat_48;
-	}
+	/* bangladesh-study: the info screen (status / ON TIME / TILT / serial) renders
+	 * identically on both lamp types, so fonts are assigned unconditionally. They used to
+	 * be larger for basic lamps (montserrat_32/22/22/48) to suit the old widget layout,
+	 * which overflowed the new screen. Only ui_show_dim_b stays type-dependent — it gates
+	 * lamp dim *control*, not the UI. */
+	FONT_MAIN  = &lv_font_montserrat_20;
+	FONT_MED   = &lv_font_montserrat_16;
+	FONT_SMALL = &lv_font_montserrat_14;
+	FONT_BIG   = &lv_font_montserrat_44;
+
+	ui_show_dim_b = (lamp_get_type() == LAMP_TYPE_DIMMABLE_C);
+
+	/* Row/switch metrics — only used by the now-unused power/radar/dim widget builders,
+	 * kept for reference/restore. */
+	ui_row_height = ui_show_dim_b ? 23 : 32;
+	ui_sw_height  = ui_show_dim_b ? (ui_row_height - 3) : (ui_row_height - 2);
+	ui_sw_length  = ui_sw_height * 2;
 }
 
 /**
