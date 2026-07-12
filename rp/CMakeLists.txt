@@ -78,6 +78,7 @@ add_executable(app
 	ui_debug.c
 	d_uart_cmd.c
 	m_cmd.c
+	serial.c
 )
 
 add_dependencies(app splash_images)
@@ -93,6 +94,7 @@ add_subdirectory("${CMAKE_CURRENT_LIST_DIR}/vendor/lvgl" lvgl)
 
 target_link_libraries(app
 	pico_stdlib
+	pico_unique_id
 	hardware_pwm
 	hardware_spi
 	hardware_i2c

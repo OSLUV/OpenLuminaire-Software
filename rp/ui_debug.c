@@ -23,6 +23,7 @@
 #include "ui_main.h"
 #include "board.h"
 #include "hourmeter.h"
+#include "serial.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -64,7 +65,7 @@ void ui_debug_init(void)
 
 	ui_debug_label = lv_label_create(ui_debug_screen);
 	lv_obj_set_style_text_color(ui_debug_label, lv_color_white(), 0);
-	lv_obj_set_style_text_line_space(ui_debug_label, -2, 0);                    /* tighten so the extra line clears the BACK/RETEST buttons at y=220 */
+	lv_obj_set_style_text_line_space(ui_debug_label, -3, 0);                    /* tighten so the extra lines (SN + radar) clear the BACK/RETEST buttons at y=220 */
 
     // BACK button
     ui_debug_back_btn = lv_btn_create(ui_debug_screen);
@@ -115,6 +116,8 @@ void ui_debug_update(void)
 
     #define ADD_TEXT(...) w += lv_snprintf(w, sizeof(ui_debug_label_txt) - \
                                (w - ui_debug_label_txt) - 1, __VA_ARGS__)
+
+    ADD_TEXT("SN: %s\n", serial_get_string());
 
     ADD_TEXT("Lamp State: %s %dms\n",
              lamp_get_lamp_state_str(lamp_get_lamp_state()),

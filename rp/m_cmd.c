@@ -16,6 +16,7 @@
 #include "d_uart_cmd.h"
 #include "lamp.h"
 #include "ui_main.h"
+#include "serial.h"
 
 
 /* Private define ------------------------------------------------------------*/
@@ -36,6 +37,7 @@
 #define CMD_INST_GET_S          "G"
 #define CMD_PARAM_LAMP_CTL_ID_S "L"
 #define CMD_PARAM_LAMP_DIM_ID_S "D"
+#define CMD_PARAM_SERIAL_ID_S   "N"                                             /* GET-only: unique serial number */
 
 #define CMD_OK_S                "OK"
 #define CMD_ERR_S               "ERR"
@@ -225,6 +227,17 @@ static void m_cmd_process(void)
     uint8_t param_str[CMD_MAX_PARAM_LEN_C];
     uint8_t value_str[CMD_MAX_VAL_LEN_C];
     uint16_t value;
+
+    /* OL1.2: serial is a 16-char hex string that doesn't fit the int16_t
+     * GET-callback path, so answer it directly here before the generic parse. */
+    if (strstr((char*)cmd_buf, CMD_INST_GET_S ":" CMD_PARAM_SERIAL_ID_S))
+    {
+        uint8_t resp[CMD_MAX_LEN_C];
+        snprintf((char*)resp, sizeof(resp), "%s:%s:%s\r\n",
+                 CMD_INST_GET_S, CMD_PARAM_SERIAL_ID_S, serial_get_string());
+        uart_cmd_send_data(resp, strlen((char*)resp));
+        return;
+    }
 
     memset(inst_str, 0, sizeof(inst_str));
     memset(param_str, 0, sizeof(param_str));

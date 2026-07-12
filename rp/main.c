@@ -39,6 +39,7 @@
 #include "ui_debug.h"
 
 #include "m_cmd.h"
+#include "serial.h"
 #include "board.h"
 #include <hardware/watchdog.h>
 
@@ -51,6 +52,9 @@ void main(void)
 {	
 	display_screen_off();
 	stdio_init_all();
+
+	serial_init();
+	printf("Serial: %s\n", serial_get_string());
 
 	gpio_init(4);
 	gpio_init(5);
