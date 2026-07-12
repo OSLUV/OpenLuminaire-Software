@@ -15,6 +15,7 @@
 #include "display.h"
 #include "board.h"
 #include "sense.h"
+#include "serial.h"                                                            /* bangladesh-study: serial on boot screen */
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -80,31 +81,60 @@ void ui_loading_splash_image_init(void)
 {
 	ui_loading_lv_group = lv_group_create();
 
-    /* 1 ─ Pick the bitmap -------------------------------------------------- */
+    /* bangladesh-study: the boot screen now shows the lamp type, serial number and a  */
+    /* "Booting..." message instead of the aerolamp splash bitmap. Lamp type and the   */
+    /* serial are already known here (loaded/derived earlier in main()).               */
+
+    /* 1 ─ Pick the lamp-type text ------------------------------------------ */
+    const char *type_str;
+    switch (lamp_get_type())
+    {
+        case LAMP_TYPE_DIMMABLE_C:     type_str = "Dimmable"; break;
+        case LAMP_TYPE_NON_DIMMABLE_C: type_str = "Basic";    break;
+        default: /* UNKNOWN */         type_str = "Unknown";  break;
+    }
+
+    /* bangladesh-study: old aerolamp splash bitmap selection, kept for reference:
     const lv_image_dsc_t *p_src = &splash_default_img;                          // Fallback
     switch (lamp_get_type())
     {
-        case LAMP_TYPE_DIMMABLE_C:
-            p_src = &splash_dimmable_img;
-        break;
-
-        case LAMP_TYPE_NON_DIMMABLE_C:
-            p_src = &splash_basic_img;
-        break;
-
-        default: /* UNKNOWN */
-        break;
+        case LAMP_TYPE_DIMMABLE_C:     p_src = &splash_dimmable_img; break;
+        case LAMP_TYPE_NON_DIMMABLE_C: p_src = &splash_basic_img;    break;
+        default: break;
     }
+    */
 
     /* 2 ─ Build a throw-away LVGL screen ----------------------------------- */
     ui_loading_lv_splash_screen = lv_obj_create(NULL);                          // Blank screen
-
+    lv_obj_set_style_bg_color(ui_loading_lv_splash_screen, lv_color_black(), 0);
     lv_obj_clear_flag(ui_loading_lv_splash_screen, LV_OBJ_FLAG_SCROLLABLE);
 
+    /* bangladesh-study: old bitmap placement, kept for reference:
     lv_obj_t *p_img = lv_img_create(ui_loading_lv_splash_screen);               // place the bitmap
-
     lv_img_set_src(p_img, p_src);
     lv_obj_center(p_img);
+    */
+
+    /* Lamp type — top */
+    lv_obj_t *lbl_type = lv_label_create(ui_loading_lv_splash_screen);
+    lv_label_set_text(lbl_type, type_str);
+    lv_obj_set_style_text_color(lbl_type, lv_color_white(), 0);
+    lv_obj_set_style_text_font(lbl_type, &lv_font_montserrat_24, 0);
+    lv_obj_align(lbl_type, LV_ALIGN_TOP_MID, 0, 20);
+
+    /* "Booting..." — dead centre */
+    ui_loading_lv_label = lv_label_create(ui_loading_lv_splash_screen);
+    lv_label_set_text(ui_loading_lv_label, "Booting...");
+    lv_obj_set_style_text_color(ui_loading_lv_label, lv_color_white(), 0);
+    lv_obj_set_style_text_font(ui_loading_lv_label, &lv_font_montserrat_32, 0);
+    lv_obj_center(ui_loading_lv_label);
+
+    /* Serial number — bottom */
+    lv_obj_t *lbl_sn = lv_label_create(ui_loading_lv_splash_screen);
+    lv_label_set_text_fmt(lbl_sn, "SN: %s", serial_get_display_string());
+    lv_obj_set_style_text_color(lbl_sn, lv_color_white(), 0);
+    lv_obj_set_style_text_font(lbl_sn, &lv_font_montserrat_16, 0);
+    lv_obj_align(lbl_sn, LV_ALIGN_BOTTOM_MID, 0, -20);
 
 	/* 3 - Listen for ANY key / click / encoder turn ------------------------ */
     /*
