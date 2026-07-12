@@ -117,7 +117,7 @@ void ui_debug_update(void)
     #define ADD_TEXT(...) w += lv_snprintf(w, sizeof(ui_debug_label_txt) - \
                                (w - ui_debug_label_txt) - 1, __VA_ARGS__)
 
-    ADD_TEXT("SN: %s\n", serial_get_string());
+    ADD_TEXT("SN: %s\n", serial_get_display_string());
 
     ADD_TEXT("Lamp State: %s %dms\n",
              lamp_get_lamp_state_str(lamp_get_lamp_state()),
