@@ -19,6 +19,8 @@
 #include "ui_main.h"
 #include "safety_logic.h"
 #include "persistance.h"
+#include "serial.h"                                                            /* bangladesh-study: serial number readout */
+#include "hourmeter.h"                                                         /* bangladesh-study: lamp-on time readout  */
 #include <string.h>
 
 
@@ -52,6 +54,10 @@ static lv_obj_t *ui_lbl_percent;
 
 static lv_obj_t *ui_lbl_tilt_val;                                               /* Tilt read-out handle (big number) */
 
+static lv_obj_t *ui_lbl_serial;                                                /* bangladesh-study: serial number value  */
+static lv_obj_t *ui_lbl_ontime;                                                /* bangladesh-study: lamp-on H/M/S value   */
+static lv_obj_t *ui_btn_debug;                                                 /* bangladesh-study: DEBUG button (focus)  */
+
 // Style helpers
 static lv_style_t ui_style_title;
 static lv_style_t ui_style_status;
@@ -67,6 +73,7 @@ static lv_style_t ui_style_focus;
 static lv_style_t ui_style_btn_focus_inv;
 static lv_style_t ui_style_label_inv;
 static lv_style_t ui_style_inactive;
+static lv_style_t ui_style_ontime;                                             /* bangladesh-study: large H/M/S read-out */
 
 static lv_group_t* ui_lv_group;
 
@@ -96,6 +103,9 @@ static inline void ui_main_set_lamp_power_row(void);
 static inline void ui_main_set_radar_row(void);
 static inline void ui_main_set_lamp_dim_slider(void);
 static inline void ui_main_set_tilt_row(void);
+static inline void ui_main_add_grow_spacer(void);                             /* bangladesh-study: vertical grow spacer  */
+static inline void ui_main_set_ontime_row(void);                              /* bangladesh-study: centered On time block */
+static inline void ui_main_set_serial_row(void);                              /* bangladesh-study: bottom serial line     */
 static inline void ui_main_set_debug_tools(void);
 static void ui_main_theme_init(void);
 static void ui_main_set_tilt(uint16_t deg);
@@ -128,22 +138,32 @@ void ui_main_init(void)
         lv_obj_set_style_text_font(lbl, &lv_font_montserrat_24, 0);
         lv_obj_set_width(lbl, LV_PCT(100));
         lv_obj_set_style_pad_top(lbl, 20, 0);
+
+        ui_main_set_debug_tools();
     }
     else
     {
-        ui_main_set_lamp_ctrl_row();
-        ui_main_set_lamp_power_row();
-        ui_main_set_radar_row();
+        ui_main_set_lamp_ctrl_row();     /* status line (top) */
 
-        if (ui_show_dim_b)
-        {
-            ui_main_set_lamp_dim_slider();
-        }
+        /* bangladesh-study: main screen shows lamp-on time + serial instead of the       */
+        /* interactive power/radar/dim widgets. Builders kept below for reference/restore. */
+        // ui_main_set_lamp_power_row();
+        // ui_main_set_radar_row();
+        //
+        // if (ui_show_dim_b)
+        // {
+        //     ui_main_set_lamp_dim_slider();
+        // }
 
-        ui_main_set_tilt_row();
+        /* bangladesh-study: ON TIME counter vertically centered (grow spacers above and  */
+        /* below). TILT / serial / DEBUG make up the bottom cluster.                       */
+        ui_main_add_grow_spacer();
+        ui_main_set_ontime_row();
+        ui_main_add_grow_spacer();
+        ui_main_set_tilt_row();          /* near the bottom */
+        ui_main_set_serial_row();
+        ui_main_set_debug_tools();       /* very bottom     */
     }
-
-    ui_main_set_debug_tools();
 }
 
 /**
@@ -155,15 +175,22 @@ void ui_main_update(void)
 	if (!ui_lamp_known_b) return;
 
 	static char buf[48];
-    bool power_on = lv_obj_has_state(ui_sw_power, LV_STATE_CHECKED);
-    bool radar_on = lv_obj_has_state(ui_sw_radar, LV_STATE_CHECKED);
-	bool inactive = !power_on;
+    /* bangladesh-study: control inputs now come from persistence (single source of   */
+    /* truth) instead of the removed on-screen widgets. Both the keypad handlers and   */
+    /* the UART commands write these fields, so the lamp auto-runs from its last-saved */
+    /* configuration.  Old widget reads:                                               */
+    //  bool power_on = lv_obj_has_state(ui_sw_power, LV_STATE_CHECKED);
+    //  bool radar_on = lv_obj_has_state(ui_sw_radar, LV_STATE_CHECKED);
+    bool power_on = persistance_get_power_state();
+    bool radar_on = persistance_get_radar_state();
+	// bangladesh-study: bool inactive = !power_on;  // only used by the removed grey-out block
 	LAMP_PWR_LEVEL_E intensity_setting = UI_MAIN_LAMP_PWR_C;
 
 	/* Get current User set-point lamp power level  */
 	if (ui_show_dim_b)
     {
-		int intensity_setting_int = lv_slider_get_value(ui_slider_intensity);
+        //  bangladesh-study: was lv_slider_get_value(ui_slider_intensity)
+		int intensity_setting_int = persistance_get_dim_index();
         intensity_setting = LAMP_PWR_20PCT_C + intensity_setting_int;
 	}
 	
@@ -245,12 +272,15 @@ void ui_main_update(void)
         }
     }
 
+	/* bangladesh-study: the slider/radar grey-out logic below drove the removed        */
+	/* power/radar/dim widgets. Kept for reference should those widgets be restored.     */
+	/*
 	if (ui_show_dim_b)
     {
 		if (inactive || warming)
         {
 			lv_obj_add_state(ui_slider_intensity, LV_STATE_USER_2);             // Grey it
-			lv_obj_add_state(ui_lbl_slider, LV_STATE_USER_2);  
+			lv_obj_add_state(ui_lbl_slider, LV_STATE_USER_2);
 		}
         else
         {
@@ -268,10 +298,19 @@ void ui_main_update(void)
         lv_obj_clear_state(ui_sw_radar, LV_STATE_USER_2);
 		lv_obj_clear_state(ui_lbl_radar,  LV_STATE_USER_2);
 	}
-	
+	*/
+
 	/* Update tilt data */
-	int16_t a = imu_get_pointing_down_angle(); 
+	int16_t a = imu_get_pointing_down_angle();
 	ui_main_set_tilt(a);
+
+	/* bangladesh-study: refresh lamp-on time read-out as H/M/S (same math as ui_debug) */
+	uint32_t on_s = hourmeter_get_on_seconds();
+	lv_snprintf(buf, sizeof(buf), "%uh %02um %02us",
+	            (unsigned)(on_s / 3600u),
+	            (unsigned)((on_s % 3600u) / 60u),
+	            (unsigned)(on_s % 60u));
+	lv_label_set_text(ui_lbl_ontime, buf);
 }
 
 /**
@@ -282,8 +321,14 @@ void ui_main_open(void)
 {
     lv_scr_load(ui_screen);
     display_set_indev_group(ui_lv_group);
-    lv_group_focus_obj(ui_sw_power);
-    lv_obj_send_event(ui_sw_power, LV_EVENT_FOCUSED, NULL);
+    /* bangladesh-study: power switch removed from the main screen; focus the DEBUG    */
+    /* button (the only remaining focusable object). Old focus target:                 */
+    //  lv_group_focus_obj(ui_sw_power);
+    //  lv_obj_send_event(ui_sw_power, LV_EVENT_FOCUSED, NULL);
+    if (ui_btn_debug)
+    {
+        lv_group_focus_obj(ui_btn_debug);
+    }
 }
 
 /**
@@ -307,8 +352,9 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
         {
             persistance_set_power_state(0);
             persistance_write_region();
-
-            lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, false);             // Update function will update lamp's state
+            // bangladesh-study: ui_main_update() now reads persistence directly, so the
+            // switch no longer needs poking:
+            //  lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, false);
         }
 
         return 1;
@@ -323,8 +369,9 @@ int16_t ui_main_lamp_set_stt(uint16_t req_state)
 
             persistance_set_power_state(1);
             persistance_write_region();
-
-            lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, true);              // Update function will update lamp's state
+            // bangladesh-study: ui_main_update() now reads persistence directly, so the
+            // switch no longer needs poking:
+            //  lv_obj_set_state(ui_sw_power, LV_STATE_CHECKED, true);
         }
 
         return 1;
@@ -393,8 +440,8 @@ int16_t ui_main_lamp_set_dim(uint16_t level)
         lamp_pwr_level -= LAMP_PWR_20PCT_C;
 
         persistance_set_dim_index(lamp_pwr_level);
-
-        lv_slider_set_value(ui_slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
+        // bangladesh-study: ui_main_update() reads persistance_get_dim_index() directly:
+        //  lv_slider_set_value(ui_slider_intensity, lamp_pwr_level, LV_ANIM_OFF);
 
         return level;
     }
@@ -419,7 +466,8 @@ int16_t ui_main_lamp_get_dim(uint16_t level)
 	
 	if (ui_show_dim_b) 
     {
-		dim_setting  = lv_slider_get_value(ui_slider_intensity);
+		//  bangladesh-study: was lv_slider_get_value(ui_slider_intensity)
+		dim_setting  = persistance_get_dim_index();
         lamp_pwr_lvl = LAMP_PWR_20PCT_C + dim_setting;
 	
         switch (lamp_pwr_lvl)
@@ -741,6 +789,73 @@ static inline void ui_main_set_tilt_row(void)
 }
 
 /**
+ * @brief bangladesh-study: Adds a transparent, zero-size row that grows to fill space
+ * @note Screen must be initialized before calling this function
+ *
+ * Two of these (one above, one below the On-time block) split the free vertical space
+ * evenly, which centres the On-time counter and pushes the serial line to the bottom.
+ */
+static inline void ui_main_add_grow_spacer(void)
+{
+    lv_obj_t *sp = lv_obj_create(ui_screen);
+    lv_obj_add_style(sp, &ui_style_row, 0);
+    lv_obj_set_width(sp, 1);
+    lv_obj_set_height(sp, 0);
+    lv_obj_set_flex_grow(sp, 1);
+    lv_obj_set_scrollbar_mode(sp, LV_SCROLLBAR_MODE_OFF);
+}
+
+/**
+ * @brief bangladesh-study: Sets the lamp-on-time read-out (centred hero)
+ * @note Screen must be initialized before calling this function
+ *
+ * A small "On time:" caption stacked over the large H/M/S value. The value is refreshed
+ * every frame in ui_main_update().
+ */
+static inline void ui_main_set_ontime_row(void)
+{
+    lv_obj_t *row = lv_obj_create(ui_screen);
+    lv_obj_add_style(row, &ui_style_row, 0);
+    lv_obj_set_width(row, LV_PCT(100));
+    lv_obj_set_height(row, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_COLUMN);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+
+    lv_obj_t *cap = lv_label_create(row);
+    lv_label_set_text(cap, "ON TIME");
+    lv_obj_add_style(cap, &ui_style_title, 0);                                  /* same size as the TILT caption */
+
+    ui_lbl_ontime = lv_label_create(row);
+    lv_label_set_text(ui_lbl_ontime, "0h 00m 00s");
+    lv_obj_add_style(ui_lbl_ontime, &ui_style_ontime, 0);
+    lv_obj_set_width(ui_lbl_ontime, LV_PCT(100));
+    lv_obj_set_style_text_align(ui_lbl_ontime, LV_TEXT_ALIGN_CENTER, 0);
+}
+
+/**
+ * @brief bangladesh-study: Sets the serial-number read-out ("SN: <serial>", bottom)
+ * @note Screen must be initialized before calling this function
+ *
+ * The serial never changes, so it is set once here.
+ */
+static inline void ui_main_set_serial_row(void)
+{
+    lv_obj_t *row = lv_obj_create(ui_screen);
+    lv_obj_add_style(row, &ui_style_row, 0);
+    lv_obj_set_width(row, 239);
+    lv_obj_set_height(row, LV_SIZE_CONTENT);
+    lv_obj_set_flex_flow(row, LV_FLEX_FLOW_ROW);
+    lv_obj_set_flex_align(row, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER, LV_FLEX_ALIGN_CENTER);
+    lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
+
+    ui_lbl_serial = lv_label_create(row);
+    lv_label_set_text_fmt(ui_lbl_serial, "SN: %s", serial_get_display_string());
+    lv_obj_add_style(ui_lbl_serial, &ui_style_status, 0);
+    lv_obj_set_style_text_align(ui_lbl_serial, LV_TEXT_ALIGN_CENTER, 0);
+}
+
+/**
  * @brief Set and initialize Debug and Other buttons rows
  * @note Screen must be initialized before calling this function
  * 
@@ -782,6 +897,7 @@ static inline void ui_main_set_debug_tools(void)
     lv_label_set_text(lv_label_create(btn), "DEBUG");
     lv_obj_add_event_cb(btn, ui_main_debug_btn_callback, LV_EVENT_CLICKED, NULL);
     lv_group_add_obj(ui_lv_group, btn);
+    ui_btn_debug = btn;                                                        /* bangladesh-study: keep handle for focus */
 }
 
 /**
@@ -856,6 +972,12 @@ static void ui_main_styles_init(void)
     lv_style_init(&ui_style_big);
     lv_style_set_text_color(&ui_style_big, lv_color_white());
     lv_style_set_text_font(&ui_style_big, FONT_BIG);
+
+    /* bangladesh-study: large lamp-on H/M/S read-out. montserrat_32 keeps the labelled */
+    /* "0h 00m 00s" on one line while staying prominent (near the tilt value's size).   */
+    lv_style_init(&ui_style_ontime);
+    lv_style_set_text_color(&ui_style_ontime, lv_color_white());
+    lv_style_set_text_font(&ui_style_ontime, &lv_font_montserrat_32);
 
     /* Bottom nav buttons as plain text       */
     lv_style_init(&ui_style_btn);
