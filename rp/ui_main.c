@@ -817,7 +817,7 @@ static inline void ui_main_set_ontime_row(void)
     lv_obj_set_scrollbar_mode(row, LV_SCROLLBAR_MODE_OFF);
 
     lv_obj_t *cap = lv_label_create(row);
-    lv_label_set_text(cap, "ON TIME");
+    lv_label_set_text(cap, "TOTAL ON TIME");
     lv_obj_add_style(cap, &ui_style_title, 0);                                  /* same size as the TILT caption */
 
     ui_lbl_ontime = lv_label_create(row);
