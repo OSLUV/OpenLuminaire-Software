@@ -70,6 +70,7 @@ add_executable(app
 	radio.c
 	safety_logic.c
 	persistance.c
+	hourmeter.c
 	display.c
 	splash_img.c
 	ui_main.c

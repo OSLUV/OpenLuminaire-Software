@@ -22,6 +22,7 @@
 #include "radar.h"
 #include "ui_main.h"
 #include "board.h"
+#include "hourmeter.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -34,7 +35,7 @@ static lv_obj_t*    ui_debug_label;
 static lv_obj_t*    ui_debug_back_btn;
 static lv_obj_t*    ui_debug_retest_btn;
 static lv_group_t*  ui_debug_group;
-static char         ui_debug_label_txt[512];
+static char         ui_debug_label_txt[640];
 
 
 /* Callback prototypes -------------------------------------------------------*/
@@ -63,6 +64,7 @@ void ui_debug_init(void)
 
 	ui_debug_label = lv_label_create(ui_debug_screen);
 	lv_obj_set_style_text_color(ui_debug_label, lv_color_white(), 0);
+	lv_obj_set_style_text_line_space(ui_debug_label, -2, 0);                    /* tighten so the extra line clears the BACK/RETEST buttons at y=220 */
 
     // BACK button
     ui_debug_back_btn = lv_btn_create(ui_debug_screen);
@@ -139,6 +141,14 @@ void ui_debug_update(void)
     ADD_TEXT("Lamp Type %s\n", type_strs[lamp_get_type()]);
 
     ADD_TEXT("Board %s\n", board_is_v1_2()?"V1.2":"V1.1");
+
+    uint32_t on_s = hourmeter_get_on_seconds();
+    ADD_TEXT("On %uh%02um%02us [%u/%u/%u/%u]s\n",
+             on_s / 3600, (on_s % 3600) / 60, on_s % 60,
+             hourmeter_get_dim_on_seconds(0),
+             hourmeter_get_dim_on_seconds(1),
+             hourmeter_get_dim_on_seconds(2),
+             hourmeter_get_dim_on_seconds(3));
 
     ADD_TEXT("IMU: %+.2f/%+.2f/%+.2f\n", g_imu_x, g_imu_y, g_imu_z);
 

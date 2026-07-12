@@ -20,7 +20,8 @@
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 
-#define PERSISTANCE_MAGIC_VAL_C 	0xb8870200
+//#define PERSISTANCE_MAGIC_VAL_C 	0xb8870200							/* pre-lamp-runtime layout (4-byte payload) */
+#define PERSISTANCE_MAGIC_VAL_C 	0xb8870300							/* bumped: added lamp_on_seconds + dim_on_seconds[] — forces clean re-default of the enlarged region */
 #define PERSISTANCE_FLASH_OFFSET_C 	(PICO_FLASH_SIZE_BYTES - 4096) 				/* Stored in the very last 4 kB sector */
 
 #define PERSISTANCE_DEF_POWER_ON_C	1											/* Lamp on   */
@@ -182,6 +183,59 @@ void persistance_set_factory_lamp_type(uint8_t type)
 uint8_t persistance_get_factory_lamp_type(void)
 {
 	return g_persistance_region.factory_lamp_type;
+}
+
+/**
+ * @brief Accumulates lamp-on (UV emitting) time
+ *
+ * @param secs      Seconds to add to the running totals
+ * @param dim_index Dim level the lamp was on at (0–3 -> 20/40/70/100 %)
+ *
+ * @note Adds to both the grand total and the per-dim-level bucket. Marks the
+ *       region dirty; the caller is responsible for throttling the flash write
+ *       via @ref persistance_write_region (there is no wear-leveling).
+ */
+void persistance_add_lamp_on_seconds(uint32_t secs, uint8_t dim_index)
+{
+	if (secs == 0)
+	{
+		return;
+	}
+
+	g_persistance_region.lamp_on_seconds += secs;
+
+	if (dim_index < 4)
+	{
+		g_persistance_region.dim_on_seconds[dim_index] += secs;
+	}
+
+	b_persistance_is_dirty = true;
+}
+
+/**
+ * @brief Gets the grand-total lamp-on time in seconds
+ *
+ * @return uint32_t
+ */
+uint32_t persistance_get_lamp_on_seconds(void)
+{
+	return g_persistance_region.lamp_on_seconds;
+}
+
+/**
+ * @brief Gets the per-dim-level lamp-on time in seconds
+ *
+ * @param idx Dim level index (0–3 -> 20/40/70/100 %)
+ * @return uint32_t (0 if idx out of range)
+ */
+uint32_t persistance_get_dim_on_seconds(uint8_t idx)
+{
+	if (idx >= 4)
+	{
+		return 0;
+	}
+
+	return g_persistance_region.dim_on_seconds[idx];
 }
 
 

@@ -23,6 +23,8 @@ typedef struct __packed {
     uint8_t  radar_on;       /* 1 = radar enabled */
     uint8_t  dim_index;      /* 0–3  (20/40/70/100 %) */
 	uint8_t  factory_lamp_type;
+    uint32_t lamp_on_seconds;      /* grand-total lamp-on (UV emitting) time, seconds */
+    uint32_t dim_on_seconds[4];    /* per dim level: [0]=20 [1]=40 [2]=70 [3]=100 % */
 } PERSISTANCE_REGION_T;
 
 
@@ -44,6 +46,10 @@ void persistance_set_dim_index(uint8_t idx);
 uint8_t persistance_get_dim_index(void);
 void persistance_set_factory_lamp_type(uint8_t type);
 uint8_t persistance_get_factory_lamp_type(void);
+
+void persistance_add_lamp_on_seconds(uint32_t secs, uint8_t dim_index);
+uint32_t persistance_get_lamp_on_seconds(void);
+uint32_t persistance_get_dim_on_seconds(uint8_t idx);
 
 
 #endif /* _D_PERSISTANCE_H_ */

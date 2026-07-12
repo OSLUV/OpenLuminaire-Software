@@ -32,6 +32,7 @@
 #include "radio.h"
 #include "safety_logic.h"
 #include "persistance.h"
+#include "hourmeter.h"
 #include "display.h"
 #include "ui_main.h"
 #include "ui_loading.h"
@@ -121,7 +122,12 @@ void main(void)
     const uint64_t TIMEOUT_US = 5ULL * 60 * 1000 * 1000;   						// 5 min
     uint64_t last_activity_us = time_us_64();
 	bool b_is_screen_dark = false;
-	
+
+	/* Start the lamp-on hour meter here (not at boot) so the blocking init
+	 * above — usbpd negotiation, rail power-up, and the full-power lamp
+	 * type-test — is not banked as operational on-time. */
+	hourmeter_init();
+
 	while (1)
 	{
 		watchdog_update();
@@ -133,7 +139,8 @@ void main(void)
 		radar_update();
 		usbpd_update();
 		lamp_update();
-		
+		hourmeter_update();                                                     // Accumulate lamp-on time
+
 		if (lamp_is_power_ok())
 		{
 			if (g_buttons_released) 
