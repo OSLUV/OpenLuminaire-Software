@@ -495,6 +495,12 @@ void lamp_update(void)
 		sleep_ms(10);
 		lamp_shutdown_rails();
 		lamp_go_to_state(LAMP_STATE_OFF_C);
+		/* A power fault clears the pending request, just like a user "off" would.
+		 * This keeps lamp_state and lamp_requested_power_level consistent so that on
+		 * supply recovery the retry loop / ui_main re-request produces the OFF->on edge
+		 * that lamp_request_power_level() needs to re-enter STARTING. Without this the
+		 * lamp is stranded OFF after a fault even though the user wants it on. */
+		lamp_requested_power_level = LAMP_PWR_OFF_C;
 	}
 }
 
