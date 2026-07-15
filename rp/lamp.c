@@ -500,7 +500,7 @@ void lamp_update(void)
 		 * supply recovery the retry loop / ui_main re-request produces the OFF->on edge
 		 * that lamp_request_power_level() needs to re-enter STARTING. Without this the
 		 * lamp is stranded OFF after a fault even though the user wants it on. */
-		lamp_requested_power_level = LAMP_PWR_OFF_C;
+		//lamp_requested_power_level = LAMP_PWR_OFF_C;
 	}
 }
 
