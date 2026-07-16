@@ -61,7 +61,6 @@ typedef struct {
 
 static bool 	drv_usb_pd_is_trying_up_b    = false;
 static uint32_t drv_drv_usb_pd_negotiated_mv = 5000;
-static bool 	drv_usb_pd_was_connected_b   = false;
 
 /* V1.2: worst-case I3 ballast requirements (from controller_pcb_v1.2_software_notes.md) */
 static const drv_usb_pd_candidate_t drv_usb_pd_v12_candidates[] = {
@@ -250,16 +249,6 @@ bool drv_usb_pd_is_connected(void)
 	uint8_t c_status = 0;
 	drv_usb_pd_read(D_USB_PD_REG_TYPEC_STATUS_C, 1, &c_status);
 	return (c_status != 0);
-}
-
-/**
- * @brief Sets the baseline USB connection state for hot-plug edge detection.
- *        Call once after drv_usb_pd_negotiate() so that drv_usb_pd_update() doesn't
- *        falsely trigger on the first loop iteration.
- */
-void drv_usb_pd_init_update(void)
-{
-	drv_usb_pd_was_connected_b = drv_usb_pd_is_connected();
 }
 
 /**

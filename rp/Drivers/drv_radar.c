@@ -140,7 +140,7 @@ void drv_radar_update(void)
 {
 	if ((time_us_64() - radar_uart_last_rx_time) > (50 * 1000))
 	{
-		// D_RADAR_DBG_PRINT_TXT("Reset rx");
+		//D_RADAR_DBG_PRINT_TXT("Reset rx");
 		radar_reset_rx();
 	}
 
@@ -154,12 +154,12 @@ void drv_radar_update(void)
 
 	if (b_radar_is_message_ok)
 	{
-		// D_RADAR_DBG_PRINT_TXT("Radar radar_message:");
+		//D_RADAR_DBG_PRINT_TXT("radar_message:");
 
-		if ((*(uint32_t*)radar_message.preamble  == 0xf1f2f3f4) && 
-		    (*(uint32_t*)radar_message.postamble == 0xf5f6f7f8))
+		if ((radar_message.preamble._u32  == 0xf1f2f3f4) && 
+		    (radar_message.postamble._u32 == 0xf5f6f7f8))
 		{
-			// // D_RADAR_DBG_PRINTF("preamble = %08x\n", *(uint32_t*)radar_message.preamble);
+			// // D_RADAR_DBG_PRINTF("preamble = %08x\n", radar_message.preamble._u32);
 			// D_RADAR_DBG_PRINTF(".type = %d\n", radar_message.inner.type);
 			// D_RADAR_DBG_PRINTF(".report.target_state = %d\n", radar_message.inner.report.target_state);
 			// D_RADAR_DBG_PRINTF(".report.moving_target_distance_cm = %d\n", radar_message.inner.report.moving_target_distance_cm);
@@ -167,18 +167,18 @@ void drv_radar_update(void)
 			// D_RADAR_DBG_PRINTF(".report.stationary_target_distance_cm = %d\n", radar_message.inner.report.stationary_target_distance_cm);
 			// D_RADAR_DBG_PRINTF(".report.stationary_target_energy = %d\n", radar_message.inner.report.stationary_target_energy);
 			// D_RADAR_DBG_PRINTF(".report.detection_distance_cm = %d\n", radar_message.inner.report.detection_distance_cm);
-			// // D_RADAR_DBG_PRINTF("postamble = %08x\n", *(uint32_t*)radar_message.postamble);
+			// // D_RADAR_DBG_PRINTF("postamble = %08x\n", radar_message.postamble._u32);
 			// D_RADAR_DBG_PRINTF("\n");
 
-			memcpy((char*)&radar_last_report, (char*)&radar_message.inner, sizeof(radar_last_report));
+			memcpy((char*)&radar_last_report, (char*)&radar_message.inner, sizeof(D_RADAR_REPORT_T));
 			radar_last_report_time = time_us_64();
 			radar_errors = 0;
 		}
 		else
 		{
 			D_RADAR_DBG_PRINT_TXT(">>ill formed<< pre=%08x post=%08x\n", 
-				   *(uint32_t*)radar_message.preamble, 
-				   *(uint32_t*)radar_message.postamble);
+								  radar_message.preamble._u32, 
+								  radar_message.postamble._u32);
 			radar_errors++;
 
 #if 0
@@ -190,9 +190,9 @@ void drv_radar_update(void)
 		}
 
 		int candidate = radar_pick_distance(
-            radar_last_report.report.detection_distance_cm,
-            radar_last_report.report.moving_target_distance_cm,
-            radar_last_report.report.stationary_target_distance_cm);
+						radar_last_report.report.detection_distance_cm,
+						radar_last_report.report.moving_target_distance_cm,
+						radar_last_report.report.stationary_target_distance_cm);
 
         /* Only accept it if it isn’t the 30 cm sentinel      */
         if (candidate != -1) /* Is message valid ? */
@@ -347,7 +347,7 @@ static inline int radar_pick_distance(uint16_t det, uint16_t mov, uint16_t stat)
  */
 static void drv_radar_init_comms(void)
 {
-//	D_RADAR_DBG_PRINT_TXT("drv_radar_init_comms()");
+	D_RADAR_DBG_PRINT_TXT("drv_radar_init_comms()");
 	radar_reinit(256000);
     radar_reinit(9600);
 }

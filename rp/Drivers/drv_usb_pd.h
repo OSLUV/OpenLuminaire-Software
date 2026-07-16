@@ -93,7 +93,6 @@ void drv_usb_pd_reset(void);
 void drv_usb_pd_set_pdo(uint32_t mv, uint32_t ma);
 
 void drv_usb_pd_negotiate(bool up);
-void drv_usb_pd_init_update(void);
 bool drv_usb_pd_is_connected(void);
 //bool drv_usb_pd_get_is_12v(void);
 //bool drv_usb_pd_get_is_trying_for_hv(void);

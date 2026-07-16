@@ -40,10 +40,16 @@ typedef struct __packed
  */
 typedef struct __packed
 {
-	uint8_t 		  preamble[4];
+	union {
+		uint8_t		  _u8[4];
+		uint32_t	  _u32;
+	} 				  preamble;
 	uint16_t 		  length;
 	D_RADAR_REPORT_T  inner;
-	uint8_t 		  postamble[4];
+	union {
+		uint8_t		  _u8[4];
+		uint32_t	  _u32;
+	}				  postamble;
 } D_RADAR_MESSAGE_T;
 
 

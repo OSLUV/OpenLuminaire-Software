@@ -101,10 +101,12 @@ void mod_pow_init(void)
 
 	mod_pow_get_hw_revision();
 
-	drv_usb_pd_negotiate(true);
-	drv_usb_pd_init_update(); /* CLEAR: Checks if there is power over USB. TODO: Delete when drv_usb_pd_negotiate is fully refactored */
+	mod_pow_last_usb_conn_stt = drv_usb_pd_is_connected();
+	if (mod_pow_last_usb_conn_stt)
+	{
+		drv_usb_pd_negotiate(true);
+	}
 
-	mod_pow_last_usb_conn_stt   = drv_usb_pd_is_connected();
 	g_mod_pow_usb_negotiated_ma = drv_usb_pd_get_negotiated_ma();
 	g_mod_pow_usb_negotiated_mv = drv_usb_pd_get_negotiated_mv();
 
@@ -184,7 +186,7 @@ static inline uint8_t mod_pow_is_24v_rail_in_range(void)
  */
 static void mod_pow_get_hw_revision(void)
 {
-	drv_adc_volt_update();
+	mod_pow_v_src_adc_monitor();
 
 	M_POW_DBG_PRINT_TXT("Board detection: 24V sense = %.2fV (threshold = %.1fV)",
 		   				g_sys_stt.v_24v, M_POW_24V_PASSIVE_THRESHOLD_C);
@@ -232,7 +234,7 @@ static void mod_pow_usb_hot_plug_handler(void)
 			* STUSB4500 renegotiates with our values instead of NVM defaults.
 			* On V1.1, NVM defaults may request 20V which would damage the
 			* 12V rail. */
-			M_POW_DBG_PRINT_TXT("MOD POW. USB-C hot-plug detected, configuring safe PDOs");
+			M_POW_DBG_PRINT_TXT("USB-C hot-plug detected, configuring safe PDOs");
 
 			if (g_sys_stt.hw_is_1_2)
 			{
@@ -256,7 +258,7 @@ static void mod_pow_usb_hot_plug_handler(void)
 	{
 		if (!drv_usb_pd_is_connected())
 		{
-			M_POW_DBG_PRINT_TXT("MOD POW. USB-C disconnected");
+			M_POW_DBG_PRINT_TXT("USB-C disconnected");
 
 			mod_pow_last_usb_conn_stt    = M_POW_USB_UNPLUGGED_C;
 			g_mod_pow_is_usb_connected_b = true;
