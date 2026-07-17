@@ -176,7 +176,7 @@ void drv_radar_update(void)
 		}
 		else
 		{
-			D_RADAR_DBG_PRINT_TXT(">>ill formed<< pre=%08x post=%08x\n", 
+			D_RADAR_DBG_PRINT_WRN("Message ill formed pre=%08x post=%08x", 
 								  radar_message.preamble._u32, 
 								  radar_message.postamble._u32);
 			radar_errors++;

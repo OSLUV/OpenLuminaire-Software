@@ -14,6 +14,7 @@
 #include "Modules/mod_safety_logic.h"
 #include "Modules/mod_lamp_ctrl.h"
 #include "Drivers/drv_accelerometer.h"
+#include "Drivers/drv_debug.h"
 #include "Drivers/drv_lamp.h"
 #include "Drivers/drv_radar.h"
 
@@ -25,15 +26,30 @@ typedef struct {
 	int undiffused_high_tilt;
 	int diffused_low_tilt;
 	int diffused_high_tilt;
-} BREAK_ROW_T;
+} M_SAFETY_BREAK_ROW_T;
 
 /* Private define ------------------------------------------------------------*/
+
+#if 0
+#define M_SAFETY_DBG_ID_STR_C        	"mod_safety          "
+#define M_SAFETY_DBG_PRINTF(...)    	debug_print_f(__VA_ARGS__)
+#define M_SAFETY_DBG_PRINT_TXT(...)		debug_print_mod_f(M_SAFETY_DBG_ID_STR_C, __VA_ARGS__)
+#define M_SAFETY_DBG_PRINT_ERR(...)		debug_print_err(M_SAFETY_DBG_ID_STR_C, __VA_ARGS__)
+#define M_SAFETY_DBG_PRINT_WRN(...)		debug_print_warn(M_SAFETY_DBG_ID_STR_C, __VA_ARGS__)
+#define M_SAFETY_DBG_PRINT_OK(...)		debug_print_ok(M_SAFETY_DBG_ID_STR_C, __VA_ARGS__)
+#else
+#define M_SAFETY_DBG_PRINTF(...)    	
+#define M_SAFETY_DBG_PRINT_TXT(...)		
+#define M_SAFETY_DBG_PRINT_ERR(...)		
+#define M_SAFETY_DBG_PRINT_WRN(...)		
+#define M_SAFETY_DBG_PRINT_OK(...)		
+#endif
 
 // entries are in centimeters, what is the furthest distance at which this power level restriction is in effect
 // no entry for M_LAMP_PWR_100PCT_C since it's logically infinity
 
-#define DEBOUNCE_US_OFF   (1 * 1000 * 1000)    /* 1s */
-#define DEBOUNCE_US_ON    (3 * 1000 * 1000)    /* 3s */
+#define M_SAFETY_DEBOUNCE_US_OFF_C   	(1 * 1000 * 1000)    /* 1s */
+#define M_SAFETY_DEBOUNCE_US_ON_C    	(3 * 1000 * 1000)    /* 3s */
 
 
 /* Global variables  ---------------------------------------------------------*/
@@ -45,7 +61,7 @@ extern int16_t g_mod_ctrl_pointing_down_angle;
 
 #if 1
 // ICNIRP limits
-static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
+static M_SAFETY_BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 	[M_LAMP_PWR_OFF_C] =   {110, 110,  54,  54},
 	[M_LAMP_PWR_20PCT_C] = {113, 113,  88,  88},
 	[M_LAMP_PWR_40PCT_C] = {115, 115, 111, 111},
@@ -53,7 +69,7 @@ static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 };
 #elif 0
 // With 30% safety margin
-static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
+static M_SAFETY_BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 	[M_LAMP_PWR_OFF_C] =   { 44,  80,  15,  24},
 	[M_LAMP_PWR_20PCT_C] = { 64, 104,  21,  37},
 	[M_LAMP_PWR_40PCT_C] = { 86, 108,  29,  49},
@@ -61,7 +77,7 @@ static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 };
 #elif 0
 // Original
-static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
+static M_SAFETY_BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 	[M_LAMP_PWR_OFF_C] =   {36,  66,  12,  21},
 	[M_LAMP_PWR_20PCT_C] = {52,  96,  18,  31},
 	[M_LAMP_PWR_40PCT_C] = {71, 106,  25,  42},
@@ -69,7 +85,7 @@ static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 };
 #else
 // Testing
-static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
+static M_SAFETY_BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 	[M_LAMP_PWR_OFF_C] =   { 30,  30,  12,  21},
 	[M_LAMP_PWR_20PCT_C] = { 70,  70,  18,  31},
 	[M_LAMP_PWR_40PCT_C] = {100, 100,  25,  42},
@@ -77,20 +93,20 @@ static BREAK_ROW_T breaks[M_LAMP_PWR_100PCT_C] = {
 };
 #endif
 
-static M_LAMP_PWR_LEVEL_E 	safety_logic_cap = M_LAMP_PWR_100PCT_C;
+static M_LAMP_PWR_LEVEL_E 	mod_safety_cap_pwlvl = M_LAMP_PWR_100PCT_C;
 
-static char 				safety_logic_action_desc[128] = {0};
-static M_LAMP_PWR_LEVEL_E 	safety_logic_debounce_new_level = M_LAMP_PWR_OFF_C;
-static uint64_t 			safety_logic_debounce_new_time = 0;
+static char 				mod_safety_action_desc_str[128] = {0};
+static M_LAMP_PWR_LEVEL_E 	mod_safety_debounce_new_level_pwlvl = M_LAMP_PWR_OFF_C;
+static uint64_t 			mod_safety_debounce_new_time = 0;
 
-static bool 				b_safety_logic_is_radar_enabled = false;
+static bool 				b_mod_safety_is_radar_enabled = false;
 
 
 /* Private function prototypes -----------------------------------------------*/
 
-static int safety_logic_get_tilt_break(void);
-static int safety_logic_get_distance_for_break_row(BREAK_ROW_T* p_row, bool b_is_diffused, bool b_is_high_tilt);
-static int safety_logic_get_power_for_distance(int distance, bool b_is_diffused, bool b_is_high_tilt);
+static int mod_safety_get_tilt_break(void);
+static int mod_safety_get_distance_for_break_row(M_SAFETY_BREAK_ROW_T* p_row, bool b_is_diffused, bool b_is_high_tilt);
+static int mod_safety_get_power_for_distance(int distance, bool b_is_diffused, bool b_is_high_tilt);
 
 
 /* Exported functions --------------------------------------------------------*/
@@ -102,20 +118,23 @@ static int safety_logic_get_power_for_distance(int distance, bool b_is_diffused,
  * @return true 
  * @return false 
  */
-bool safety_logic_is_high_tilt(void)
+bool mod_safety_is_high_tilt(void)
 {
-	return g_sys_stt.acc_pointing_down_angle > safety_logic_get_tilt_break();
+	return g_sys_stt.acc_pointing_down_angle > mod_safety_get_tilt_break();
 }
 
 /**
  * @brief 
  * 
  */
-void safety_logic_update(void)
+void mod_safety_update(void)
 {
-	if (!b_safety_logic_is_radar_enabled)
+	if (!b_mod_safety_is_radar_enabled)
 	{
-		sprintf(safety_logic_action_desc, "Disabled");
+		sprintf(mod_safety_action_desc_str, "Disabled");
+
+		M_SAFETY_DBG_PRINT_TXT(mod_safety_action_desc_str);
+
 		return;
 	}
 
@@ -123,15 +142,20 @@ void safety_logic_update(void)
 
 	if (distance == -1)
 	{
-		sprintf(safety_logic_action_desc, "Radar failed -- 100%%");
-		g_sys_ctl.lamp_req_pwr_level = safety_logic_cap;
+		sprintf(mod_safety_action_desc_str, "Radar failed -- 100%%");
+		M_SAFETY_DBG_PRINT_TXT(mod_safety_action_desc_str);
+
+		if (g_sys_stt.is_power_ok)
+		{
+			g_sys_ctl.lamp_req_pwr_level = mod_safety_cap_pwlvl;
+		}
 
 		return;
 	}
 
-	M_LAMP_PWR_LEVEL_E lamp_pwr = safety_logic_get_power_for_distance(distance, 
+	M_LAMP_PWR_LEVEL_E lamp_pwr = mod_safety_get_power_for_distance(distance, 
 													   false, 
-													   safety_logic_is_high_tilt());
+													   mod_safety_is_high_tilt());
 
 	/* Ignore requests to strike if the lamp is off but the requested distance 
 	 * requires dimming doesn't currently matter since we do a binary on/off for 
@@ -141,35 +165,41 @@ void safety_logic_update(void)
 		(lamp_pwr != M_LAMP_PWR_100PCT_C) && 
 		(lamp_pwr != M_LAMP_PWR_OFF_C))
 	{
-		sprintf(safety_logic_action_desc, 
+		sprintf(mod_safety_action_desc_str, 
 				"Tooclose/%s", 
 				mod_lamp_get_power_level_str(lamp_pwr));
+		M_SAFETY_DBG_PRINT_TXT(mod_safety_action_desc_str);
 
 		return; 																// Can't strike to anything but 100%
 	}
 
-	if (lamp_pwr != safety_logic_debounce_new_level)
+	if (lamp_pwr != mod_safety_debounce_new_level_pwlvl)
 	{
-		safety_logic_debounce_new_level = lamp_pwr;
-		safety_logic_debounce_new_time = time_us_64();
+		mod_safety_debounce_new_level_pwlvl = lamp_pwr;
+		mod_safety_debounce_new_time = time_us_64();
 	}
 
 	
-	uint64_t debounce_us = (lamp_pwr == M_LAMP_PWR_OFF_C) ? DEBOUNCE_US_OFF : DEBOUNCE_US_ON;
+	uint64_t debounce_us = (lamp_pwr == M_LAMP_PWR_OFF_C) ? M_SAFETY_DEBOUNCE_US_OFF_C : M_SAFETY_DEBOUNCE_US_ON_C;
 
-	if ((time_us_64() - safety_logic_debounce_new_time) > debounce_us)
+	if ((time_us_64() - mod_safety_debounce_new_time) > debounce_us)
 	{
-		sprintf(safety_logic_action_desc, 
+		sprintf(mod_safety_action_desc_str, 
 				"Req %s", 
 				mod_lamp_get_power_level_str(lamp_pwr));
+		M_SAFETY_DBG_PRINT_TXT(mod_safety_action_desc_str);
 
-		g_sys_ctl.lamp_req_pwr_level = (safety_logic_cap < lamp_pwr ? safety_logic_cap : lamp_pwr);
+		if (g_sys_stt.is_power_ok)
+		{
+			g_sys_ctl.lamp_req_pwr_level = (mod_safety_cap_pwlvl < lamp_pwr ? mod_safety_cap_pwlvl : lamp_pwr);
+		}
 	}
 	else
 	{
-		sprintf(safety_logic_action_desc, 
+		sprintf(mod_safety_action_desc_str, 
 				"Debounce for req %s", 
 				mod_lamp_get_power_level_str(lamp_pwr));
+		M_SAFETY_DBG_PRINT_TXT(mod_safety_action_desc_str);
 	}
 }
 
@@ -178,9 +208,9 @@ void safety_logic_update(void)
  * 
  * @return char* 
  */
-char* safety_logic_get_state_desc(void)
+char* mod_safety_get_state_desc(void)
 {
-	return safety_logic_action_desc;
+	return mod_safety_action_desc_str;
 }
 
 /**
@@ -188,9 +218,9 @@ char* safety_logic_get_state_desc(void)
  * 
  * @param b_enable true/false state to enable/disable radar
  */
-void safety_logic_set_radar_enabled_state(bool b_enable)
+void mod_safety_set_radar_enabled_state(bool b_enable)
 {
-	b_safety_logic_is_radar_enabled = b_enable;
+	b_mod_safety_is_radar_enabled = b_enable;
 }
 
 /**
@@ -199,9 +229,9 @@ void safety_logic_set_radar_enabled_state(bool b_enable)
  * @return true 
  * @return false 
  */
-bool safety_logic_get_radar_enabled_state(void)
+bool mod_safety_get_radar_enabled_state(void)
 {
-	return b_safety_logic_is_radar_enabled;
+	return b_mod_safety_is_radar_enabled;
 }
 
 #if 0
@@ -209,9 +239,9 @@ bool safety_logic_get_radar_enabled_state(void)
  * @brief Toggles the radar enabled state
  * 
  */
-void safety_logic_toggle_radar_enabled_state(void)
+void mod_safety_toggle_radar_enabled_state(void)
 {
-	safety_logic_set_radar_enabled_state(!safety_logic_get_radar_enabled_state());
+	mod_safety_set_radar_enabled_state(!mod_safety_get_radar_enabled_state());
 }
 #endif
 
@@ -220,9 +250,9 @@ void safety_logic_toggle_radar_enabled_state(void)
  * 
  * @param pwr_level 
  */
-void safety_logic_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level)
+void mod_safety_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level)
 {
-	safety_logic_cap = pwr_level;
+	mod_safety_cap_pwlvl = pwr_level;
 }
 
 
@@ -233,7 +263,7 @@ void safety_logic_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level)
  * 
  * @return int 
  */
-static int safety_logic_get_tilt_break(void)
+static int mod_safety_get_tilt_break(void)
 {
 	return 32;
 }
@@ -246,7 +276,7 @@ static int safety_logic_get_tilt_break(void)
  * @param b_is_high_tilt 
  * @return int 
  */
-static int safety_logic_get_distance_for_break_row(BREAK_ROW_T* p_row, bool b_is_diffused, bool b_is_high_tilt)
+static int mod_safety_get_distance_for_break_row(M_SAFETY_BREAK_ROW_T* p_row, bool b_is_diffused, bool b_is_high_tilt)
 {
 	if (b_is_diffused && b_is_high_tilt)
 	{
@@ -274,12 +304,12 @@ static int safety_logic_get_distance_for_break_row(BREAK_ROW_T* p_row, bool b_is
  * @param b_is_high_tilt 
  * @return int 
  */
-static int safety_logic_get_power_for_distance(int distance, bool b_is_diffused, bool b_is_high_tilt)
+static int mod_safety_get_power_for_distance(int distance, bool b_is_diffused, bool b_is_high_tilt)
 {
 #if 0
 	for (M_LAMP_PWR_LEVEL_E idx = 0; idx < M_LAMP_PWR_100PCT_C; idx++)
 	{
-		if (distance <= safety_logic_get_distance_for_break_row(&breaks[idx], 
+		if (distance <= mod_safety_get_distance_for_break_row(&breaks[idx], 
 												   b_is_diffused, 
 												   b_is_high_tilt))
 		{

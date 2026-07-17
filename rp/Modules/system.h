@@ -71,6 +71,7 @@ typedef struct {
     uint8_t             is_24v_rail_on;
     uint8_t             is_power_ok;
     uint8_t             is_disp_on;
+    uint32_t            is_pwr_starting_up;
     SYS_TASKS_T         task;
     float               v_vbus;
     float               v_12v;

@@ -75,13 +75,13 @@ static void main_sys_init(void)
 	gpio_set_dir(6, GPIO_IN);
 
 	mod_sys_init();
+	mod_ctrl_init();
 	mod_ui_init();
 	mod_pow_init();
 	mod_sys_startup_wdt();
 #ifndef DEBUG_BUILD
 	mod_comm_init();
 #endif
-	mod_ctrl_init();
 }
 
 

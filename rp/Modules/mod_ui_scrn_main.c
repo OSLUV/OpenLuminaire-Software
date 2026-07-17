@@ -256,24 +256,24 @@ void mod_ui_main_handler(void)
     {
 		if (inactive || g_sys_stt.is_lamp_warming)
         {
-			lv_obj_add_state(mod_ui_main_slider_intensity, LV_STATE_USER_2);    // Grey it
-			lv_obj_add_state(mod_ui_main_lbl_slider, LV_STATE_USER_2);  
+			lv_obj_add_state(mod_ui_main_slider_intensity, LV_STATE_DISABLED);    // Grey it
+			lv_obj_add_state(mod_ui_main_lbl_slider, LV_STATE_DISABLED);  
 		}
         else
         {
-			lv_obj_clear_state(mod_ui_main_slider_intensity, LV_STATE_USER_2);  // Full color
-			lv_obj_clear_state(mod_ui_main_lbl_slider, LV_STATE_USER_2);
+			lv_obj_clear_state(mod_ui_main_slider_intensity, LV_STATE_DISABLED);  // Full color
+			lv_obj_clear_state(mod_ui_main_lbl_slider, LV_STATE_DISABLED);
 		}
     }
 	if (inactive)
     {
-        lv_obj_add_state(mod_ui_main_sw_radar, LV_STATE_USER_2);
-		lv_obj_add_state(mod_ui_main_lbl_radar, LV_STATE_USER_2);
+        lv_obj_add_state(mod_ui_main_sw_radar, LV_STATE_DISABLED);
+		lv_obj_add_state(mod_ui_main_lbl_radar, LV_STATE_DISABLED);
     }
     else
     {
-        lv_obj_clear_state(mod_ui_main_sw_radar, LV_STATE_USER_2);
-		lv_obj_clear_state(mod_ui_main_lbl_radar,  LV_STATE_USER_2);
+        lv_obj_clear_state(mod_ui_main_sw_radar, LV_STATE_DISABLED);
+		lv_obj_clear_state(mod_ui_main_lbl_radar,  LV_STATE_DISABLED);
 	}
 	
 	/* Update tilt data */
@@ -321,7 +321,9 @@ static void mod_ui_main_sw_radar_changed_callback(lv_event_t * e)
 
 static void mod_ui_main_slider_int_changed_callback(lv_event_t * e)
 {
-    uint32_t idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
+    uint32_t idx;
+
+    idx = lv_slider_get_value(lv_event_get_target(e)); /* 0–3 */
 
     g_sys_ctl.ui_dim_index = idx;
 }
@@ -453,8 +455,8 @@ static inline void mod_ui_main_set_radar_row(void)
     lv_label_set_text(mod_ui_main_lbl_radar, "RADAR");
     lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_title, 0);
     lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
-    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);
+    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_DISABLED);
+    lv_obj_add_style(mod_ui_main_lbl_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_DISABLED);
     
     mod_ui_main_sw_radar = lv_switch_create(row);
     if (g_sys_stt.task.radar_on)
@@ -466,8 +468,8 @@ static inline void mod_ui_main_set_radar_row(void)
     lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_switch_off, LV_PART_MAIN);
     lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_switch_on, LV_PART_MAIN | LV_STATE_CHECKED);
     lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_focus, LV_PART_MAIN | LV_STATE_FOCUSED);
-    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_inactive, LV_PART_MAIN      | LV_STATE_USER_2);     // body
-    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR | LV_STATE_USER_2);     // track
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_inactive, LV_PART_MAIN      | LV_STATE_DISABLED);     // body
+    lv_obj_add_style(mod_ui_main_sw_radar, &mod_ui_main_style_inactive, LV_PART_INDICATOR | LV_STATE_DISABLED);     // track
     lv_obj_add_event_cb(mod_ui_main_sw_radar, mod_ui_main_sw_radar_changed_callback, LV_EVENT_VALUE_CHANGED, NULL);
     lv_group_add_obj(mod_ui_main_lv_group, mod_ui_main_sw_radar);
 
@@ -496,7 +498,7 @@ static inline void mod_ui_main_set_lamp_dim_slider(void)
     lv_label_set_text(mod_ui_main_lbl_slider, "INTENSITY");
     lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_title, 0);
     lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_label_inv, LV_PART_MAIN | LV_STATE_USER_1);
-    lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);
+    lv_obj_add_style(mod_ui_main_lbl_slider, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_DISABLED);
 
     row = lv_obj_create(mod_ui_main_screen);
     lv_obj_add_style(row, &mod_ui_main_style_row, 0);
@@ -516,9 +518,9 @@ static inline void mod_ui_main_set_lamp_dim_slider(void)
     lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_slider_main, LV_PART_INDICATOR);
     lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_slider_knob, LV_PART_KNOB);
     
-    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_USER_2);  // rail
-    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_KNOB | LV_STATE_USER_2);  // knob
-    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_USER_2);  // filled part
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_MAIN | LV_STATE_DISABLED);  // rail
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_KNOB | LV_STATE_DISABLED);  // knob
+    lv_obj_add_style(mod_ui_main_slider_intensity, &mod_ui_main_style_inactive, LV_PART_INDICATOR| LV_STATE_DISABLED);  // filled part
     
     lv_slider_set_range(mod_ui_main_slider_intensity, 0, 3);                             /* 4 ticks */
     //lv_slider_set_value(mod_ui_main_slider_intensity, 3, LV_ANIM_OFF);                 /* Default level 3 = 100% */
@@ -546,7 +548,7 @@ static inline void mod_ui_main_set_lamp_dim_slider(void)
     {
         lv_obj_t *tl = lv_label_create(tick_row);
         lv_label_set_text(tl, ticks[i]);
-        lv_obj_add_style(tl, &mod_ui_main_style_tick, 0);                                /* white mono 12-pt */
+        lv_obj_add_style(tl, &mod_ui_main_style_tick, 0);                       /* white mono 12-pt */
     }
 }
 
@@ -574,7 +576,7 @@ static inline void mod_ui_main_set_tilt_row(void)
 
     /* Big value */
     mod_ui_main_lbl_tilt_val = lv_label_create(row);
-    lv_label_set_text(mod_ui_main_lbl_tilt_val, "--°");                                  /* default */
+    lv_label_set_text(mod_ui_main_lbl_tilt_val, "--°");                         /* default */
     lv_obj_add_style(mod_ui_main_lbl_tilt_val, &mod_ui_main_style_big, 0);
     lv_obj_set_x(lbl_tilt, 150);
     lv_obj_set_style_text_align(mod_ui_main_lbl_tilt_val, LV_TEXT_ALIGN_RIGHT, 0);

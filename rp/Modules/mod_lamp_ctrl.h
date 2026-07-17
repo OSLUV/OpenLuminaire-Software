@@ -21,6 +21,7 @@
 
 void mod_lamp_init(void);
 void mod_lamp_ctrl_handler(void);
+void mod_lamp_update_status(void);
 
 int8_t mod_lamp_perform_type_test(void);
 void mod_lamp_reset_type(void);

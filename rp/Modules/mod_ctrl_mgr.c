@@ -91,14 +91,17 @@ void mod_ctrl_manager(void)
 
     drv_radar_update();
 
-    mod_ctrl_lamp_handler();
+	if (!g_sys_stt.is_pwr_starting_up && g_sys_stt.is_power_ok)
+    {
+		mod_ctrl_lamp_handler();
+	}
 
 	if (g_sys_stt.lamp_type != M_LAMP_TYPE_UNKNOWN_C)
 	{
-		safety_logic_update();
+		mod_safety_update();
 	}
 
-	if (b_mod_ctrl_is_startup)
+	if (!g_sys_stt.is_pwr_starting_up && g_sys_stt.is_power_ok && b_mod_ctrl_is_startup)
 	{
 		b_mod_ctrl_is_startup = false;
 	}
@@ -256,6 +259,16 @@ static void mod_ctrl_lamp_handler(void)
 {
 	M_LAMP_PWR_LEVEL_E lamp_power_setting;
 
+	if (b_mod_ctrl_is_startup && g_sys_stt.is_power_ok)
+	{
+		M_CTRL_DBG_PRINT_TXT("Requesting lamp test at startup");
+
+		g_sys_ctl.task.lamp_test_b = 1;
+	}
+
+	mod_ctrl_lamp_test_handler();
+	mod_ctrl_lamp_test_n_reboot_handler();
+
 	if (g_sys_ctl.ui_dim_index > M_CTRL_MAX_DIM_LEVELS_C)
 	{
 		g_sys_ctl.ui_dim_index = M_CTRL_MAX_DIM_LEVELS_C;
@@ -272,63 +285,77 @@ static void mod_ctrl_lamp_handler(void)
 		g_sys_ctl.task.save_cfg = 1;
 	}
 
-	if (b_mod_ctrl_is_startup ||
-		(g_sys_ctl.task.lamp_on     != g_sys_stt.task.lamp_on) || 
-	    (g_sys_stt.lamp_power_level != lamp_power_setting))
+	if (!g_sys_stt.is_pwr_starting_up && g_sys_stt.is_power_ok && 
+		!g_sys_stt.task.lamp_test_b)
 	{
-		if (g_sys_ctl.task.lamp_on)
+		if (b_mod_ctrl_is_startup ||
+			(g_sys_ctl.task.lamp_on != g_sys_stt.task.lamp_on    ) || 
+			(lamp_power_setting     != g_sys_stt.lamp_power_level))
 		{
-			if (g_sys_stt.task.radar_on)
+			if (b_mod_ctrl_is_startup && 
+				(g_sys_ctl.lamp_req_pwr_level != lamp_power_setting))
 			{
-				safety_logic_set_radar_enabled_state(true);
-				safety_logic_set_cap_power(lamp_power_setting);
+				M_CTRL_DBG_PRINT_TXT("Setting lamp state at startup: lamp %s, power %s",
+									g_sys_ctl.task.lamp_on ? "ON" : "OFF",
+									mod_lamp_get_power_level_str(lamp_power_setting));
+			}
+
+			if (g_sys_ctl.task.lamp_on)
+			{
+				if (g_sys_stt.task.radar_on)
+				{
+					mod_safety_set_radar_enabled_state(true);
+					mod_safety_set_cap_power(lamp_power_setting);
+				}
+				else
+				{
+					mod_safety_set_radar_enabled_state(false);
+
+					g_sys_ctl.lamp_req_pwr_level = lamp_power_setting;
+				}
 			}
 			else
 			{
-				safety_logic_set_radar_enabled_state(false);
+				mod_safety_set_radar_enabled_state(false);
 
-				g_sys_ctl.lamp_req_pwr_level = lamp_power_setting;
+				g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_OFF_C;
 			}
+
+			g_sys_stt.task.lamp_on = g_sys_ctl.task.lamp_on;
+
+			drv_cfg_set_power_state(g_sys_ctl.task.lamp_on);
+
+			g_sys_ctl.task.save_cfg = 1;
 		}
-		else
+
+		if (g_sys_ctl.task.radar_on != g_sys_stt.task.radar_on)
 		{
-			safety_logic_set_radar_enabled_state(false);
+			if (g_sys_stt.task.radar_on)
+			{
+				mod_safety_set_radar_enabled_state(true);
+				mod_safety_set_cap_power(lamp_power_setting); 						// TODO: Power settings depend on radar on/off state ?
+			}
+			else
+			{
+				mod_safety_set_radar_enabled_state(false);
 
-        	g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_OFF_C;
+				g_sys_ctl.lamp_req_pwr_level = lamp_power_setting; 					// TODO: Power settings depend on radar on/off state ?
+			}
+
+			g_sys_stt.task.radar_on = g_sys_ctl.task.radar_on;
+
+			drv_cfg_set_radar_state(g_sys_ctl.task.radar_on);
+
+			g_sys_ctl.task.save_cfg = 1;
 		}
-
-		g_sys_stt.task.lamp_on = g_sys_ctl.task.lamp_on;
-
-		drv_cfg_set_power_state(g_sys_ctl.task.lamp_on);
-
-		g_sys_ctl.task.save_cfg = 1;
 	}
 
-	if (g_sys_ctl.task.radar_on != g_sys_stt.task.radar_on)
+	if (!g_sys_stt.is_pwr_starting_up && g_sys_stt.is_power_ok && 
+		!g_sys_stt.task.lamp_test_b)
 	{
-		if (g_sys_stt.task.radar_on)
-		{
-			safety_logic_set_radar_enabled_state(true);
-			safety_logic_set_cap_power(lamp_power_setting); 					// TODO: Power settings depend on radar on/off state ?
-		}
-		else
-		{
-			safety_logic_set_radar_enabled_state(false);
-
-			g_sys_ctl.lamp_req_pwr_level = lamp_power_setting; 					// TODO: Power settings depend on radar on/off state ?
-		}
-
-		g_sys_stt.task.radar_on = g_sys_ctl.task.radar_on;
-
-		drv_cfg_set_radar_state(g_sys_ctl.task.radar_on);
-
-		g_sys_ctl.task.save_cfg = 1;
+		mod_lamp_ctrl_handler();
 	}
-
-    mod_lamp_ctrl_handler();
-
-	mod_ctrl_lamp_test_handler();
-	mod_ctrl_lamp_test_n_reboot_handler();
+	mod_lamp_update_status();
 }
 
 /**

@@ -134,6 +134,35 @@ void ui_loading_splash_image_open(lv_event_cb_t on_exit_cb)
 	lv_timer_handler();                                                         // Flush once so it appears
 }
 
+void ui_loading_load_psu_screen(void)
+{
+    if (ui_loading_lv_psu_screen == NULL)
+    {
+        ui_loading_lv_psu_screen = lv_obj_create(NULL);
+        lv_obj_set_style_bg_color(ui_loading_lv_psu_screen, lv_color_black(), 0);
+        lv_obj_clear_flag(ui_loading_lv_psu_screen, LV_OBJ_FLAG_SCROLLABLE);
+
+        /* Main error content — centered */
+        ui_loading_lv_psu_label = lv_label_create(ui_loading_lv_psu_screen);
+        lv_label_set_text(ui_loading_lv_psu_label, ui_loading_get_psu_error_msg());
+        lv_obj_set_style_text_color(ui_loading_lv_psu_label, lv_color_white(), 0);
+        lv_obj_set_style_text_align(ui_loading_lv_psu_label, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_text_font(ui_loading_lv_psu_label, &lv_font_montserrat_24, 0);
+        lv_obj_align(ui_loading_lv_psu_label, LV_ALIGN_CENTER, 0, -15);
+
+        /* Status line — bottom of screen */
+        ui_loading_lv_psu_status = lv_label_create(ui_loading_lv_psu_screen);
+        lv_label_set_text(ui_loading_lv_psu_status, "");
+        lv_obj_set_style_text_color(ui_loading_lv_psu_status, lv_color_white(), 0);
+        lv_obj_set_style_text_align(ui_loading_lv_psu_status, LV_TEXT_ALIGN_CENTER, 0);
+        lv_obj_set_style_text_font(ui_loading_lv_psu_status, &lv_font_montserrat_24, 0);
+        lv_obj_align(ui_loading_lv_psu_status, LV_ALIGN_BOTTOM_MID, 0, -10);
+    }
+
+    lv_scr_load(ui_loading_lv_psu_screen);
+//	lv_timer_handler();
+}
+
 /**
  * @brief Show PSU
  * 
@@ -150,32 +179,14 @@ void ui_loading_show_psu(void)
                               ui_loading_get_psu_error_msg(),
                               g_sys_stt.v_vbus, g_sys_stt.v_12v, g_sys_stt.v_24v);
         lv_label_set_text(ui_loading_lv_psu_status, "");
-        lv_scr_load(ui_loading_lv_psu_screen);
-        return;
+        //lv_scr_load(ui_loading_lv_psu_screen);
+    }
+    else
+    {
+        ui_loading_load_psu_screen();
     }
 
-    ui_loading_lv_psu_screen = lv_obj_create(NULL);
-    lv_obj_set_style_bg_color(ui_loading_lv_psu_screen, lv_color_black(), 0);
-    lv_obj_clear_flag(ui_loading_lv_psu_screen, LV_OBJ_FLAG_SCROLLABLE);
-
-    /* Main error content — centered */
-    ui_loading_lv_psu_label = lv_label_create(ui_loading_lv_psu_screen);
-    lv_label_set_text(ui_loading_lv_psu_label, ui_loading_get_psu_error_msg());
-    lv_obj_set_style_text_color(ui_loading_lv_psu_label, lv_color_white(), 0);
-    lv_obj_set_style_text_align(ui_loading_lv_psu_label, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_font(ui_loading_lv_psu_label, &lv_font_montserrat_24, 0);
-    lv_obj_align(ui_loading_lv_psu_label, LV_ALIGN_CENTER, 0, -15);
-
-    /* Status line — bottom of screen */
-    ui_loading_lv_psu_status = lv_label_create(ui_loading_lv_psu_screen);
-    lv_label_set_text(ui_loading_lv_psu_status, "");
-    lv_obj_set_style_text_color(ui_loading_lv_psu_status, lv_color_white(), 0);
-    lv_obj_set_style_text_align(ui_loading_lv_psu_status, LV_TEXT_ALIGN_CENTER, 0);
-    lv_obj_set_style_text_font(ui_loading_lv_psu_status, &lv_font_montserrat_24, 0);
-    lv_obj_align(ui_loading_lv_psu_status, LV_ALIGN_BOTTOM_MID, 0, -10);
-
-    lv_scr_load(ui_loading_lv_psu_screen);
-	lv_timer_handler();
+    lv_timer_handler();
 }
 
 /**

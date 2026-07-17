@@ -202,6 +202,7 @@ static void mod_ui_screen_handler(void)
 			
 			case M_UI_SCRN_LOADING_C:
 				mod_ui_loading_retry_tmout = 0;
+				ui_loading_load_psu_screen();
 			break;
 			
 			case M_UI_SCRN_MAIN_C:
@@ -271,7 +272,7 @@ static void mod_ui_splash_screen_handler(void)
 		break;
 
 		case 1:
-			if (!g_sys_stt.is_rails_powering_on && (get_absolute_time() > mod_ui_splash_tmout))
+			if (!g_sys_stt.is_pwr_starting_up && (get_absolute_time() > mod_ui_splash_tmout))
 			{
 				b_mod_ui_is_booting = false;
 
@@ -310,7 +311,7 @@ static void mod_ui_main_screen_handler(void)
 	{
 		mod_ui_main_handler();
 	}
-	else
+	else if (!g_sys_stt.is_pwr_starting_up) 
 	{
 		M_UI_DBG_PRINT_TXT("Switching to LOADING screen due to power levels");
 
@@ -350,11 +351,28 @@ static void mod_ui_psu_screen_handler(void)
 			if ((mod_ui_loading_retry_tmout == 0) || 
 				(get_absolute_time() > mod_ui_loading_retry_tmout))
 			{
-				ui_loading_show_psu_status("Retrying...");
+				if (!g_sys_stt.task.lamp_test_b) 								// Lamp test is not already on-going ?
+				{
+					M_UI_DBG_PRINT_TXT("Requesting lamp test at PSU screen handler");
 
-				g_sys_ctl.task.lamp_test_b = 1;
+					ui_loading_show_psu_status("Retrying...");
 
-				stt_mchn++;
+					g_sys_ctl.task.lamp_test_b = 1; // TODO: This retrying task would be better to be managed in Power Manager
+
+					g_sys_ctl.task.rails_on = 1;
+
+					stt_mchn++;
+				}
+				else if (get_absolute_time() > mod_ui_loading_retry_tmout)
+				{
+					mod_ui_loading_retry_tmout = make_timeout_time_ms(M_UI_LOADING_RETRY_TM_MS_C);
+				}
+			}
+			else if (g_sys_stt.is_power_ok)
+			{
+				M_UI_DBG_PRINT_TXT("Power restored. Switching to MAIN screen");
+			
+				g_mod_ui_new_screen = M_UI_SCRN_MAIN_C;
 			}
 		break;
 
@@ -362,6 +380,14 @@ static void mod_ui_psu_screen_handler(void)
 			if (!g_sys_ctl.task.lamp_test_b && g_sys_stt.task.lamp_test_b)		// Lamp test is being executed?
 			{
 				stt_mchn++;
+			}
+			else
+			{
+				M_UI_DBG_PRINT_TXT("Lamp test was not processed.");
+
+				mod_ui_loading_retry_tmout = make_timeout_time_ms(M_UI_LOADING_RETRY_TM_MS_C);
+
+				stt_mchn = 0;
 			}
 		break;
 

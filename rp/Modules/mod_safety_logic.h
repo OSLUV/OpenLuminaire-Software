@@ -16,13 +16,13 @@
 
 /* Exported functions prototypes ---------------------------------------------*/
 
-bool safety_logic_is_high_tilt(void);
-void safety_logic_update(void);
-char* safety_logic_get_state_desc(void);
-void safety_logic_set_radar_enabled_state(bool b_enable);
-bool safety_logic_get_radar_enabled_state(void);
-void safety_logic_toggle_radar_enabled_state(void);
-void safety_logic_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level);
+bool mod_safety_is_high_tilt(void);
+void mod_safety_update(void);
+char* mod_safety_get_state_desc(void);
+void mod_safety_set_radar_enabled_state(bool b_enable);
+bool mod_safety_get_radar_enabled_state(void);
+void mod_safety_toggle_radar_enabled_state(void);
+void mod_safety_set_cap_power(M_LAMP_PWR_LEVEL_E pwr_level);
 
 
 #endif /* _M_SAFETY_LOGIC_H_ */

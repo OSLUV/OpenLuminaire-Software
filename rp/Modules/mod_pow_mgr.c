@@ -101,16 +101,20 @@ void mod_pow_init(void)
 
 	mod_pow_get_hw_revision();
 
+	g_mod_pow_is_usb_connected_b = false;
 	mod_pow_last_usb_conn_stt = drv_usb_pd_is_connected();
 	if (mod_pow_last_usb_conn_stt)
 	{
 		drv_usb_pd_negotiate(true);
+
+		g_mod_pow_is_usb_connected_b = true;
 	}
 
 	g_mod_pow_usb_negotiated_ma = drv_usb_pd_get_negotiated_ma();
 	g_mod_pow_usb_negotiated_mv = drv_usb_pd_get_negotiated_mv();
 
 	g_sys_ctl.task.rails_on = true; 											// Request power rails
+	g_sys_stt.is_pwr_starting_up = true;
 }
 
 /**
@@ -209,14 +213,40 @@ static void mod_pow_get_hw_revision(void)
  */
 static void mod_pow_monitor(void)
 {
-	if (g_sys_stt.is_12v_rail_on && mod_pow_is_12v_rail_in_range() && 
-		g_sys_stt.is_24v_rail_on && mod_pow_is_24v_rail_in_range())
+#ifdef DEBUG_BUILD
+	static uint8_t warning_flg = false;
+#endif
+
+	if (!g_sys_stt.is_pwr_starting_up)
 	{
-		g_sys_stt.is_power_ok = true;
-	}
-	else
-	{
-		g_sys_stt.is_power_ok = false;
+		if (g_sys_stt.is_12v_rail_on && mod_pow_is_12v_rail_in_range() && 
+			g_sys_stt.is_24v_rail_on && mod_pow_is_24v_rail_in_range())
+		{
+			g_sys_stt.is_power_ok = true;
+
+#ifdef DEBUG_BUILD
+			warning_flg = false;
+#endif
+		}
+		else
+		{
+			g_sys_stt.is_power_ok = false;
+
+#ifdef DEBUG_BUILD
+			if (!warning_flg)
+			{
+				warning_flg = true;
+
+				M_POW_DBG_PRINT_WRN("Power fail detected: 24V rail: %s (%.2fV %s range), 12V rail: %s (%.2fV %s range)",
+									g_sys_stt.is_24v_rail_on ? "On":"Off",
+									g_sys_stt.v_24v,
+									mod_pow_is_24v_rail_in_range() ? "In":"Out of",
+									g_sys_stt.is_12v_rail_on ? "On":"Off",
+									g_sys_stt.v_12v,
+									mod_pow_is_12v_rail_in_range() ? "In":"Out of");
+			}
+#endif
+		}
 	}
 }
 
@@ -227,7 +257,7 @@ static void mod_pow_monitor(void)
 static void mod_pow_usb_hot_plug_handler(void)
 {
 	if (mod_pow_last_usb_conn_stt == M_POW_USB_UNPLUGGED_C)
-	{ 
+	{
 	    if (drv_usb_pd_is_connected())
 		{
 			/* USB just hot-plugged — write board-safe PDOs and reset so the
@@ -261,7 +291,7 @@ static void mod_pow_usb_hot_plug_handler(void)
 			M_POW_DBG_PRINT_TXT("USB-C disconnected");
 
 			mod_pow_last_usb_conn_stt    = M_POW_USB_UNPLUGGED_C;
-			g_mod_pow_is_usb_connected_b = true;
+			g_mod_pow_is_usb_connected_b = false;
 		}
 	}
 }
@@ -297,6 +327,8 @@ static void mod_pow_rails_ctrl_handler(void)
 						M_POW_DBG_PRINT_ERR("FAIL: 24V pre-check out of range (%.2fV)", g_sys_stt.v_24v);
 
 						g_sys_ctl.task.rails_on = 0;
+
+						g_sys_stt.is_pwr_starting_up = false;
 					}
 					else 
 					{
@@ -313,6 +345,8 @@ static void mod_pow_rails_ctrl_handler(void)
 						M_POW_DBG_PRINT_ERR("FAIL: 12V pre-check out of range (%.2fV)", g_sys_stt.v_12v);
 						
 						g_sys_ctl.task.rails_on = 0;
+
+						g_sys_stt.is_pwr_starting_up = false;
 					}
 					else 
 					{
@@ -352,6 +386,8 @@ static void mod_pow_rails_ctrl_handler(void)
 					g_sys_stt.is_rails_powering_on  = 0;
 					g_sys_stt.is_rails_powering_off = 1;
 
+					g_sys_stt.is_pwr_starting_up = false;
+
 					stt_mchn = PWR_RAILS_REV1_1_OFF_C;
 				break;
 
@@ -365,6 +401,8 @@ static void mod_pow_rails_ctrl_handler(void)
 
 					g_sys_stt.is_rails_powering_on  = 0;
 					g_sys_stt.is_rails_powering_off = 0;
+
+					g_sys_stt.is_pwr_starting_up = false;
 
 					mod_pow_v_src_adc_monitor();
 
@@ -428,6 +466,8 @@ static void mod_pow_rails_ctrl_handler(void)
 					g_sys_stt.is_rails_powering_on  = 0;
 					g_sys_stt.is_rails_powering_off = 1;
 
+					g_sys_stt.is_pwr_starting_up = false;
+
 					stt_mchn = PWR_RAILS_REV1_2_OFF_C;
 				break;
 
@@ -441,6 +481,8 @@ static void mod_pow_rails_ctrl_handler(void)
 
 					g_sys_stt.is_rails_powering_on  = 0;
 					g_sys_stt.is_rails_powering_off = 0;
+
+					g_sys_stt.is_pwr_starting_up = false;
 
 					mod_pow_v_src_adc_monitor();
 
@@ -621,7 +663,7 @@ static int8_t mod_pow_rails_on_v1_2_handler(void)
 		case 1:
 			if (get_absolute_time() >= mod_pow_rail_delay_tmout) 				// Is delay finished ?
 			{
-				M_POW_DBG_PRINT_TXT("24V post-enable: g_sys_stt.v_24v = %.2f", 
+				M_POW_DBG_PRINT_TXT("24V post-enable: g_sys_stt.v_24v = %.2fV", 
 									g_sys_stt.v_24v);
 
 				if (mod_pow_is_24v_rail_in_range())
@@ -658,7 +700,8 @@ static int8_t mod_pow_rails_on_v1_2_handler(void)
 		case 3:
 			if (get_absolute_time() >= mod_pow_rail_delay_tmout) 				// Is delay finished ?
 			{
-				M_POW_DBG_PRINT_TXT("12V post-enable: g_sys_stt.v_12v=%.2f", g_sys_stt.v_12v);
+				M_POW_DBG_PRINT_TXT("12V post-enable: g_sys_stt.v_12v = %.2fV", 
+									g_sys_stt.v_12v);
 
 				if (mod_pow_is_12v_rail_in_range())
 				{

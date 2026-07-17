@@ -90,7 +90,7 @@ void mod_lamp_init(void)
 
 	mod_lamp_req_pwr_level 			= M_LAMP_PWR_OFF_C;
 
-	M_LAMP_DBG_PRINT_TXT("Determined type from flash: %d", 
+	M_LAMP_DBG_PRINT_TXT("Determined type from flash: %s", 
 						 mod_lamp_get_lamp_type_str(g_sys_stt.lamp_type));
 
 	drv_lamp_init();
@@ -372,7 +372,14 @@ void mod_lamp_ctrl_handler(void)
 	{
 		drv_lamp_disable();
 	}
+}
 
+/**
+ * @brief Updates lamp control status flags
+ * 
+ */
+void mod_lamp_update_status(void)
+{
 	mod_lamp_power_source_monitor();
 
 	g_sys_stt.is_lamp_warming   = mod_lamp_is_warming();
@@ -404,7 +411,8 @@ int8_t mod_lamp_perform_type_test(void)
 	switch (stt_mchn)
 	{
 		case 0:
-			if (g_sys_stt.lamp_type == M_LAMP_TYPE_UNKNOWN_C)
+			if (g_sys_stt.is_power_ok && 
+				(g_sys_stt.lamp_type == M_LAMP_TYPE_UNKNOWN_C))
 			{
 				M_LAMP_DBG_PRINT_TXT("Performing lamp type test");
 
@@ -654,9 +662,7 @@ static inline bool mod_lamp_is_warming(void)
 }
 /**
  * @brief Request lamp to set a power level
- * 
- * If requested power level is already satisfied, the process will return true
- * 
+ *  
  */
 static void mod_lamp_request_power_level(void)
 {
@@ -687,7 +693,9 @@ static void mod_lamp_request_power_level(void)
 			(g_sys_ctl.lamp_req_pwr_level != M_LAMP_PWR_100PCT_C))
 		{
 			M_LAMP_DBG_PRINT_WRN("Reject dimmed control point for lamp not known to dim");
+
 			g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_NONE_C;
+
 			return;
 		}
 	}
@@ -695,11 +703,14 @@ static void mod_lamp_request_power_level(void)
 	if (requested_on && (!g_sys_stt.is_12v_rail_on || !g_sys_stt.is_24v_rail_on))
 	{
 		M_LAMP_DBG_PRINT_WRN("Reject turn on lamp without both rails on");
+
 		g_sys_ctl.lamp_req_pwr_level = M_LAMP_PWR_NONE_C;
+
 		return;
 	}
 
-	if ((g_sys_stt.lamp_power_level == M_LAMP_PWR_OFF_C) &&
+	if (((g_sys_stt.lamp_power_level == M_LAMP_PWR_UNKNOWN_C) ||
+		 (g_sys_stt.lamp_power_level == M_LAMP_PWR_OFF_C)) &&
 		(g_sys_ctl.lamp_req_pwr_level != M_LAMP_PWR_OFF_C))
 	{
 		g_sys_stt.lamp_state = M_LAMP_STATE_STARTING_C;
@@ -729,10 +740,15 @@ static void mod_lamp_power_source_monitor(void)
 	switch (stt_mchn)
 	{
 		case 0:
-			if ((g_sys_stt.lamp_state != M_LAMP_STATE_OFF_C) && !g_sys_stt.is_power_ok)
+			if (!g_sys_stt.is_pwr_starting_up &&
+				(g_sys_stt.lamp_type  != M_LAMP_TYPE_UNKNOWN_C) &&
+				!g_sys_stt.task.lamp_test_b &&
+				(g_sys_stt.lamp_state != M_LAMP_STATE_OFF_C)    &&
+				!g_sys_stt.is_power_ok)
 			{
-				M_LAMP_DBG_PRINT_ERR("EMERGENCY SHUTDOWN: VBUS=%.2f 12V=%.2f 24V=%.2f",
-			   				 		 g_sys_stt.v_vbus, g_sys_stt.v_12v, g_sys_stt.v_24v);
+				M_LAMP_DBG_PRINT_ERR("EMERGENCY SHUTDOWN: state: %s, VBUS=%.2f 12V=%.2f 24V=%.2f",
+			   				 		 mod_lamp_get_lamp_state_str(g_sys_stt.lamp_state), 
+									 g_sys_stt.v_vbus, g_sys_stt.v_12v, g_sys_stt.v_24v);
 
 				drv_lamp_enable();  											// Possible intentional discharge
 
