@@ -9,9 +9,12 @@
  *       out on the channel the command arrived on. Firmware log output
  *       (printf) is interleaved with responses on the USB channel.
  *
- * @note The USB channel echoes input (with backspace editing) for interactive
- *       terminal use. The UART channel does not echo, preserving the legacy
- *       protocol byte stream for existing external controllers.
+ * @note The USB channel is interactive: it echoes input (with backspace
+ *       editing) and shows a command help on bare ENTER, "--help", or an
+ *       invalid command. The UART channel does not echo and keeps its
+ *       compact ERR-only replies, preserving the legacy protocol byte
+ *       stream for existing external controllers ("--help" still answers
+ *       there, since no controller ever sends it).
  */
 
 
@@ -57,6 +60,7 @@
 #define CMD_OK_S                "OK"
 #define CMD_ERR_S               "ERR"
 #define CMD_TMOUT_S             "TOUT"
+#define CMD_HELP_CMD_S          "--help"
 
 #define CMD_TMOUT_MS_C          2000                                            /* Timeout in ms to wait for more data to arrive.
                                                                                    Long enough to type commands interactively in a
@@ -80,7 +84,8 @@ typedef struct {
     uint8_t         buf[CMD_MAX_LEN_C];                                         /* Command assembly buffer */
     uint16_t        idx;                                                        /* Next free position in buf */
     absolute_time_t tmout;                                                      /* Inter-byte timeout deadline */
-    bool            echo;                                                       /* Echo input back (interactive terminals) */
+    bool            interactive;                                                /* Echo input + show help (terminal use) */
+    uint8_t         prev_rx;                                                    /* Previous received byte (CR+LF collapsing) */
     uint16_t        (*p_recv)(uint8_t *p_buf, uint16_t max_len);                /* Pulls received bytes from the channel */
     void            (*p_send)(uint8_t *p_data, uint16_t len);                   /* Sends response bytes to the channel */
 
@@ -111,12 +116,28 @@ static const CMD_CTL_T  cmd_list[] =
 static CMD_CHANNEL_T    cmd_uart_channel;                                       /* Dedicated command UART (uart1)  */
 static CMD_CHANNEL_T    cmd_usb_channel;                                        /* USB CDC stdio port              */
 
+/* Keep in sync with cmd_list and the GET-only special cases in m_cmd_process */
+static const char       cmd_help_str[] =
+    "\r\n"
+    "OSLUV lamp serial commands\r\n"
+    "  G:L                 lamp state (1=on 0=off)\r\n"
+    "  S:L:<0|1>           lamp off / on\r\n"
+    "  G:D                 dim level (percent)\r\n"
+    "  S:D:<20|40|70|100>  set dim level (dimmable lamps only)\r\n"
+    "  G:N                 serial number\r\n"
+    "  G:H                 lamp-on time, whole hours\r\n"
+    "  G:T                 lamp-on time, seconds\r\n"
+    "  --help              this help\r\n"
+    "End commands with ENTER. Failures answer :ERR; idle partial\r\n"
+    "input is dropped after 2 s with :TOUT.\r\n";
+
 
 /* Callback prototypes -------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
 static void     m_cmd_channel_handler(CMD_CHANNEL_T *p_ch);
 static void     m_cmd_process(CMD_CHANNEL_T *p_ch);
+static void     m_cmd_send_help(CMD_CHANNEL_T *p_ch);
 static uint16_t m_cmd_uart_recv(uint8_t *p_buf, uint16_t max_len);
 static uint16_t m_cmd_usb_recv(uint8_t *p_buf, uint16_t max_len);
 static void     m_cmd_usb_send(uint8_t *p_data, uint16_t len);
@@ -131,14 +152,14 @@ static void     m_cmd_usb_send(uint8_t *p_data, uint16_t len);
 void m_cmd_init(void)
 {
     memset(&cmd_uart_channel, 0, sizeof(cmd_uart_channel));
-    cmd_uart_channel.echo   = false;                                            /* Legacy protocol: existing controllers expect no echo */
-    cmd_uart_channel.p_recv = m_cmd_uart_recv;
-    cmd_uart_channel.p_send = uart_cmd_send_data;
+    cmd_uart_channel.interactive = false;                                       /* Legacy protocol: no echo, no help spam */
+    cmd_uart_channel.p_recv      = m_cmd_uart_recv;
+    cmd_uart_channel.p_send      = uart_cmd_send_data;
 
     memset(&cmd_usb_channel, 0, sizeof(cmd_usb_channel));
-    cmd_usb_channel.echo    = true;                                             /* Interactive terminal port */
-    cmd_usb_channel.p_recv  = m_cmd_usb_recv;
-    cmd_usb_channel.p_send  = m_cmd_usb_send;
+    cmd_usb_channel.interactive  = true;                                        /* Interactive terminal port */
+    cmd_usb_channel.p_recv       = m_cmd_usb_recv;
+    cmd_usb_channel.p_send       = m_cmd_usb_send;
 
     uart_cmd_init();
 }
@@ -200,10 +221,10 @@ int16_t lamp_get_dim(uint16_t value)
  * @brief Accumulates received bytes for one command channel and processes each
  * command as its CR/LF terminator arrives
  *
- * @note Interactive niceties: on channels with echo enabled, input is echoed
- * back (Enter as CRLF, backspace as erase). Backspace/DEL edits the pending
- * command on all channels, and a bare Enter is ignored instead of answered
- * with ERR.
+ * @note Interactive niceties on channels with the interactive flag: input is
+ * echoed back (Enter as CRLF, backspace as erase) and a bare ENTER press
+ * shows the command help. Backspace/DEL edits the pending command on all
+ * channels.
  *
  * @note A command that overruns the buffer without a terminator is dropped
  * and answered with @ref CMD_ERR_S; a partial command with no further bytes
@@ -227,23 +248,30 @@ static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
 
             if ((rx_byte == CMD_CR_CHAR_C) || (rx_byte == CMD_LF_CHAR_C))
             {
-                if (p_ch->idx == 0)                                             /* Bare Enter, or the LF of a split CR+LF pair: ignore */
+                if (p_ch->idx == 0)                                             /* No pending command */
                 {
-                    continue;
+                    if (p_ch->interactive &&
+                        !((rx_byte == CMD_LF_CHAR_C) &&
+                          (p_ch->prev_rx == CMD_CR_CHAR_C)))                    /* The LF completing a CR+LF pair is not a new ENTER */
+                    {
+                        m_cmd_send_help(p_ch);                                  /* Bare ENTER: show the help */
+                    }
                 }
-
-                if (p_ch->echo)
+                else
                 {
-                    p_ch->p_send((uint8_t*)"\r\n", 2);
+                    if (p_ch->interactive)
+                    {
+                        p_ch->p_send((uint8_t*)"\r\n", 2);
+                    }
+
+                    p_ch->buf[p_ch->idx++] = rx_byte;                           /* Parser delimits fields on the terminator */
+
+                    m_cmd_process(p_ch);
+
+                    memset(p_ch->buf, 0, sizeof(p_ch->buf));
+
+                    p_ch->idx = 0;
                 }
-
-                p_ch->buf[p_ch->idx++] = rx_byte;                               /* Parser delimits fields on the terminator */
-
-                m_cmd_process(p_ch);
-
-                memset(p_ch->buf, 0, sizeof(p_ch->buf));
-
-                p_ch->idx = 0;
             }
             else if ((rx_byte == CMD_BS_CHAR_C) || (rx_byte == CMD_DEL_CHAR_C))
             {
@@ -252,7 +280,7 @@ static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
                     p_ch->idx--;
                     p_ch->buf[p_ch->idx] = 0;
 
-                    if (p_ch->echo)
+                    if (p_ch->interactive)
                     {
                         p_ch->p_send((uint8_t*)"\b \b", 3);                     /* Erase the char on the terminal */
                     }
@@ -274,11 +302,13 @@ static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
             {
                 p_ch->buf[p_ch->idx++] = rx_byte;
 
-                if (p_ch->echo)
+                if (p_ch->interactive)
                 {
                     p_ch->p_send(&rx_byte, 1);
                 }
             }
+
+            p_ch->prev_rx = rx_byte;
         }
 
         p_ch->tmout = (p_ch->idx > 0) ? make_timeout_time_ms(CMD_TMOUT_MS_C)
@@ -371,6 +401,16 @@ static void m_cmd_usb_send(uint8_t *p_data, uint16_t len)
 }
 
 /**
+ * @brief Sends the terminal help text listing all commands
+ *
+ * @param p_ch Command channel to answer on
+ */
+static void m_cmd_send_help(CMD_CHANNEL_T *p_ch)
+{
+    p_ch->p_send((uint8_t*)cmd_help_str, strlen(cmd_help_str));
+}
+
+/**
  * @brief Processes the received command and executes defined routine according
  * to commands list @ref cmd_list.
  * 
@@ -399,6 +439,13 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
     uint8_t param_str[CMD_MAX_PARAM_LEN_C];
     uint8_t value_str[CMD_MAX_VAL_LEN_C];
     uint16_t value;
+
+    /* Explicit help request (answered on any channel). */
+    if (strstr((char*)p_ch->buf, CMD_HELP_CMD_S))
+    {
+        m_cmd_send_help(p_ch);
+        return;
+    }
 
     /* GET-only parameters whose values don't fit the int16_t GET-callback
      * path are answered directly here, before the generic parse. */
@@ -551,7 +598,7 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
                             {
                                 /* Value invalid for the received parameter */
 
-                                sprintf(string, 
+                                sprintf(string,
                                         "%s:%s:%d:%s\r\n",
                                         inst_str,
                                         param_str,
@@ -559,6 +606,11 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
                                         CMD_ERR_S);
 
                                 p_ch->p_send(string, strlen(string));
+
+                                if (p_ch->interactive)
+                                {
+                                    m_cmd_send_help(p_ch);
+                                }
                             }
                         }
                         else
@@ -587,7 +639,7 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
                         }
                         else
                         {
-                            sprintf(string, 
+                            sprintf(string,
                                     "%s:%s:%s\r\n",
                                     inst_str,
                                     param_str,
@@ -595,6 +647,11 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
                         }
 
                         p_ch->p_send(string, strlen(string));
+
+                        if (p_ch->interactive)
+                        {
+                            m_cmd_send_help(p_ch);
+                        }
                     }
                 }
             }
@@ -604,7 +661,7 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
 
         if (!args_valid)
         {
-            sprintf(string, 
+            sprintf(string,
                     "%s:%s:%s:%s\r\n",
                     inst_str,
                     param_str,
@@ -612,6 +669,11 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
                     CMD_ERR_S);
 
             p_ch->p_send(string, strlen(string));
+
+            if (p_ch->interactive)
+            {
+                m_cmd_send_help(p_ch);
+            }
         }
     }
     else
@@ -627,7 +689,7 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
         }
         else
         {
-            sprintf(string, 
+            sprintf(string,
                     "%s:%s:%s\r\n",
                     inst_str,
                     param_str,
@@ -635,6 +697,11 @@ static void m_cmd_process(CMD_CHANNEL_T *p_ch)
         }
 
         p_ch->p_send(string, strlen(string));
+
+        if (p_ch->interactive)
+        {
+            m_cmd_send_help(p_ch);
+        }
     }
 }
 
