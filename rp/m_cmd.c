@@ -52,7 +52,11 @@
 #define CMD_ERR_S               "ERR"
 #define CMD_TMOUT_S             "TOUT"
 
-#define CMD_TMOUT_MS_C          50                                              /* Timeout in ms to wait for more data to arrive */
+#define CMD_TMOUT_MS_C          2000                                            /* Timeout in ms to wait for more data to arrive.
+                                                                                   Long enough to type commands interactively in a
+                                                                                   terminal that sends per keystroke; it only exists
+                                                                                   to flush stale partial commands, so automation is
+                                                                                   unaffected. */
 
 
 /* Private typedef -----------------------------------------------------------*/
