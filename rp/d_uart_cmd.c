@@ -194,7 +194,7 @@ static void __isr uart_cmd_rx_isr(void)
 
         if (uart_cmd_buf.head == uart_cmd_buf.tail)                             /* Buffer is full ? */
         {
-            uart_cmd_buf.tail &= (UART_CMD_BUF_MAX_DATA_LEN_C - 1);
+            uart_cmd_buf.tail = (uart_cmd_buf.tail + 1) & (UART_CMD_BUF_MAX_DATA_LEN_C - 1); /* Drop oldest byte */
         }
     }
 }
