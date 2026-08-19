@@ -8,6 +8,10 @@
  *       channel assembles commands in its own buffer and responses go back
  *       out on the channel the command arrived on. Firmware log output
  *       (printf) is interleaved with responses on the USB channel.
+ *
+ * @note The USB channel echoes input (with backspace editing) for interactive
+ *       terminal use. The UART channel does not echo, preserving the legacy
+ *       protocol byte stream for existing external controllers.
  */
 
 
@@ -40,6 +44,8 @@
 #define CMD_SEPARATOR_CHAR_C    ':'
 #define CMD_CR_CHAR_C           '\r'
 #define CMD_LF_CHAR_C           '\n'
+#define CMD_BS_CHAR_C           '\b'                                            /* Backspace (0x08) */
+#define CMD_DEL_CHAR_C          0x7F                                            /* DEL; sent for backspace by some terminals */
 #define CMD_INST_SET_S          "S"
 #define CMD_INST_GET_S          "G"
 #define CMD_PARAM_LAMP_CTL_ID_S "L"
@@ -74,6 +80,7 @@ typedef struct {
     uint8_t         buf[CMD_MAX_LEN_C];                                         /* Command assembly buffer */
     uint16_t        idx;                                                        /* Next free position in buf */
     absolute_time_t tmout;                                                      /* Inter-byte timeout deadline */
+    bool            echo;                                                       /* Echo input back (interactive terminals) */
     uint16_t        (*p_recv)(uint8_t *p_buf, uint16_t max_len);                /* Pulls received bytes from the channel */
     void            (*p_send)(uint8_t *p_data, uint16_t len);                   /* Sends response bytes to the channel */
 
@@ -124,12 +131,14 @@ static void     m_cmd_usb_send(uint8_t *p_data, uint16_t len);
 void m_cmd_init(void)
 {
     memset(&cmd_uart_channel, 0, sizeof(cmd_uart_channel));
+    cmd_uart_channel.echo   = false;                                            /* Legacy protocol: existing controllers expect no echo */
     cmd_uart_channel.p_recv = m_cmd_uart_recv;
     cmd_uart_channel.p_send = uart_cmd_send_data;
 
     memset(&cmd_usb_channel, 0, sizeof(cmd_usb_channel));
-    cmd_usb_channel.p_recv = m_cmd_usb_recv;
-    cmd_usb_channel.p_send = m_cmd_usb_send;
+    cmd_usb_channel.echo    = true;                                             /* Interactive terminal port */
+    cmd_usb_channel.p_recv  = m_cmd_usb_recv;
+    cmd_usb_channel.p_send  = m_cmd_usb_send;
 
     uart_cmd_init();
 }
@@ -188,8 +197,13 @@ int16_t lamp_get_dim(uint16_t value)
 /* Private functions ---------------------------------------------------------*/
 
 /**
- * @brief Accumulates received bytes for one command channel and processes the
- * command once its CR/LF terminator arrives
+ * @brief Accumulates received bytes for one command channel and processes each
+ * command as its CR/LF terminator arrives
+ *
+ * @note Interactive niceties: on channels with echo enabled, input is echoed
+ * back (Enter as CRLF, backspace as erase). Backspace/DEL edits the pending
+ * command on all channels, and a bare Enter is ignored instead of answered
+ * with ERR.
  *
  * @note A command that overruns the buffer without a terminator is dropped
  * and answered with @ref CMD_ERR_S; a partial command with no further bytes
@@ -200,43 +214,75 @@ int16_t lamp_get_dim(uint16_t value)
 static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
 {
     uint16_t data_len;
+    uint8_t rx_byte;
+    uint8_t chunk[CMD_MAX_LEN_C];
     uint8_t string[CMD_MAX_LEN_C];
 
-    /* Keep one byte spare so the buffer stays null-terminated for strchr/strstr */
-    data_len = p_ch->p_recv(p_ch->buf + p_ch->idx, (CMD_MAX_LEN_C - 1) - p_ch->idx);
+    data_len = p_ch->p_recv(chunk, sizeof(chunk));
     if (data_len)
     {
-        p_ch->idx += data_len;
-
-        if (strchr(p_ch->buf, CMD_CR_CHAR_C) ||
-            strchr(p_ch->buf, CMD_LF_CHAR_C))                                   /* End of command has been received ? */
+        for (uint16_t idx = 0; idx < data_len; idx++)
         {
-            m_cmd_process(p_ch);
+            rx_byte = chunk[idx];
 
-            memset(p_ch->buf, 0, sizeof(p_ch->buf));
+            if ((rx_byte == CMD_CR_CHAR_C) || (rx_byte == CMD_LF_CHAR_C))
+            {
+                if (p_ch->idx == 0)                                             /* Bare Enter, or the LF of a split CR+LF pair: ignore */
+                {
+                    continue;
+                }
 
-            p_ch->idx = 0;
+                if (p_ch->echo)
+                {
+                    p_ch->p_send((uint8_t*)"\r\n", 2);
+                }
 
-            p_ch->tmout = 0;
+                p_ch->buf[p_ch->idx++] = rx_byte;                               /* Parser delimits fields on the terminator */
+
+                m_cmd_process(p_ch);
+
+                memset(p_ch->buf, 0, sizeof(p_ch->buf));
+
+                p_ch->idx = 0;
+            }
+            else if ((rx_byte == CMD_BS_CHAR_C) || (rx_byte == CMD_DEL_CHAR_C))
+            {
+                if (p_ch->idx > 0)
+                {
+                    p_ch->idx--;
+                    p_ch->buf[p_ch->idx] = 0;
+
+                    if (p_ch->echo)
+                    {
+                        p_ch->p_send((uint8_t*)"\b \b", 3);                     /* Erase the char on the terminal */
+                    }
+                }
+            }
+            else if (p_ch->idx >= (CMD_MAX_LEN_C - 2))                          /* Buffer full: keep room for terminator + null */
+            {
+                memset(p_ch->buf, 0, sizeof(p_ch->buf));
+
+                p_ch->idx = 0;
+
+                sprintf(string,
+                        "\r\n:%s\r\n",
+                        CMD_ERR_S);
+
+                p_ch->p_send(string, strlen(string));
+            }
+            else
+            {
+                p_ch->buf[p_ch->idx++] = rx_byte;
+
+                if (p_ch->echo)
+                {
+                    p_ch->p_send(&rx_byte, 1);
+                }
+            }
         }
-        else if (p_ch->idx >= (CMD_MAX_LEN_C - 1))                              /* Buffer full without a terminator ? */
-        {
-            memset(p_ch->buf, 0, sizeof(p_ch->buf));
 
-            p_ch->idx = 0;
-
-            p_ch->tmout = 0;
-
-            sprintf(string,
-                    "\r\n:%s\r\n",
-                    CMD_ERR_S);
-
-            p_ch->p_send(string, strlen(string));
-        }
-        else
-        {
-            p_ch->tmout = make_timeout_time_ms(CMD_TMOUT_MS_C);
-        }
+        p_ch->tmout = (p_ch->idx > 0) ? make_timeout_time_ms(CMD_TMOUT_MS_C)
+                                      : 0;
     }
     else if ((p_ch->tmout != 0) && (get_absolute_time() > p_ch->tmout))         /* Is timeout over? */
     {
