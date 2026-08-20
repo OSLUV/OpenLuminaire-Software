@@ -86,11 +86,16 @@ add_dependencies(app splash_images)
 pico_enable_stdio_usb(app 1)
 pico_enable_stdio_uart(app 0)
 
-# A USB host that opens the CDC port but stops draining it blocks each stdout
-# write for this long (SDK default 500 ms). Keep it far below the 1500 ms
-# watchdog so stalled writes (printf logs, command replies) cannot starve the
-# main loop and reboot the lamp.
-target_compile_definitions(app PRIVATE PICO_STDIO_USB_STDOUT_TIMEOUT_US=1000)
+# Allow a USB stdout write 100 ms without transmit progress (SDK default 500 ms).
+# One millisecond is a single USB frame and can truncate normal multi-packet
+# replies; 100 ms tolerates ordinary host scheduling while the command layer's
+# absolute send deadlines remain well below the 1500 ms watchdog.
+# Bound stdio mutex acquisition to 20 ms as well. The command handler also
+# limits receive work per pass and caps its USB sends.
+target_compile_definitions(app PRIVATE
+	PICO_STDIO_USB_STDOUT_TIMEOUT_US=100000
+	PICO_STDIO_DEADLOCK_TIMEOUT_MS=20
+)
 
 pico_add_extra_outputs(app)
 

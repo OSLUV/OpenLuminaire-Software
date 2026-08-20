@@ -12,9 +12,9 @@
 #include <hardware/flash.h>
 #include <pico/flash.h>
 #include <string.h>
-#include <stdio.h>
 #include "persistance.h"
 #include "ui_main.h"
+#include "d_uart_cmd.h"
 
 
 /* Private typedef -----------------------------------------------------------*/
@@ -83,10 +83,9 @@ void persistance_write_region(void)
 	}
 
 	flash_safe_execute(write_persistance_region_inner, NULL, 100);
+	uart_cmd_discard_rx_after_blocking();
 
 	b_persistance_is_dirty = false;
-
-	printf("writing to persistance region");
 }
 
 /**

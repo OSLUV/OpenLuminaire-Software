@@ -6,35 +6,31 @@
  * @note Commands are accepted on two independent channels: the dedicated
  *       command UART (uart1, 9600 8N1) and the USB CDC stdio port. Each
  *       channel assembles commands in its own buffer and responses go back
- *       out on the channel the command arrived on. Firmware log output
- *       (printf) is interleaved with responses on the USB channel.
+ *       out on the channel the command arrived on. Firmware log output shares
+ *       the USB stream and can appear between command responses.
  *
  * @note The USB channel is interactive: it echoes input (with backspace
- *       editing), shows a command help on bare ENTER, "--help", or an
- *       invalid command, and allows 2 s between keystrokes. The UART
- *       channel preserves the legacy protocol for existing external
- *       controllers: no echo, compact ERR-only replies, backspace/DEL are
- *       ordinary data bytes, a bare terminator answers ::ERR, and the
- *       original 50 ms inter-byte timeout so a stale fragment cannot merge
- *       into the next command ("--help" still answers there, since no
- *       controller ever sends it).
+ *       editing), shows command help on bare ENTER, "--help", or an invalid
+ *       command, and allows 2 s between keystrokes. The UART channel preserves
+ *       the compact legacy protocol: no echo or verbose help, backspace/DEL
+ *       are ordinary data bytes, a bare terminator answers ::ERR, and the
+ *       original 50 ms inter-byte timeout is enforced from ISR-recorded gaps.
  *
- * @note A line that overruns the command buffer is answered with one ERR
- *       and discarded through its terminator, so its tail cannot be
+ * @note A line that overruns either receive buffer is answered with one ERR
+ *       and discarded through its terminator, so a retained tail cannot be
  *       misread as a fresh command.
  */
 
 
 /* Includes ------------------------------------------------------------------*/
 
+#include <stdbool.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include "pico/time.h"
 #include "pico/stdio.h"
 #include "m_cmd.h"
 #include "d_uart_cmd.h"
-#include "lamp.h"
 #include "ui_main.h"
 #include "serial.h"
 #include "hourmeter.h"
@@ -42,57 +38,49 @@
 
 /* Private define ------------------------------------------------------------*/
 
-#define CMD_MAX_INST_LEN_C      16
-#define CMD_MAX_PARAM_LEN_C     16
-#define CMD_MAX_VAL_LEN_C       16
-#define CMD_MAX_LEN_C           64
+#define CMD_MAX_INST_LEN_C          16
+#define CMD_MAX_PARAM_LEN_C         16
+#define CMD_MAX_VAL_LEN_C           16
+#define CMD_MAX_LEN_C               64
+#define CMD_RX_CHUNK_LEN_C          6                                           /* At most one state-changing command per channel/pass. */
 
 #if CMD_MAX_LEN_C < (CMD_MAX_INST_LEN_C + CMD_MAX_PARAM_LEN_C + CMD_MAX_VAL_LEN_C + 8)
 #warning "CMD_MAX_LEN_C is not enough."
 #endif
 
-#define CMD_SEPARATOR_CHAR_C    ':'
-#define CMD_CR_CHAR_C           '\r'
-#define CMD_LF_CHAR_C           '\n'
-#define CMD_BS_CHAR_C           '\b'                                            /* Backspace (0x08) */
-#define CMD_DEL_CHAR_C          0x7F                                            /* DEL; sent for backspace by some terminals */
-#define CMD_INST_SET_S          "S"
-#define CMD_INST_GET_S          "G"
-#define CMD_PARAM_LAMP_CTL_ID_S "L"
-#define CMD_PARAM_LAMP_DIM_ID_S "D"
-#define CMD_PARAM_SERIAL_ID_S   "N"                                             /* GET-only: unique serial number */
-#define CMD_PARAM_HOURS_ID_S    "H"                                             /* GET-only: lamp-on time, whole hours */
-#define CMD_PARAM_ONSECS_ID_S   "T"                                             /* GET-only: lamp-on time, seconds */
+#define CMD_SEPARATOR_CHAR_C        ':'
+#define CMD_CR_CHAR_C               '\r'
+#define CMD_LF_CHAR_C               '\n'
+#define CMD_BS_CHAR_C               '\b'                                        /* Backspace (0x08) */
+#define CMD_DEL_CHAR_C              0x7F                                        /* DEL; sent for backspace by some terminals */
+#define CMD_INST_SET_S              "S"
+#define CMD_INST_GET_S              "G"
+#define CMD_PARAM_LAMP_CTL_ID_S     "L"
+#define CMD_PARAM_LAMP_DIM_ID_S     "D"
+#define CMD_PARAM_SERIAL_ID_S       "N"                                        /* GET-only: unique serial number */
+#define CMD_PARAM_HOURS_ID_S        "H"                                        /* GET-only: lamp-on time, whole hours */
+#define CMD_PARAM_ONSECS_ID_S       "T"                                        /* GET-only: lamp-on time, seconds */
 
-#define CMD_OK_S                "OK"
-#define CMD_ERR_S               "ERR"
-#define CMD_TMOUT_S             "TOUT"
-#define CMD_HELP_CMD_S          "--help"
+#define CMD_OK_S                    "OK"
+#define CMD_ERR_S                   "ERR"
+#define CMD_TMOUT_S                 "TOUT"
+#define CMD_HELP_CMD_S              "--help"
 
-#define CMD_TMOUT_UART_MS_C     50                                              /* Inter-byte timeout in ms on the command UART.
-                                                                                   Kept at the legacy value so a stale fragment
-                                                                                   (lost terminator) is flushed before an external
-                                                                                   controller's next command can merge with it. */
-
-#define CMD_TMOUT_USB_MS_C      2000                                            /* Inter-byte timeout in ms on the USB terminal.
-                                                                                   Long enough to type commands interactively in a
-                                                                                   terminal that sends per keystroke; it only exists
-                                                                                   to flush stale partial commands. */
-
-#define CMD_USB_SEND_MS_C       100                                             /* Upper bound in ms on one USB response send. A
-                                                                                   host that holds DTR but stops draining the CDC
-                                                                                   port must not stall the main loop (and its
-                                                                                   1500 ms watchdog); the rest of the response is
-                                                                                   dropped instead. */
+#define CMD_TMOUT_UART_MS_C         (UART_CMD_INTERBYTE_TIMEOUT_US_C / 1000U)
+#define CMD_TMOUT_USB_MS_C          2000U                                       /* Long enough for human typing. */
+#define CMD_CRLF_PAIR_MS_C          100U                                        /* CR and LF must be adjacent in time to collapse. */
+#define CMD_USB_SEND_MS_C           100U                                        /* Total budget for one USB response. */
+#define CMD_USB_HANDLER_SEND_MS_C   500U                                        /* Aggregate response budget per main-loop pass. */
+#define CMD_USB_WRITE_CHUNK_C       64U                                         /* One RP2040 CDC TX FIFO/endpoint packet. */
 
 
 /* Private typedef -----------------------------------------------------------*/
 
 typedef struct {
 
-    uint8_t inst[CMD_MAX_INST_LEN_C];
-    uint8_t param[CMD_MAX_PARAM_LEN_C];
-    int16_t (*p_callback)(uint16_t);
+    const char *inst;
+    const char *param;
+    int16_t     (*p_callback)(uint16_t);
 
 } CMD_CTL_T;
 
@@ -100,43 +88,35 @@ typedef struct {
 
     uint8_t         buf[CMD_MAX_LEN_C];                                         /* Command assembly buffer */
     uint16_t        idx;                                                        /* Next free position in buf */
-    absolute_time_t tmout;                                                      /* Inter-byte timeout deadline */
-    uint32_t        tmout_ms;                                                   /* Inter-byte timeout for this channel */
-    bool            interactive;                                                /* Echo input + show help (terminal use) */
-    bool            overflow;                                                   /* Discarding an oversized line up to its terminator */
-    uint8_t         prev_rx;                                                    /* Previous received byte (CR+LF collapsing) */
-    uint16_t        (*p_recv)(uint8_t *p_buf, uint16_t max_len);                /* Pulls received bytes from the channel */
-    void            (*p_send)(uint8_t *p_data, uint16_t len);                   /* Sends response bytes to the channel */
+    absolute_time_t tmout;                                                      /* Idle timeout deadline */
+    absolute_time_t crlf_deadline;                                              /* Maximum adjacency window for CR+LF */
+    absolute_time_t send_deadline;                                              /* Whole-handler output budget (USB) */
+    uint32_t        tmout_ms;                                                   /* Idle timeout for this channel */
+    bool            interactive;                                               /* Echo input + show help (terminal use) */
+    bool            overflow;                                                  /* Discarding a damaged/oversized line */
+    uint8_t         prev_rx;                                                    /* Previous received byte for CR+LF collapse */
+    uint16_t        (*p_recv)(uint8_t *p_buf, uint8_t *p_rx_flags, uint16_t max_len);
+    void            (*p_send)(const uint8_t *p_data, uint16_t len);
 
 } CMD_CHANNEL_T;
 
 
-/* Global variables  ---------------------------------------------------------*/
-/* Private variables  --------------------------------------------------------*/
+/* Private variables ---------------------------------------------------------*/
 
-/* Only for testing * /
-static uint16_t  lamp_stt = 0;
-static uint16_t  dim_value = 0;
-int16_t lamp_set_stt(uint16_t value);
-int16_t lamp_get_stt(uint16_t value);
-int16_t lamp_set_dim(uint16_t value);
-int16_t lamp_get_dim(uint16_t value);
-/ * Only for testing */
-
-static const CMD_CTL_T  cmd_list[] = 
+static const CMD_CTL_T cmd_list[] =
 {
-    {CMD_INST_SET_S, CMD_PARAM_LAMP_CTL_ID_S, ui_main_lamp_set_stt },
-    {CMD_INST_GET_S, CMD_PARAM_LAMP_CTL_ID_S, ui_main_lamp_get_stt },
-    {CMD_INST_SET_S, CMD_PARAM_LAMP_DIM_ID_S, ui_main_lamp_set_dim },
-    {CMD_INST_GET_S, CMD_PARAM_LAMP_DIM_ID_S, ui_main_lamp_get_dim },
-    {0,              0,                       0                 }
+    {CMD_INST_SET_S, CMD_PARAM_LAMP_CTL_ID_S, ui_main_lamp_set_stt},
+    {CMD_INST_GET_S, CMD_PARAM_LAMP_CTL_ID_S, ui_main_lamp_get_stt},
+    {CMD_INST_SET_S, CMD_PARAM_LAMP_DIM_ID_S, ui_main_lamp_set_dim},
+    {CMD_INST_GET_S, CMD_PARAM_LAMP_DIM_ID_S, ui_main_lamp_get_dim},
+    {NULL,           NULL,                    NULL}
 };
 
-static CMD_CHANNEL_T    cmd_uart_channel;                                       /* Dedicated command UART (uart1)  */
-static CMD_CHANNEL_T    cmd_usb_channel;                                        /* USB CDC stdio port              */
+static CMD_CHANNEL_T cmd_uart_channel;                                         /* Dedicated command UART (uart1) */
+static CMD_CHANNEL_T cmd_usb_channel;                                          /* USB CDC stdio port */
 
-/* Keep in sync with cmd_list and the GET-only special cases in m_cmd_process */
-static const char       cmd_help_str[] =
+/* Keep in sync with cmd_list and the GET-only special cases in m_cmd_process. */
+static const char cmd_help_str[] =
     "\r\n"
     "OSLUV lamp serial commands\r\n"
     "  G:L                 lamp state (1=on 0=off)\r\n"
@@ -151,47 +131,55 @@ static const char       cmd_help_str[] =
     "input is dropped with :TOUT.\r\n";
 
 
-/* Callback prototypes -------------------------------------------------------*/
 /* Private function prototypes -----------------------------------------------*/
 
-static void     m_cmd_channel_handler(CMD_CHANNEL_T *p_ch);
-static void     m_cmd_process(CMD_CHANNEL_T *p_ch);
-static void     m_cmd_send_help(CMD_CHANNEL_T *p_ch);
-static bool     m_cmd_match_exact(CMD_CHANNEL_T *p_ch, const char *p_cmd);
-static void     m_cmd_send_get_resp(CMD_CHANNEL_T *p_ch, const char *p_param, const char *p_value);
-static void     m_cmd_send_err_resp(CMD_CHANNEL_T *p_ch, uint8_t *p_inst, uint8_t *p_param, uint8_t *p_value);
-static uint16_t m_cmd_uart_recv(uint8_t *p_buf, uint16_t max_len);
-static uint16_t m_cmd_usb_recv(uint8_t *p_buf, uint16_t max_len);
-static void     m_cmd_usb_send(uint8_t *p_data, uint16_t len);
+static void            m_cmd_channel_handler(CMD_CHANNEL_T *p_ch);
+static void            m_cmd_process(CMD_CHANNEL_T *p_ch);
+static void            m_cmd_reset_line(CMD_CHANNEL_T *p_ch);
+static void            m_cmd_send_help(CMD_CHANNEL_T *p_ch);
+static void            m_cmd_send_timeout_resp(CMD_CHANNEL_T *p_ch);
+static bool            m_cmd_match_exact(const CMD_CHANNEL_T *p_ch, const char *p_cmd);
+static bool            m_cmd_split_fields(const CMD_CHANNEL_T *p_ch,
+                                          char *p_inst,
+                                          char *p_param,
+                                          char *p_value,
+                                          bool *p_has_value);
+static bool            m_cmd_parse_u16(const char *p_str, uint16_t *p_value);
+static const CMD_CTL_T *m_cmd_find_ctl(const char *p_inst, const char *p_param);
+static void            m_cmd_send_get_resp(CMD_CHANNEL_T *p_ch, const char *p_param, const char *p_value);
+static void            m_cmd_send_err_resp(CMD_CHANNEL_T *p_ch,
+                                           const char *p_inst,
+                                           const char *p_param,
+                                           const char *p_value);
+static uint16_t        m_cmd_uart_recv(uint8_t *p_buf, uint8_t *p_rx_flags, uint16_t max_len);
+static uint16_t        m_cmd_usb_recv(uint8_t *p_buf, uint8_t *p_rx_flags, uint16_t max_len);
+static void            m_cmd_usb_send(const uint8_t *p_data, uint16_t len);
 
 
 /* Exported functions --------------------------------------------------------*/
 
 /**
  * @brief External commands module initialization procedure
- * 
  */
 void m_cmd_init(void)
 {
     memset(&cmd_uart_channel, 0, sizeof(cmd_uart_channel));
-    cmd_uart_channel.interactive = false;                                       /* Legacy protocol: no echo, no help spam */
+    cmd_uart_channel.interactive = false;
     cmd_uart_channel.tmout_ms    = CMD_TMOUT_UART_MS_C;
     cmd_uart_channel.p_recv      = m_cmd_uart_recv;
     cmd_uart_channel.p_send      = uart_cmd_send_data;
 
     memset(&cmd_usb_channel, 0, sizeof(cmd_usb_channel));
-    cmd_usb_channel.interactive  = true;                                        /* Interactive terminal port */
-    cmd_usb_channel.tmout_ms     = CMD_TMOUT_USB_MS_C;
-    cmd_usb_channel.p_recv       = m_cmd_usb_recv;
-    cmd_usb_channel.p_send       = m_cmd_usb_send;
+    cmd_usb_channel.interactive = true;
+    cmd_usb_channel.tmout_ms    = CMD_TMOUT_USB_MS_C;
+    cmd_usb_channel.p_recv      = m_cmd_usb_recv;
+    cmd_usb_channel.p_send      = m_cmd_usb_send;
 
     uart_cmd_init();
 }
 
 /**
- * @brief Handles external commands over the dedicated command UART and the
- * USB CDC (stdio) port
- *
+ * @brief Handles external commands over the dedicated command UART and USB CDC
  */
 void m_cmd_handler(void)
 {
@@ -199,98 +187,111 @@ void m_cmd_handler(void)
     m_cmd_channel_handler(&cmd_usb_channel);
 }
 
-/* Callback functions --------------------------------------------------------*/
-
-/* Only for testing */
-#if 0
-int16_t lamp_set_stt(uint16_t value)
-{
-    if (value < 2)
-    {
-        lamp_stt = value;
-
-        return 1;
-    }
-
-    return 0;
-}
-
-int16_t lamp_get_stt(uint16_t value)
-{
-    return lamp_stt;
-}
-
-int16_t lamp_set_dim(uint16_t value)
-{
-    if ((value == 20) || (value == 40) || (value == 70) || (value == 100))
-    {
-        dim_value = value;
-
-        return 1;
-    }
-
-    return 0;
-}
-
-int16_t lamp_get_dim(uint16_t value)
-{
-    return dim_value;
-}
-#endif
-/* Only for testing */
 
 /* Private functions ---------------------------------------------------------*/
 
 /**
- * @brief Accumulates received bytes for one command channel and processes each
- * command as its CR/LF terminator arrives
+ * @brief Accumulates and processes received bytes for one command channel
  *
- * @note Interactive niceties on channels with the interactive flag: input is
- * echoed back (Enter as CRLF, backspace/DEL as erase) and a bare ENTER press
- * shows the command help. On non-interactive channels backspace/DEL stay
- * ordinary data bytes and a bare terminator answers ::ERR, both as in the
- * legacy protocol.
- *
- * @note A command that overruns the buffer is answered with @ref CMD_ERR_S
- * once and discarded through its terminator; a partial command with no
- * further bytes for the channel's timeout is dropped and answered with
- * @ref CMD_TMOUT_S.
+ * UART receive metadata marks physical inter-byte gaps and driver data loss.
+ * A gap expires a pending fragment before the following byte is considered;
+ * data loss discards the damaged line through its terminator.
  *
  * @param p_ch Command channel context
  */
 static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
 {
     uint16_t data_len;
-    uint8_t rx_byte;
-    uint8_t chunk[CMD_MAX_LEN_C];
-    uint8_t string[CMD_MAX_LEN_C];
+    uint8_t  chunk[CMD_RX_CHUNK_LEN_C];
+    uint8_t  rx_flags[CMD_RX_CHUNK_LEN_C];
 
-    data_len = p_ch->p_recv(chunk, sizeof(chunk));
-    if (data_len)
+    if (p_ch->interactive)
+    {
+        p_ch->send_deadline = make_timeout_time_ms(CMD_USB_HANDLER_SEND_MS_C);
+    }
+
+    if ((p_ch->prev_rx == CMD_CR_CHAR_C) &&
+        (p_ch->crlf_deadline != 0) &&
+        time_reached(p_ch->crlf_deadline))
+    {
+        p_ch->prev_rx = 0;
+        p_ch->crlf_deadline = 0;
+    }
+
+    data_len = p_ch->p_recv(chunk, rx_flags, sizeof(chunk));
+    if (data_len > 0)
     {
         for (uint16_t idx = 0; idx < data_len; idx++)
         {
+            uint8_t rx_byte;
+            bool    collapse_lf;
+
             rx_byte = chunk[idx];
+
+            if (((rx_flags[idx] & UART_CMD_RX_FLAG_DATA_LOSS_C) != 0) &&
+                ((rx_flags[idx] & UART_CMD_RX_FLAG_GAP_BEFORE_C) == 0))
+            {
+                bool already_discarding;
+
+                already_discarding = p_ch->overflow;
+                m_cmd_reset_line(p_ch);
+                p_ch->overflow = true;
+                p_ch->prev_rx = 0;
+                p_ch->crlf_deadline = 0;
+
+                if (!already_discarding)
+                {
+                    static const uint8_t err_resp[] = "\r\n:" CMD_ERR_S "\r\n";
+                    p_ch->p_send(err_resp, (uint16_t)(sizeof(err_resp) - 1));
+                }
+            }
+            else if ((rx_flags[idx] & UART_CMD_RX_FLAG_GAP_BEFORE_C) != 0)
+            {
+                bool had_pending;
+                bool was_overflow;
+
+                had_pending = p_ch->idx > 0;
+                was_overflow = p_ch->overflow;
+                m_cmd_reset_line(p_ch);
+                p_ch->prev_rx = 0;
+                p_ch->crlf_deadline = 0;
+
+                if ((rx_flags[idx] & UART_CMD_RX_FLAG_DATA_LOSS_C) != 0)
+                {
+                    static const uint8_t err_resp[] = "\r\n:" CMD_ERR_S "\r\n";
+                    p_ch->p_send(err_resp, (uint16_t)(sizeof(err_resp) - 1));
+                }
+                else if (!was_overflow && had_pending)
+                {
+                    m_cmd_send_timeout_resp(p_ch);
+                }
+            }
+
+            collapse_lf = (rx_byte == CMD_LF_CHAR_C) &&
+                          (p_ch->prev_rx == CMD_CR_CHAR_C) &&
+                          (p_ch->crlf_deadline != 0) &&
+                          !time_reached(p_ch->crlf_deadline) &&
+                          ((rx_flags[idx] & (UART_CMD_RX_FLAG_GAP_BEFORE_C |
+                                             UART_CMD_RX_FLAG_DATA_LOSS_C)) == 0);
 
             if ((rx_byte == CMD_CR_CHAR_C) || (rx_byte == CMD_LF_CHAR_C))
             {
-                if (p_ch->overflow)                                             /* Oversized line ends here: drop it whole */
+                if (p_ch->overflow)
                 {
-                    p_ch->overflow = false;
+                    p_ch->overflow = false;                                    /* Damaged line ends here. */
                 }
-                else if (p_ch->idx == 0)                                        /* No pending command */
+                else if (p_ch->idx == 0)
                 {
-                    if (!((rx_byte == CMD_LF_CHAR_C) &&
-                          (p_ch->prev_rx == CMD_CR_CHAR_C)))                    /* The LF completing a CR+LF pair is not a new ENTER */
+                    if (!collapse_lf)
                     {
                         if (p_ch->interactive)
                         {
-                            m_cmd_send_help(p_ch);                              /* Bare ENTER: show the help */
+                            m_cmd_send_help(p_ch);
                         }
                         else
                         {
-                            p_ch->p_send((uint8_t*)"::" CMD_ERR_S "\r\n",       /* Legacy protocol reply to a bare terminator */
-                                         strlen("::" CMD_ERR_S "\r\n"));
+                            static const uint8_t err_resp[] = "::" CMD_ERR_S "\r\n";
+                            p_ch->p_send(err_resp, (uint16_t)(sizeof(err_resp) - 1));
                         }
                     }
                 }
@@ -298,46 +299,38 @@ static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
                 {
                     if (p_ch->interactive)
                     {
-                        p_ch->p_send((uint8_t*)"\r\n", 2);
+                        static const uint8_t newline[] = "\r\n";
+                        p_ch->p_send(newline, (uint16_t)(sizeof(newline) - 1));
                     }
 
-                    p_ch->buf[p_ch->idx++] = rx_byte;                           /* Parser delimits fields on the terminator */
-
+                    p_ch->buf[p_ch->idx++] = rx_byte;
                     m_cmd_process(p_ch);
-
-                    memset(p_ch->buf, 0, sizeof(p_ch->buf));
-
-                    p_ch->idx = 0;
+                    m_cmd_reset_line(p_ch);
                 }
             }
             else if (p_ch->overflow)
             {
-                /* Discarding the rest of an oversized line */
+                /* Discard the rest of the damaged line. */
             }
             else if (p_ch->interactive &&
                      ((rx_byte == CMD_BS_CHAR_C) || (rx_byte == CMD_DEL_CHAR_C)))
-            {                                                                   /* Terminal line editing; on the legacy UART these are data */
+            {
                 if (p_ch->idx > 0)
                 {
+                    static const uint8_t erase[] = "\b \b";
+
                     p_ch->idx--;
                     p_ch->buf[p_ch->idx] = 0;
-
-                    p_ch->p_send((uint8_t*)"\b \b", 3);                         /* Erase the char on the terminal */
+                    p_ch->p_send(erase, (uint16_t)(sizeof(erase) - 1));
                 }
             }
-            else if (p_ch->idx >= (CMD_MAX_LEN_C - 2))                          /* Buffer full: keep room for terminator + null */
+            else if (p_ch->idx >= (CMD_MAX_LEN_C - 2))
             {
-                p_ch->overflow = true;                                          /* One ERR per oversized line; its tail is discarded */
+                static const uint8_t err_resp[] = "\r\n:" CMD_ERR_S "\r\n";
 
-                memset(p_ch->buf, 0, sizeof(p_ch->buf));
-
-                p_ch->idx = 0;
-
-                sprintf(string,
-                        "\r\n:%s\r\n",
-                        CMD_ERR_S);
-
-                p_ch->p_send(string, strlen(string));
+                m_cmd_reset_line(p_ch);
+                p_ch->overflow = true;
+                p_ch->p_send(err_resp, (uint16_t)(sizeof(err_resp) - 1));
             }
             else
             {
@@ -350,38 +343,54 @@ static void m_cmd_channel_handler(CMD_CHANNEL_T *p_ch)
             }
 
             p_ch->prev_rx = rx_byte;
+            if (rx_byte == CMD_CR_CHAR_C)
+            {
+                p_ch->crlf_deadline = make_timeout_time_ms(CMD_CRLF_PAIR_MS_C);
+            }
+            else
+            {
+                p_ch->crlf_deadline = 0;
+            }
         }
 
         p_ch->tmout = ((p_ch->idx > 0) || p_ch->overflow)
                           ? make_timeout_time_ms(p_ch->tmout_ms)
                           : 0;
     }
-    else if ((p_ch->tmout != 0) && (get_absolute_time() > p_ch->tmout))         /* Is timeout over? */
+    else if ((p_ch->tmout != 0) && time_reached(p_ch->tmout))
     {
-        p_ch->tmout = 0;
+        bool was_overflow;
 
-        p_ch->overflow = false;
+        was_overflow = p_ch->overflow;
+        m_cmd_reset_line(p_ch);
 
-        memset(p_ch->buf, 0, sizeof(p_ch->buf));
+        if (!was_overflow)
+        {
+            m_cmd_send_timeout_resp(p_ch);
+        }
+    }
 
-        p_ch->idx = 0;
-
-        sprintf(string,
-                "\r\n:%s\r\n",
-                CMD_TMOUT_S);
-
-        p_ch->p_send(string, strlen(string));
+    if (p_ch->interactive)
+    {
+        p_ch->send_deadline = 0;
     }
 }
 
 /**
- * @brief Pulls received bytes from the dedicated command UART
- *
- * @param p_buf   Destination buffer
- * @param max_len Maximum bytes to pull
- * @return uint16_t Bytes actually pulled
+ * @brief Clears the current line without changing CR/LF receive history
  */
-static uint16_t m_cmd_uart_recv(uint8_t *p_buf, uint16_t max_len)
+static void m_cmd_reset_line(CMD_CHANNEL_T *p_ch)
+{
+    memset(p_ch->buf, 0, sizeof(p_ch->buf));
+    p_ch->idx = 0;
+    p_ch->tmout = 0;
+    p_ch->overflow = false;
+}
+
+/**
+ * @brief Pulls bytes and receive metadata from the dedicated command UART
+ */
+static uint16_t m_cmd_uart_recv(uint8_t *p_buf, uint8_t *p_rx_flags, uint16_t max_len)
 {
     uint16_t data_len;
 
@@ -396,17 +405,13 @@ static uint16_t m_cmd_uart_recv(uint8_t *p_buf, uint16_t max_len)
         return 0;
     }
 
-    return uart_cmd_get_data(p_buf, data_len);
+    return uart_cmd_get_data(p_buf, p_rx_flags, data_len);
 }
 
 /**
- * @brief Pulls received bytes from the USB CDC (stdio) port
- *
- * @param p_buf   Destination buffer
- * @param max_len Maximum bytes to pull
- * @return uint16_t Bytes actually pulled
+ * @brief Pulls bytes from USB CDC; USB has no UART receive metadata
  */
-static uint16_t m_cmd_usb_recv(uint8_t *p_buf, uint16_t max_len)
+static uint16_t m_cmd_usb_recv(uint8_t *p_buf, uint8_t *p_rx_flags, uint16_t max_len)
 {
     uint16_t count;
     int      chr;
@@ -415,132 +420,253 @@ static uint16_t m_cmd_usb_recv(uint8_t *p_buf, uint16_t max_len)
     while (count < max_len)
     {
         chr = getchar_timeout_us(0);
-        if (chr < 0)                                                            /* PICO_ERROR_TIMEOUT: no more data */
+        if (chr < 0)
         {
             break;
         }
 
-        p_buf[count++] = (uint8_t)chr;
+        p_buf[count] = (uint8_t)chr;
+        p_rx_flags[count] = 0;
+        count++;
     }
 
     return count;
 }
 
 /**
- * @brief Sends response bytes to the USB CDC (stdio) port
+ * @brief Sends raw response bytes to USB within per-response and per-handler budgets
  *
- * @note Uses putchar_raw so response bytes are not CRLF-translated.
- *
- * @note The send is bounded to @ref CMD_USB_SEND_MS_C. A host that holds DTR
- * asserted but stops draining the port makes each blocked write wait out
- * PICO_STDIO_USB_STDOUT_TIMEOUT_US; unbounded, a long response (the help
- * text) could stall the main loop past its 1500 ms watchdog and reboot the
- * lamp. The remainder of the response is dropped instead.
- *
- * @param p_data Response bytes to send
- * @param len    Number of bytes to send
+ * The Pico SDK's stdout and USB inactivity limits bound any individual write.
+ * These absolute deadlines additionally prevent a slowly draining host or a
+ * burst of help/error responses from starving the main-loop watchdog.
  */
-static void m_cmd_usb_send(uint8_t *p_data, uint16_t len)
+static void m_cmd_usb_send(const uint8_t *p_data, uint16_t len)
 {
-    absolute_time_t deadline = make_timeout_time_ms(CMD_USB_SEND_MS_C);
+    absolute_time_t response_deadline;
+    uint16_t        idx;
 
-    for (uint16_t idx = 0; idx < len; idx++)
+    response_deadline = make_timeout_time_ms(CMD_USB_SEND_MS_C);
+    idx = 0;
+
+    while (idx < len)
     {
-        putchar_raw(p_data[idx]);
+        uint16_t chunk_len;
 
-        if (get_absolute_time() > deadline)                                     /* Host stopped draining: drop the rest */
+        if (time_reached(response_deadline) ||
+            ((cmd_usb_channel.send_deadline != 0) &&
+             time_reached(cmd_usb_channel.send_deadline)))
         {
             break;
         }
-    }
 
-    stdio_flush();
+        chunk_len = len - idx;
+        if (chunk_len > CMD_USB_WRITE_CHUNK_C)
+        {
+            chunk_len = CMD_USB_WRITE_CHUNK_C;
+        }
+
+        (void)stdio_put_string((const char *)&p_data[idx], chunk_len, false, false);
+        idx += chunk_len;
+    }
 }
 
 /**
- * @brief Sends the terminal help text listing all commands
- *
- * @param p_ch Command channel to answer on
+ * @brief Sends terminal help on the interactive USB channel
  */
 static void m_cmd_send_help(CMD_CHANNEL_T *p_ch)
 {
-    p_ch->p_send((uint8_t*)cmd_help_str, strlen(cmd_help_str));
+    p_ch->p_send((const uint8_t *)cmd_help_str, (uint16_t)strlen(cmd_help_str));
 }
 
 /**
- * @brief Tests whether the assembled command is exactly the given command
- * string followed by its CR/LF terminator
- *
- * @note Anchored at the start of the buffer and terminated right after, so a
- * command merely containing the string (e.g. "G:HELP" vs "G:H") does not
- * match and falls through to the generic parse and its ERR reply.
- *
- * @param p_ch  Command channel holding the assembled command
- * @param p_cmd Command string to test for
- * @return true if the buffer holds exactly this command
+ * @brief Sends the idle partial-command timeout response
  */
-static bool m_cmd_match_exact(CMD_CHANNEL_T *p_ch, const char *p_cmd)
+static void m_cmd_send_timeout_resp(CMD_CHANNEL_T *p_ch)
 {
-    uint16_t len = (uint16_t)strlen(p_cmd);
+    static const uint8_t timeout_resp[] = "\r\n:" CMD_TMOUT_S "\r\n";
+    p_ch->p_send(timeout_resp, (uint16_t)(sizeof(timeout_resp) - 1));
+}
 
-    if (strncmp((char*)p_ch->buf, p_cmd, len) != 0)
+/**
+ * @brief Tests whether the assembled line is exactly p_cmd plus one terminator
+ */
+static bool m_cmd_match_exact(const CMD_CHANNEL_T *p_ch, const char *p_cmd)
+{
+    size_t len;
+
+    len = strlen(p_cmd);
+
+    return (p_ch->idx == (len + 1U)) &&
+           (memcmp(p_ch->buf, p_cmd, len) == 0) &&
+           ((p_ch->buf[len] == CMD_CR_CHAR_C) ||
+            (p_ch->buf[len] == CMD_LF_CHAR_C));
+}
+
+/**
+ * @brief Splits an anchored line into exactly I:P or I:P:V fields
+ */
+static bool m_cmd_split_fields(const CMD_CHANNEL_T *p_ch,
+                               char *p_inst,
+                               char *p_param,
+                               char *p_value,
+                               bool *p_has_value)
+{
+    const uint8_t *p_sep_1;
+    const uint8_t *p_sep_2;
+    size_t         line_len;
+    size_t         inst_len;
+    size_t         param_len;
+    size_t         value_len;
+
+    memset(p_inst, 0, CMD_MAX_INST_LEN_C);
+    memset(p_param, 0, CMD_MAX_PARAM_LEN_C);
+    memset(p_value, 0, CMD_MAX_VAL_LEN_C);
+    *p_has_value = false;
+
+    if ((p_ch->idx < 2) ||
+        ((p_ch->buf[p_ch->idx - 1] != CMD_CR_CHAR_C) &&
+         (p_ch->buf[p_ch->idx - 1] != CMD_LF_CHAR_C)))
     {
         return false;
     }
 
-    return (p_ch->buf[len] == CMD_CR_CHAR_C) || (p_ch->buf[len] == CMD_LF_CHAR_C);
+    line_len = p_ch->idx - 1U;
+    if (memchr(p_ch->buf, 0, line_len) != NULL)
+    {
+        return false;
+    }
+
+    p_sep_1 = memchr(p_ch->buf, CMD_SEPARATOR_CHAR_C, line_len);
+    if (p_sep_1 == NULL)
+    {
+        return false;
+    }
+
+    p_sep_2 = memchr(p_sep_1 + 1,
+                     CMD_SEPARATOR_CHAR_C,
+                     line_len - (size_t)((p_sep_1 + 1) - p_ch->buf));
+
+    if ((p_sep_2 != NULL) &&
+        (memchr(p_sep_2 + 1,
+                CMD_SEPARATOR_CHAR_C,
+                line_len - (size_t)((p_sep_2 + 1) - p_ch->buf)) != NULL))
+    {
+        return false;
+    }
+
+    inst_len  = (size_t)(p_sep_1 - p_ch->buf);
+    param_len = (p_sep_2 != NULL)
+                    ? (size_t)(p_sep_2 - (p_sep_1 + 1))
+                    : line_len - (size_t)((p_sep_1 + 1) - p_ch->buf);
+    value_len = (p_sep_2 != NULL)
+                    ? line_len - (size_t)((p_sep_2 + 1) - p_ch->buf)
+                    : 0U;
+
+    if ((inst_len == 0) || (inst_len >= CMD_MAX_INST_LEN_C) ||
+        (param_len == 0) || (param_len >= CMD_MAX_PARAM_LEN_C) ||
+        (value_len >= CMD_MAX_VAL_LEN_C))
+    {
+        return false;
+    }
+
+    memcpy(p_inst, p_ch->buf, inst_len);
+    memcpy(p_param, p_sep_1 + 1, param_len);
+
+    if (p_sep_2 != NULL)
+    {
+        memcpy(p_value, p_sep_2 + 1, value_len);
+        *p_has_value = true;
+    }
+
+    return true;
+}
+
+/**
+ * @brief Parses an entire nonempty decimal field without signs or wrapping
+ */
+static bool m_cmd_parse_u16(const char *p_str, uint16_t *p_value)
+{
+    uint32_t value;
+
+    if (p_str[0] == '\0')
+    {
+        return false;
+    }
+
+    value = 0;
+    for (size_t idx = 0; p_str[idx] != '\0'; idx++)
+    {
+        if ((p_str[idx] < '0') || (p_str[idx] > '9'))
+        {
+            return false;
+        }
+
+        value = (value * 10U) + (uint32_t)(p_str[idx] - '0');
+        if (value > UINT16_MAX)
+        {
+            return false;
+        }
+    }
+
+    *p_value = (uint16_t)value;
+    return true;
+}
+
+/**
+ * @brief Finds an exact instruction/parameter callback entry
+ */
+static const CMD_CTL_T *m_cmd_find_ctl(const char *p_inst, const char *p_param)
+{
+    for (const CMD_CTL_T *p_ctl = cmd_list; p_ctl->inst != NULL; p_ctl++)
+    {
+        if ((strcmp(p_ctl->inst, p_inst) == 0) &&
+            (strcmp(p_ctl->param, p_param) == 0))
+        {
+            return p_ctl;
+        }
+    }
+
+    return NULL;
 }
 
 /**
  * @brief Sends a GET reply of the form G:<param>:<value>
- *
- * @param p_ch    Command channel to answer on
- * @param p_param Parameter identifier string
- * @param p_value Value string
  */
 static void m_cmd_send_get_resp(CMD_CHANNEL_T *p_ch, const char *p_param, const char *p_value)
 {
-    uint8_t resp[CMD_MAX_LEN_C];
+    char resp[CMD_MAX_LEN_C];
 
-    snprintf((char*)resp, sizeof(resp), "%s:%s:%s\r\n",
+    snprintf(resp, sizeof(resp), "%s:%s:%s\r\n",
              CMD_INST_GET_S, p_param, p_value);
 
-    p_ch->p_send(resp, strlen((char*)resp));
+    p_ch->p_send((const uint8_t *)resp, (uint16_t)strlen(resp));
 }
 
 /**
- * @brief Sends an error reply for a failed command, plus the help text on
- * interactive channels
+ * @brief Sends an error reply, plus help on the interactive USB channel
  *
- * @param p_ch    Command channel to answer on
- * @param p_inst  Instruction field (may be empty)
- * @param p_param Parameter field (may be empty)
- * @param p_value Value field (may be empty), or NULL to omit the field and
- *                its separator entirely
+ * p_value == NULL means the line had no value field. A non-NULL empty string
+ * represents an explicitly empty third field.
  */
-static void m_cmd_send_err_resp(CMD_CHANNEL_T *p_ch, uint8_t *p_inst, uint8_t *p_param, uint8_t *p_value)
+static void m_cmd_send_err_resp(CMD_CHANNEL_T *p_ch,
+                                const char *p_inst,
+                                const char *p_param,
+                                const char *p_value)
 {
-    uint8_t string[CMD_MAX_LEN_C];
+    char resp[CMD_MAX_LEN_C];
 
-    if (p_value != 0)
+    if (p_value != NULL)
     {
-        snprintf((char*)string, sizeof(string),
-                 "%s:%s:%s:%s\r\n",
-                 p_inst,
-                 p_param,
-                 p_value,
-                 CMD_ERR_S);
+        snprintf(resp, sizeof(resp), "%s:%s:%s:%s\r\n",
+                 p_inst, p_param, p_value, CMD_ERR_S);
     }
     else
     {
-        snprintf((char*)string, sizeof(string),
-                 "%s:%s:%s\r\n",
-                 p_inst,
-                 p_param,
-                 CMD_ERR_S);
+        snprintf(resp, sizeof(resp), "%s:%s:%s\r\n",
+                 p_inst, p_param, CMD_ERR_S);
     }
 
-    p_ch->p_send(string, strlen(string));
+    p_ch->p_send((const uint8_t *)resp, (uint16_t)strlen(resp));
 
     if (p_ch->interactive)
     {
@@ -549,234 +675,111 @@ static void m_cmd_send_err_resp(CMD_CHANNEL_T *p_ch, uint8_t *p_inst, uint8_t *p
 }
 
 /**
- * @brief Processes the received command and executes defined routine according
- * to commands list @ref cmd_list.
- * 
- * @note Initial commands format is I:P:V where I is for Instruction (i.e. SET 
- * or GET), P is for Parameter (i.e. Lamp state, lamp dim setting) and V is for
- * Value needed to set to the required parameter.
- * 
- * @note If the received command is not found in the commands list @ref cmd_list
- *  error will be notified back to sender. Or if the value is not validated by
- * the corresponding callback an error will be notified back to sender.
- *
- * @note GET-only parameters N (serial number), H (lamp-on whole hours) and
- * T (lamp-on seconds) are handled outside @ref cmd_list because their values
- * do not fit the int16_t callback return type.
- *
- * @param p_ch Command channel the command arrived on; responses are sent back
- * through its @ref CMD_CHANNEL_T.p_send.
+ * @brief Strictly parses one complete command and dispatches its callback
  */
 static void m_cmd_process(CMD_CHANNEL_T *p_ch)
 {
-    uint8_t idx;
-    uint8_t *p_arg_sta, *p_arg_end;
-    uint8_t string[CMD_MAX_LEN_C];
-    uint8_t args_found, args_valid;
-    uint8_t inst_str[CMD_MAX_INST_LEN_C];
-    uint8_t param_str[CMD_MAX_PARAM_LEN_C];
-    uint8_t value_str[CMD_MAX_VAL_LEN_C];
-    uint16_t value;
+    const CMD_CTL_T *p_ctl;
+    char             inst[CMD_MAX_INST_LEN_C];
+    char             param[CMD_MAX_PARAM_LEN_C];
+    char             value_str[CMD_MAX_VAL_LEN_C];
+    char             num_str[12];
+    bool             has_value;
+    uint16_t         value;
 
-    /* Explicit help request (answered on any channel). */
     if (m_cmd_match_exact(p_ch, CMD_HELP_CMD_S))
     {
-        m_cmd_send_help(p_ch);
+        if (p_ch->interactive)
+        {
+            m_cmd_send_help(p_ch);
+        }
+        else
+        {
+            m_cmd_send_err_resp(p_ch, "", "", NULL);                         /* Compact legacy reply; never send verbose help. */
+        }
         return;
     }
 
-    /* GET-only parameters whose values don't fit the int16_t GET-callback
-     * path are answered directly here, before the generic parse. Matched
-     * exactly, so malformed lines merely containing them still get the
-     * generic parse's ERR reply. */
-
-    /* OL1.2: serial is a 13-char Base32 string. */
-    if (m_cmd_match_exact(p_ch, CMD_INST_GET_S ":" CMD_PARAM_SERIAL_ID_S))
+    if (!m_cmd_split_fields(p_ch, inst, param, value_str, &has_value))
     {
-        m_cmd_send_get_resp(p_ch, CMD_PARAM_SERIAL_ID_S, serial_get_string());
+        m_cmd_send_err_resp(p_ch, "", "", NULL);
         return;
     }
 
-    /* bangladesh-study: lamp-on time is a uint32_t counter. G:H answers in
-     * whole hours; G:T answers the same counter in seconds so test software
-     * can verify the hour meter advances without waiting a full hour. */
-    if (m_cmd_match_exact(p_ch, CMD_INST_GET_S ":" CMD_PARAM_HOURS_ID_S))
+    if (strcmp(inst, CMD_INST_GET_S) == 0)
     {
-        char num_str[12];
+        if (has_value)
+        {
+            m_cmd_send_err_resp(p_ch, inst, param, value_str);
+            return;
+        }
 
-        snprintf(num_str, sizeof(num_str), "%lu",
-                 (unsigned long)hourmeter_get_on_hours());
+        if (strcmp(param, CMD_PARAM_SERIAL_ID_S) == 0)
+        {
+            m_cmd_send_get_resp(p_ch, param, serial_get_string());
+            return;
+        }
 
-        m_cmd_send_get_resp(p_ch, CMD_PARAM_HOURS_ID_S, num_str);
+        if (strcmp(param, CMD_PARAM_HOURS_ID_S) == 0)
+        {
+            snprintf(num_str, sizeof(num_str), "%lu",
+                     (unsigned long)hourmeter_get_on_hours());
+            m_cmd_send_get_resp(p_ch, param, num_str);
+            return;
+        }
+
+        if (strcmp(param, CMD_PARAM_ONSECS_ID_S) == 0)
+        {
+            snprintf(num_str, sizeof(num_str), "%lu",
+                     (unsigned long)hourmeter_get_on_seconds());
+            m_cmd_send_get_resp(p_ch, param, num_str);
+            return;
+        }
+
+        p_ctl = m_cmd_find_ctl(inst, param);
+        if (p_ctl == NULL)
+        {
+            m_cmd_send_err_resp(p_ch, inst, param, NULL);
+            return;
+        }
+
+        snprintf(num_str, sizeof(num_str), "%d", p_ctl->p_callback(0));
+        m_cmd_send_get_resp(p_ch, param, num_str);
         return;
     }
 
-    if (m_cmd_match_exact(p_ch, CMD_INST_GET_S ":" CMD_PARAM_ONSECS_ID_S))
+    if (strcmp(inst, CMD_INST_SET_S) == 0)
     {
-        char num_str[12];
+        if (!has_value || !m_cmd_parse_u16(value_str, &value))
+        {
+            m_cmd_send_err_resp(p_ch, inst, param, has_value ? value_str : NULL);
+            return;
+        }
 
-        snprintf(num_str, sizeof(num_str), "%lu",
-                 (unsigned long)hourmeter_get_on_seconds());
+        p_ctl = m_cmd_find_ctl(inst, param);
+        if (p_ctl == NULL)
+        {
+            m_cmd_send_err_resp(p_ch, inst, param, value_str);
+            return;
+        }
 
-        m_cmd_send_get_resp(p_ch, CMD_PARAM_ONSECS_ID_S, num_str);
+        snprintf(num_str, sizeof(num_str), "%u", (unsigned)value);
+        if (p_ctl->p_callback(value) != 0)
+        {
+            char resp[CMD_MAX_LEN_C];
+
+            snprintf(resp, sizeof(resp), "%s:%s:%s:%s\r\n",
+                     inst, param, num_str, CMD_OK_S);
+            p_ch->p_send((const uint8_t *)resp, (uint16_t)strlen(resp));
+        }
+        else
+        {
+            m_cmd_send_err_resp(p_ch, inst, param, num_str);
+        }
         return;
     }
 
-    memset(inst_str, 0, sizeof(inst_str));
-    memset(param_str, 0, sizeof(param_str));
-    memset(value_str, 0, sizeof(value_str));
-    args_found = 0;
-    
-    /* Get all command parameters */
-    idx = 0;
-    while ((cmd_list[idx].inst[0] != 0) && (args_found == 0))
-    {
-        memset(string, 0, sizeof(string));
-        strcpy(string, cmd_list[idx].inst);
-        string[strlen(cmd_list[idx].inst)] = CMD_SEPARATOR_CHAR_C;
-
-        p_arg_sta = strstr(p_ch->buf, string);
-        if (p_arg_sta != 0)
-        {
-            strcpy(inst_str, cmd_list[idx].inst);
-
-            p_arg_end = strchr(p_arg_sta, CMD_SEPARATOR_CHAR_C);
-            if (p_arg_end != 0)
-            {
-                p_arg_sta = p_arg_end + 1;
-                p_arg_end = strchr(p_arg_sta, CMD_SEPARATOR_CHAR_C);
-                if (p_arg_end != 0)
-                {
-                    if (((p_arg_end - p_arg_sta) < CMD_MAX_PARAM_LEN_C) &&
-                        (strlen((char*)(p_arg_end + 1)) < CMD_MAX_VAL_LEN_C))   /* Fields must fit their buffers; oversized
-                                                                                   fields fall through to the ERR reply */
-                    {
-                        strncpy(param_str, p_arg_sta, (p_arg_end - p_arg_sta));
-
-                        strcpy(value_str, p_arg_end + 1);
-
-                        if ((value_str[0] != CMD_CR_CHAR_C) &&
-                            (value_str[0] != CMD_LF_CHAR_C))                    /* value argument is not empty? */
-                        {
-                            p_arg_end = strchr(value_str, CMD_CR_CHAR_C);
-                            if (p_arg_end)
-                            {
-                                *p_arg_end = 0;
-                            }
-                            else
-                            {
-                                p_arg_end = strchr(value_str, CMD_LF_CHAR_C);
-                                if (p_arg_end)
-                                {
-                                    *p_arg_end = 0;
-                                }
-                            }
-
-                            value = atoi(value_str);
-
-                            args_found = 1;
-                        }
-                        else
-                        {
-                            value_str[0] = 0;                                   /* Since argument is empty, make sure is null */
-                        }
-                    }
-                }
-                else
-                {
-                    p_arg_end = strchr(p_arg_sta, CMD_CR_CHAR_C);
-                    if (p_arg_end == 0)
-                    {
-                        p_arg_end = strchr(p_arg_sta, CMD_LF_CHAR_C);
-                    }
-
-                    if ((p_arg_end != 0) &&
-                        ((p_arg_end - p_arg_sta) < CMD_MAX_PARAM_LEN_C))        /* End of command, param fits its buffer ? */
-                    {
-                        strncpy(param_str, p_arg_sta, (p_arg_end - p_arg_sta));
-
-                        args_found = 1;
-                    }
-                }
-            }
-        }
-
-        if (!args_found)
-        {
-            idx++;
-        }
-    }
-
-    if (args_found)
-    {
-        args_valid = 0;
-
-        while (cmd_list[idx].inst[0] != 0)
-        {
-            if (strcmp(cmd_list[idx].inst, inst_str) == 0)
-            {
-                if (strcmp(cmd_list[idx].param, param_str) == 0)
-                {
-                    if (cmd_list[idx].p_callback != 0)
-                    {
-                        if (value_str[0] != 0)                                  /* Value argument was received? */
-                        {
-                            args_valid = 1;
-
-                            if (cmd_list[idx].p_callback(value))
-                            {
-                                sprintf(string, 
-                                        "%s:%s:%d:%s\r\n",
-                                        inst_str,
-                                        param_str,
-                                        value,
-                                        CMD_OK_S);
-
-                                p_ch->p_send(string, strlen(string));
-                            }
-                            else
-                            {
-                                /* Value invalid for the received parameter */
-
-                                sprintf(string, "%d", value);
-
-                                m_cmd_send_err_resp(p_ch, inst_str, param_str, string);
-                            }
-                        }
-                        else
-                        {
-                            args_valid = 1;
-                            
-                            sprintf(string, 
-                                    "%s:%s:%d\r\n",
-                                    inst_str,
-                                    param_str,
-                                    cmd_list[idx].p_callback(0));
-
-                            p_ch->p_send(string, strlen(string));
-                        }
-                    }
-                    else
-                    {
-                        m_cmd_send_err_resp(p_ch, inst_str, param_str,
-                                            strlen(value_str) ? value_str : 0);
-                    }
-                }
-            }
-
-            idx++;
-        }
-
-        if (!args_valid)
-        {
-            m_cmd_send_err_resp(p_ch, inst_str, param_str, value_str);
-        }
-    }
-    else
-    {
-        m_cmd_send_err_resp(p_ch, inst_str, param_str,
-                            strlen(value_str) ? value_str : 0);
-    }
+    m_cmd_send_err_resp(p_ch, inst, param, has_value ? value_str : NULL);
 }
 
 
