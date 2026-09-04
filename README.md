@@ -36,16 +36,18 @@ Once your environment is ready, install the required build tools and libraries:
 * **On macOS (using Homebrew):**
     * You will need to install `cmake`, `python3`, and an ARM GCC toolchain. You might need to search for the specific Homebrew formulas, but generally:
         ```bash
-        brew install cmake python3 arm-none-eabi-gcc
+        brew install cmake python3
+        brew install --cask gcc-arm-embedded
         ```
+  	* *Note: Former instructions were to brew install `arm-none-eabi-gcc`, which ships without headers and thusly errors. Rebuild the `build` folder after installing `gcc-arm-embedded`.*
+  	* *The following is only relevant to maintaining `arm-none-eabi-gcc` installs.*
     * *Note: Specific library names might differ; you may need to find equivalents for `libnewlib` and `libstdc++-arm-none-eabi-newlib` or confirm they are included with the toolchain.*
 
 ## Clone Repositories
 
-Next, you need to download the source code for the Pico SDK and the OpenLuminaire Software.
+Next, you need to download the source code for the Pico SDK and the OpenLuminaire Software. It is crucial to use the `--recursive` flag to fetch all necessary submodules.
 
 1.  **Clone the Pico SDK:**
-    * It is crucial to use the `--recursive` flag to fetch all necessary submodules.
     * Choose a location for these files (e.g., your home directory).
     ```bash
     git clone --recursive https://github.com/raspberrypi/pico-sdk.git
@@ -53,7 +55,7 @@ Next, you need to download the source code for the Pico SDK and the OpenLuminair
 
 2.  **Clone the OpenLuminaire Software:**
     ```bash
-    git clone https://github.com/OSLUV/OpenLuminaire-Software.git
+    git clone --recursive https://github.com/OSLUV/OpenLuminaire-Software.git
     ```
 
 ## Build the Firmware
