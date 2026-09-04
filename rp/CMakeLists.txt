@@ -86,6 +86,17 @@ add_dependencies(app splash_images)
 pico_enable_stdio_usb(app 1)
 pico_enable_stdio_uart(app 0)
 
+# Allow a USB stdout write 100 ms without transmit progress (SDK default 500 ms).
+# One millisecond is a single USB frame and can truncate normal multi-packet
+# replies; 100 ms tolerates ordinary host scheduling while the command layer's
+# absolute send deadlines remain well below the 1500 ms watchdog.
+# Bound stdio mutex acquisition to 20 ms as well. The command handler also
+# limits receive work per pass and caps its USB sends.
+target_compile_definitions(app PRIVATE
+	PICO_STDIO_USB_STDOUT_TIMEOUT_US=100000
+	PICO_STDIO_DEADLOCK_TIMEOUT_MS=20
+)
+
 pico_add_extra_outputs(app)
 
 set(LV_CONF_PATH "${CMAKE_CURRENT_LIST_DIR}/lv_conf.h")
