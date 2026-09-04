@@ -39,9 +39,12 @@ Once your environment is ready, install the required build tools and libraries:
         brew install cmake python3
         brew install --cask gcc-arm-embedded
         ```
-  	* *Note: Former instructions were to brew install `arm-none-eabi-gcc`, which ships without headers and thusly errors. Rebuild the `build` folder after installing `gcc-arm-embedded`.*
-  	* *The following is only relevant to maintaining `arm-none-eabi-gcc` installs.*
-    * *Note: Specific library names might differ; you may need to find equivalents for `libnewlib` and `libstdc++-arm-none-eabi-newlib` or confirm they are included with the toolchain.*
+  	* Note: Former instructions were to brew install `arm-none-eabi-gcc`, which ships without headers and thusly errors. If you previously installed `arm-none-eabi-gcc`, remove it to prevent conflicts, then clear any existing CMake build directory.
+		```bash
+		brew uninstall arm-none-eabi-gcc arm-none-eabi-binutils
+		rm -rf build
+		```
+  	* *If you wish to maintain an `arm-none-eabi-gcc` installation, note that specific library names might differ; you may need to find equivalents for `libnewlib` and `libstdc++-arm-none-eabi-newlib` or confirm they are included with the toolchain.*
 
 ## Clone Repositories
 
